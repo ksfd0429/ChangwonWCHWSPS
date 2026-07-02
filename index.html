@@ -9810,7 +9810,7 @@ function notifyAdmin(subject,body){try{fetch('https://formsubmit.co/ajax/'+ADMIN
 function cnameSafe(c){try{return cname(c)}catch(e){return c}}
 
 function maskEmail(e){if(!e)return '';var p=String(e).split('@');var u=p[0]||'';return (u.length<=2?(u[0]||'')+'•':u.slice(0,2)+'•••')+'@'+(p[1]||'');}
-function authBox(inner){return '<div class="center"><div class="box"><div class="logo"><img src="assets/logo.png"><img src="assets/ksfd.png" onerror="this.remove()"></div>'+inner+'</div></div>';}
+function authBox(inner){var _ai=(typeof trS==='function'&&trS('Translations on this screen are AI-generated. In case of any discrepancy, the English original shall prevail.'))?'<div class="ainote" style="margin:14px 0 0">'+L('Translations on this screen are AI-generated. In case of any discrepancy, the English original shall prevail.')+'</div>':'';return '<div class="center"><div class="box"><div class="logo"><img src="assets/logo.png"><img src="assets/ksfd.png" onerror="this.remove()"></div>'+inner+_ai+'</div></div>';}
 function authHead(sub){applyDir();return '<h2 style="margin:4px 0 2px;text-align:center;font-size:18px">'+flag(S.country,22)+' '+esc(cname(S.country))+'</h2><p class="muted" style="text-align:center;margin:0 0 14px;font-size:12px">'+sub+'</p>';}
 
 function scrActivate(){

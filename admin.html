@@ -108,7 +108,7 @@ async function fetchAll(){
   out.npc_accounts=out.npc_directory;out.invoices=out.invoices||[];
   _S=out;return out;}
 function dataS(){return LIVE?(_S||{npc_accounts:[],activation_requests:[],members:[],invitations:[],firearms:[],firearm_submissions:[],invoices:[],oc_settings:[]}):mL();}
-var ADMIN_ACCOUNTS={'loc_7766':{pw:'142857',role:'Master administrator'}}; // 하위 관리자(loc_xxxx)는 추후 추가
+/* 관리자 인증 = service key 단독. ID/비밀번호 없음 — 키 자체가 자격증명이며 sessionStorage에만 보관. */
 var CUR_ADMIN=null;
 
 /* ==== top progress bar: real percentage of processed steps ==== */
@@ -133,17 +133,22 @@ function scrLogin(){
   $('#app').innerHTML='<div class="center"><div class="box"><div style="display:flex;justify-content:center"><img src="assets/logo.png" style="height:64px;border-radius:50%"></div>'+
   '<h2 style="margin:12px 0 2px;text-align:center;font-size:19px">OC Master Admin</h2>'+
   '<p class="muted" style="text-align:center;margin:0 0 14px;font-size:12px">Changwon 2026 WSPS World Championships — 조직위 전용</p>'+
-  (LIVE?'<div style="background:#DDEEE3;border:1px solid #2E8B57;border-radius:10px;padding:8px 10px;margin-bottom:12px;font-size:12px"><b style="color:#1F6B42">LIVE</b> <span class="muted">— 실DB 연결됨. 관리자 <b>loc_7766</b> / <b>142857</b> · 초대메일 발송까지 하려면 service key 입력.</span></div>':'<div style="background:#FBE8D8;border:1px solid #E87722;border-radius:10px;padding:8px 10px;margin-bottom:12px;font-size:12px"><b style="color:#B4550E">DEMO</b> <span class="muted">— 마스터 관리자 <b>loc_7766</b> / <b>142857</b> · NPC 화면과 같은 브라우저에서 데이터 공유.</span></div>')+
-  '<div class="f"><label>Admin ID</label><input id="aid" placeholder="loc_0000"></div>'+
-  '<div class="f"><label>Password</label><input id="pw" type="password"></div>'+
-  (LIVE?'<div class="f"><label>Service key (선택 — 초대메일 발송용, 메모리에만 보관)</label><input id="svc" type="password" placeholder="service_role key (optional)"></div>':'')+
+  (LIVE?'<div style="background:#DDEEE3;border:1px solid #2E8B57;border-radius:10px;padding:8px 10px;margin-bottom:12px;font-size:12px"><b style="color:#1F6B42">LIVE</b> <span class="muted">— 실DB 연결됨. <b>Service key</b>가 관리자 인증 수단입니다 (Supabase → Settings → API Keys → service_role legacy). 키는 이 브라우저 세션 메모리에만 보관됩니다.</span></div>':'<div style="background:#FBE8D8;border:1px solid #E87722;border-radius:10px;padding:8px 10px;margin-bottom:12px;font-size:12px"><b style="color:#B4550E">DEMO</b> <span class="muted">— 로컬 데모 모드. NPC 화면과 같은 브라우저에서 데이터 공유.</span></div>')+
+  (LIVE?'<div class="f"><label>Service key (필수)</label><input id="svc" type="password" placeholder="service_role key"></div>':'')+
   '<button class="btn" style="width:100%;background:#7A2E1F" onclick="doLogin()">Enter</button>'+
   '<div class="err" id="er"></div></div></div>';
-  $('#pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
+  if(LIVE){$('#svc').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});$('#svc').focus();}
 }
-function doLogin(){var id=($('#aid').value||'').trim().toLowerCase();var acc=ADMIN_ACCOUNTS[id];if(!acc||acc.pw!==$('#pw').value){$('#er').textContent='Incorrect ID or password.';return;}
-  if(LIVE){var k=($('#svc')&&$('#svc').value||'').trim();if(k){SVC_KEY=k;try{sbAdmin=supabase.createClient(SUPABASE_URL,k,{auth:{autoRefreshToken:false,persistSession:false}});}catch(e){sbAdmin=null;}try{sessionStorage.setItem('cw_svc',k)}catch(e){}}}
-  CUR_ADMIN={id:id,role:acc.role};try{sessionStorage.setItem('cw_adm',JSON.stringify(CUR_ADMIN))}catch(e){}scrMain();}
+function adminArm(k){SVC_KEY=k;try{sbAdmin=supabase.createClient(SUPABASE_URL,k,{auth:{autoRefreshToken:false,persistSession:false}});sbc=sbAdmin;}catch(e){sbAdmin=null;}CUR_ADMIN={id:'master',role:'Master administrator'};}
+async function doLogin(){var er=$('#er');er.textContent='';
+  if(!LIVE){CUR_ADMIN={id:'demo',role:'Master administrator (DEMO)'};try{sessionStorage.setItem('cw_adm','1')}catch(e){}scrMain();return;}
+  var k=($('#svc')&&$('#svc').value||'').trim();
+  if(!k){er.textContent='Service key를 입력하세요.';return;}
+  er.textContent='키 확인 중…';
+  try{var r=await fetch(SUPABASE_URL+'/auth/v1/admin/users?page=1&per_page=1',{headers:{apikey:k,Authorization:'Bearer '+k}});
+    if(!r.ok){er.textContent='유효하지 않은 service key입니다 (HTTP '+r.status+'). service_role(legacy) 키인지 확인하세요.';return;}
+  }catch(e){er.textContent='키 확인에 실패했습니다 — 네트워크 상태를 확인하세요.';return;}
+  adminArm(k);try{sessionStorage.setItem('cw_svc',k)}catch(e){}scrMain();}
 function logout(){CUR_ADMIN=null;SVC_KEY='';sbAdmin=null;try{sessionStorage.removeItem('cw_adm');sessionStorage.removeItem('cw_svc')}catch(e){}scrLogin();}
 
 function nextNo(arr,used){var mx=0;arr.forEach(function(x){var n=parseInt(x.no,10);if(n>mx)mx=n});return String(mx+1).padStart(3,'0');}
@@ -444,10 +449,10 @@ function detInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.
 function detF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');
   var list=s.firearms.filter(function(g){if(g.country!==x.country)return false;if(sc==='*ALL*')return true;var m=s.members.find(function(mm){return mm.country===g.country&&(memName(mm)===g.owner||mm.name===g.owner)});return m&&(((m.sub_group||'').trim())||'(Ungrouped)')===sc;});
   infoModal(esc(x.country)+' — firearms ('+esc(sc)+')','<div class="tbl"><table><thead><tr><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+list.map(function(g){return '<tr><td>'+esc(g.owner)+'</td><td>'+esc(g.manufacturer)+'</td><td>'+esc(g.model)+'</td><td>'+esc(g.serial)+'</td><td>'+esc(g.type)+'</td><td>'+esc(g.caliber)+'</td><td>'+((g.photo_full&&g.photo_num)?'2/2':'incomplete')+'</td></tr>'}).join('')+'</tbody></table></div>');}
-(function(){try{var a=JSON.parse(sessionStorage.getItem('cw_adm')||'null');
-  if(a&&a.id&&ADMIN_ACCOUNTS[a.id]){CUR_ADMIN=a;
-    if(LIVE){var k=sessionStorage.getItem('cw_svc')||'';if(k){SVC_KEY=k;try{sbAdmin=supabase.createClient(SUPABASE_URL,k,{auth:{autoRefreshToken:false,persistSession:false}});}catch(e){}}}
-    scrMain();return;}}catch(e){}
+(function(){try{
+  if(LIVE){var k=sessionStorage.getItem('cw_svc')||'';if(k){adminArm(k);scrMain();return;}}
+  else if(sessionStorage.getItem('cw_adm')){CUR_ADMIN={id:'demo',role:'Master administrator (DEMO)'};scrMain();return;}
+}catch(e){}
   scrLogin();})();
 </script>
 </body>
