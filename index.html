@@ -101,6 +101,12 @@ th{background:var(--navy);color:#fff;font-weight:600}
 .mli:hover{background:#F1F6FA}
 .mli.on{background:#E3EDF5;color:var(--navy);border-left:3px solid var(--acc)}
 @media(max-width:680px){.mside{display:none}.modal.mwide{max-width:500px}}
+.tabbar{display:flex;gap:6px;margin-top:10px}
+.tabbar .tb{flex:1;padding:8px 4px;text-align:center;border-radius:10px;border:1px solid var(--line);background:#F1F6FA;cursor:pointer;font-weight:700;font-size:12.5px;color:var(--mut);line-height:1.3}
+.tabbar .tb.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.tabbar .tb .en{font-weight:400;font-size:10px;display:block;opacity:.8}
+.ivrow{display:flex;gap:8px;align-items:center;padding:4px 6px;font-size:12.5px;cursor:pointer;border-radius:6px}
+.ivrow:hover{background:#F1F6FA}
 </style>
 </head>
 <body>
@@ -585,19 +591,59 @@ function fCert(g){var box=$('#fpv');if(!box)return;var s=subFor(g);var isA=s&&s.
 
 /* ============ Module 4: Invoice ============ */
 async function modInvoice(){stage('<div class="card"><span class="muted">Loading…</span></div>');pbStart(3);_mem=await db.members(S.country);pbStep();_invc=await db.invoices(S.country);pbStep();_iaddr=await db.invAddrs(S.country);pbStep();renderInvoice();}
+var _invTab='group';var _ivGroups=[];
+function invTab(t){_invTab=t;renderInvoice();}
+function invScope(){if(_invTab==='all')return '*ALL*';if(_invTab==='group')return $('#vg')?$('#vg').value:null;return null;}
+function grpOnlyOptions(){return groupsOf().map(function(g){return '<option value="'+esc(g)+'">'+esc(g==='(Ungrouped)'?'Ungrouped':g)+'</option>'}).join('');}
+function invAddrField(){return '<div class="f"><label>Recipient address (required)</label><input id="va" placeholder="Street, City, Country" onchange="saveInvAddr()" oninput="this.classList.remove(\'fmiss\')"></div>';}
+function invCustomListHtml(){var groups={};_mem.forEach(function(m){var g=grpOf(m);(groups[g]=groups[g]||[]).push(m);});
+  _ivGroups=Object.keys(groups).sort(function(a,b){if(a==='(Ungrouped)')return 1;if(b==='(Ungrouped)')return -1;return a<b?-1:1;});
+  return _ivGroups.map(function(g,gi){var items=groups[g];
+    return '<div class="mgl" style="position:static;margin:6px 0 2px"><label style="cursor:pointer;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ivg'+gi+'" onchange="ivGrpAll('+gi+',this.checked)" style="width:14px;height:14px;min-height:0">'+esc(g==='(Ungrouped)'?'Ungrouped':g)+' ('+items.length+')</label></div>'+
+     items.map(function(m){return '<label class="ivrow"><input type="checkbox" id="ivm'+m.id+'" onchange="invcPreviewDraft()" style="width:16px;height:16px;min-height:0">'+esc(mName(m)||'(새 인원)')+'<span class="muted" style="font-size:11px">'+esc(m.position||'')+' · '+esc(m.room||'')+'</span></label>'}).join('');
+  }).join('');}
+function ivGrpAll(gi,ck){var g=_ivGroups[gi];_mem.forEach(function(m){if(grpOf(m)===g){var c=document.getElementById('ivm'+m.id);if(c)c.checked=ck;}});invcPreviewDraft();}
+function ivSelected(){return _mem.filter(function(m){var c=document.getElementById('ivm'+m.id);return c&&c.checked});}
+async function reqInvoiceCustom(){var t=($('#vt')&&$('#vt').value||'').trim();var a=($('#va')&&$('#va').value||'').trim();var sel=ivSelected();
+  if(!sel.length){alert('인보이스에 포함할 인원을 1명 이상 선택하세요.');return;}
+  if(!t){$('#vt').classList.add('fmiss');alert('수취인명(To)을 입력하세요.');return;}
+  if(!a){$('#va').classList.add('fmiss');alert('수취인 주소를 입력하세요.');return;}
+  pbStart(3);var r=await db.addInvoice({country:S.country,title:t,member_ids:sel.map(function(m){return m.id}),status:'pending',no:'',addr:a});pbStep();
+  if(r.error){alert(r.error.message);return;}
+  try{await db.setInvAddr(S.country,t,a);_iaddr=await db.invAddrs(S.country);}catch(e){}pbStep();
+  _invc=await db.invoices(S.country);pbStep();renderInvoice();}
 function renderInvoice(){
-  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; Back</button><b style="margin-left:6px">Invoice</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">Manage roster &rarr;</button></div><p class="muted" style="font-size:12px">인보이스는 선수단 정보(객실 종류 · 투숙 기간)와 연동됩니다. 전원 또는 세부소속 단위로 신청할 수 있으며, 금액은 조직위 승인 시 확정·기재됩니다.</p></div>'+
-  '<div class="card"><b>Request invoice</b><p class="muted" style="font-size:12px;margin:6px 0 0">To: 수취인(전체 국가 또는 각 세부소속)을 선택하고, 수취인별 주소를 반드시 등록하세요. 승인 전에는 주소 없이 신청할 수 없습니다.</p><div class="row" style="gap:8px;align-items:flex-end;margin-top:8px"><div class="f" style="margin:0;flex:1"><label>To (recipient)</label><select id="vg" onchange="invScopeChg()">'+grpOptions()+'</select></div><button class="btn g" onclick="reqInvoice()">Request draft</button></div><div class="f"><label>Recipient address (required · saved per recipient)</label><input id="va" placeholder="Street, City, Country" onchange="saveInvAddr()"></div></div>'+
+  var tabbar='<div class="tabbar">'+
+   '<div class="tb'+(_invTab==='group'?' on':'')+'" onclick="invTab(\'group\')">그룹별<span class="en">By group</span></div>'+
+   '<div class="tb'+(_invTab==='all'?' on':'')+'" onclick="invTab(\'all\')">전체<span class="en">Entire delegation</span></div>'+
+   '<div class="tb'+(_invTab==='custom'?' on':'')+'" onclick="invTab(\'custom\')">개인 선택<span class="en">Custom selection</span></div></div>';
+  var body='';
+  if(_invTab==='group'){
+    body=groupsOf().length?
+     '<div class="row" style="gap:8px;align-items:flex-end;margin-top:10px"><div class="f" style="margin:0;flex:1"><label>Group (recipient)</label><select id="vg" onchange="invScopeChg()">'+grpOnlyOptions()+'</select></div><button class="btn g" onclick="reqInvoice()">Request draft</button></div>'+invAddrField()+
+     '<p class="muted" style="font-size:11.5px;margin:2px 0 0">선택한 세부소속 인원만 포함됩니다. 수취인별 주소는 저장되어 재사용됩니다.</p>'
+     :'<p class="muted" style="font-size:12.5px;margin-top:10px">등록된 인원/그룹이 없습니다. 먼저 선수단 정보에서 명단을 입력하세요.</p>';
+  }else if(_invTab==='all'){
+    body='<p style="font-size:13px;margin:12px 0 4px"><b>전체 선수단 ('+_mem.length+'명)</b>이 하나의 인보이스로 신청됩니다.</p>'+invAddrField()+
+     '<button class="btn g" style="width:100%" onclick="reqInvoice()">Request draft — entire delegation</button>';
+  }else{
+    body='<p class="muted" style="font-size:12px;margin:10px 0 4px">포함할 인원을 직접 선택하세요. 그룹 헤더 체크박스로 그룹 전체를 선택/해제할 수 있습니다.</p>'+
+     '<div style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:4px 8px">'+(_mem.length?invCustomListHtml():'<span class="muted" style="font-size:12px">No members.</span>')+'</div>'+
+     '<div class="f" style="margin-top:10px"><label>To (recipient name · required)</label><input id="vt" placeholder="e.g. East Region Shooting Association" oninput="this.classList.remove(\'fmiss\');invcPreviewDraft()"></div>'+invAddrField()+
+     '<button class="btn g" style="width:100%" onclick="reqInvoiceCustom()">Request draft — <span id="ivcnt">0</span> selected</button>';
+  }
+  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; Back</button><b style="margin-left:6px">Invoice</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">Manage roster &rarr;</button></div><p class="muted" style="font-size:12px">인보이스는 선수단 정보(객실 종류 · 투숙 기간)와 연동됩니다. 금액은 조직위 승인 시 확정·기재됩니다.</p></div>'+
+  '<div class="card"><b>Request invoice</b>'+tabbar+body+'</div>'+
   '<div class="card"><b>Requested invoices</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>No.</th><th>Scope</th><th>Members</th><th>Status</th><th></th></tr></thead><tbody>'+
    (_invc.length?_invc.map(function(V){var n=(V.member_ids||[]).length;return '<tr><td>'+(V.no?'<b>'+esc(V.no)+'</b>':'<span class="muted">— pending</span>')+'</td><td>'+esc(V.title)+'</td><td>'+n+'</td><td>'+(V.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending approval</span>')+'</td><td><button class="btn sec" style="padding:3px 8px" onclick="prevInvoice('+V.id+')">Preview</button>'+(V.status==='approved'?'':' <button class="btn r" style="padding:3px 8px" onclick="withdrawInvoice('+V.id+')">Withdraw</button>')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">No invoices requested yet.</td></tr>')+
   '</tbody></table></div></div>'+
   '<div class="card" id="vpv"></div>');
-  invScopeChg();
+  if(_invTab==='custom'){invcPreviewDraft();}else{invScopeChg();}
 }
 function addrOf(g){var x=_iaddr.find(function(a){return (a.grp||'*ALL*')===g});return x?(x.addr||''):'';}
-function invScopeChg(){if($('#va'))$('#va').value=addrOf($('#vg').value);invcPreviewDraft();}
-async function saveInvAddr(){var g=$('#vg').value,a=$('#va').value.trim();await db.setInvAddr(S.country,g,a);_iaddr=await db.invAddrs(S.country);invcPreviewDraft();}
-async function reqInvoice(){var g=$('#vg').value;var mem=scopeMembers(g);if(!mem.length){alert('No members in that scope.');return;}var a=addrOf(g);if(!a){alert('Register the recipient address first.');return;}var t=(g==='*ALL*'?'Entire delegation':g);var r=await db.addInvoice({country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:'',addr:a});if(r.error){alert(r.error.message);return;}_invc=await db.invoices(S.country);renderInvoice();}
+function invScopeChg(){var g=invScope();if($('#va')&&g)$('#va').value=addrOf(g);invcPreviewDraft();}
+async function saveInvAddr(){if(_invTab==='custom'){invcPreviewDraft();return;}var g=invScope(),a=$('#va').value.trim();if(!g)return;await db.setInvAddr(S.country,g,a);_iaddr=await db.invAddrs(S.country);invcPreviewDraft();}
+async function reqInvoice(){var g=invScope();if(!g)return;var mem=scopeMembers(g);if(!mem.length){alert('No members in that scope.');return;}var a=addrOf(g);if(!a){alert('Register the recipient address first.');return;}var t=(g==='*ALL*'?'Entire delegation':g);var r=await db.addInvoice({country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:'',addr:a});if(r.error){alert(r.error.message);return;}_invc=await db.invoices(S.country);renderInvoice();}
 async function withdrawInvoice(id){var V=_invc.find(function(x){return x.id===id});if(!V||V.status==='approved')return;if(!confirm('Withdraw this invoice request?'))return;await db.delInvoice(id);_invc=await db.invoices(S.country);renderInvoice();}
 function invoiceDoc(V){var isA=V.status==='approved';var wm=isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>';var mem=_mem.filter(function(m){return (V.member_ids||[]).indexOf(m.id)>=0});
   return '<div class="doc" id="vi">'+wm+'<div class="lh"><img src="assets/logo.png" style="height:46px"><div style="flex:1;text-align:center;font-weight:bold;font-size:13px;line-height:1.35;color:#16456B">Korea Shooting Federation for Disabled<br>Changwon 2026 WSPS World Championships Organising Committee</div><img src="assets/ksfd.png" onerror="this.remove()" style="height:46px"></div>'+
@@ -608,7 +654,11 @@ function invoiceDoc(V){var isA=V.status==='approved';var wm=isA?'':'<div class="
   mem.map(function(m){return '<tr><td>'+esc(mName(m))+'</td><td>'+esc(m.room||'')+'</td><td>'+esc(m.arrive||'')+'</td><td>'+esc(m.depart||'')+'</td><td>'+nights(m.arrive,m.depart)+'</td><td>'+esc(m.wheelchair||'')+'</td></tr>'}).join('')+'</tbody></table>'+
   (isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: Shinhan Bank<br>SWIFT Code: SHBKKRSE<br>Account Holder: Korea Shooting Federation for the Disabled<br>Account No.: '+esc(V.account||'—')+'<br>Address: 134, Sangmujayu-ro, Seo-gu, Gwangju-city 61963, Korea</div><p style="font-size:11.5px"><b>NOTE:</b> Please make all payments in USD. Any bank fees or charges must be paid by the payee on top at the time of payment. Any outstanding fees must be paid prior to collection of start numbers.</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'<p>This is a <b>draft invoice request</b>. Amounts and the <b>Banking Information</b> for payment to the Organizing Committee are entered by the OC upon approval — the final invoice is then issued to your delegation.</p>')+'<p style="margin-top:30px">With best regards,</p><p style="margin-top:20px"><b>President</b><br>Korea Shooting Federation for the Disabled</p><div class="dft">ZIP 61998 · 8F, Mareukbokgar-ro 154, Seo-gu, Gwangju, Republic of Korea<br>PHONE +82 62 710 5391 / FAX +82 62 710 9851 / ksfd0427@hanmail.net / www.ksfd.kosad.kr</div></div>';}
 function prevInvoice(id){var V=_invc.find(function(x){return x.id===id});if(!V)return;var box=$('#vpv');var isA=V.status==='approved';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+(V.no?esc(V.no)+' · ':'')+esc(V.title)+'</b>'+(isA?'<button class="btn" style="margin-left:auto" onclick="printEl(\'vi\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">Preview only — issued on approval</span>')+'</div>'+invoiceDoc(V);}
-function invcPreviewDraft(){var box=$('#vpv');if(!box)return;var g=$('#vg')?$('#vg').value:'*ALL*';var mem=scopeMembers(g);var t=(g==='*ALL*'?'Entire delegation':g);var V={country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:'',addr:addrOf(g)};box.innerHTML='<div class="row" style="margin-bottom:8px"><b>Live preview — '+esc(t)+'</b><span class="tag y" style="margin-left:auto">PENDING APPROVAL — amounts issued on approval</span></div>'+invoiceDoc(V);}
+function invcPreviewDraft(){var box=$('#vpv');if(!box)return;var mem,t,a;
+  if(_invTab==='custom'){mem=ivSelected();t=($('#vt')&&$('#vt').value.trim())||'Custom selection';a=($('#va')&&$('#va').value.trim())||'';var cnt=document.getElementById('ivcnt');if(cnt)cnt.textContent=mem.length;}
+  else{var g=invScope()||'*ALL*';mem=scopeMembers(g);t=(g==='*ALL*'?'Entire delegation':(g==='(Ungrouped)'?'Ungrouped':g));a=addrOf(g);}
+  var V={country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:'',addr:a};
+  box.innerHTML='<div class="row" style="margin-bottom:8px"><b>Live preview — '+esc(t)+' ('+mem.length+'명)</b><span class="tag y" style="margin-left:auto">PENDING APPROVAL — amounts issued on approval</span></div>'+invoiceDoc(V);}
 
 /* ============ print ============ */
 function printEl(id){var n=document.getElementById(id);if(!n){alert('No document');return;}$('#pa').innerHTML='<div class="doc">'+n.innerHTML+'</div>';$('#pa').classList.remove('hide');window.print();setTimeout(function(){$('#pa').classList.add('hide')},400);}
