@@ -110,6 +110,7 @@ async function fetchAll(){
 function dataS(){return LIVE?(_S||{npc_accounts:[],activation_requests:[],members:[],invitations:[],firearms:[],firearm_submissions:[],invoices:[],oc_settings:[]}):mL();}
 /* 관리자 인증 = service key 단독. ID/비밀번호 없음 — 키 자체가 자격증명이며 sessionStorage에만 보관. */
 var CUR_ADMIN=null;
+var PORTAL_BASE=(location.origin+location.pathname.replace(/[^/]*$/,'')); // 초대·리셋 링크가 되돌아올 포털 주소(하위 경로 포함)
 
 /* ==== top progress bar: real percentage of processed steps ==== */
 var _pbT=1,_pbN=0,_pbHide=null;
@@ -276,8 +277,8 @@ async function aprAct(id,ok){var s=dataS();var r=(s.activation_requests||[]).fin
     if(!sbAdmin){alert('초대 메일을 보내려면 로그인 화면에서 service key를 입력해야 합니다.\n(승인 상태만 기록하려면 확인을 다시 누르세요)');if(!confirm(r.country+' — 메일 발송 없이 승인 상태만 기록할까요?'))return;
       await sbc.from('activation_requests').update({status:'approved',decided_at:new Date().toISOString()}).eq('id',id);scrMain();return;}
     if(!confirm(r.country+' 승인 — '+r.email+' 로 비밀번호 세팅 초대 메일을 보낼까요?'))return;
-    var inv=await sbAdmin.auth.admin.inviteUserByEmail(r.email);
-    if(inv.error&&inv.error.message.indexOf('already')<0){alert('초대 실패: '+inv.error.message);return;}
+    var inv=await sbAdmin.auth.admin.inviteUserByEmail(r.email,{redirectTo:PORTAL_BASE});
+    if(inv.error&&String(inv.error.message||'').indexOf('already')<0){var st=inv.error.status||inv.error.code||'?';var hint=(String(st)==='500'||!inv.error.message)?'\n\n원인은 대개 SMTP 설정 미완료입니다. Supabase → Authentication → Emails → SMTP Settings 에서 Password(Gmail 앱 비밀번호)를 입력·저장하거나, Custom SMTP를 끄세요.':'';alert('초대 실패 (status '+st+'): '+(inv.error.message||JSON.stringify(inv.error))+hint);return;}
     var uid=(inv.data&&inv.data.user&&inv.data.user.id)||null;
     await sbc.from('activation_requests').update({status:'approved',decided_at:new Date().toISOString()}).eq('id',id);
     await sbAdmin.from('npc_directory').upsert({country:r.country,email:r.email,user_id:uid,active:false});
@@ -429,18 +430,18 @@ async function resendSetup(id){var s=dataS();var r=(s.activation_requests||[]).f
     s.outbox.push({id:s._seq,to:r.email,country:r.country,kind:'setup',token:'tk_'+s._seq+'_'+Math.random().toString(36).slice(2,10),sent_at:new Date().toISOString().slice(0,16).replace('T',' '),used:false});
     mS(s);alert('재발송 완료(데모: NPC 화면 Inbox (demo)).');scrMain();return;}
   var d=(s.npc_directory||[]).find(function(x){return x.country===r.country});
-  if(d){var rr=await sbc.auth.resetPasswordForEmail(r.email);
+  if(d){var rr=await sbc.auth.resetPasswordForEmail(r.email,{redirectTo:PORTAL_BASE});
     if(rr.error){alert('발송 실패: '+rr.error.message);return;}
     alert('비밀번호 세팅 링크 재발송 완료: '+r.email);return;}
   if(!sbAdmin){alert('이 계정은 최초 초대가 아직 발송되지 않았습니다.\nservice key로 로그인한 뒤 다시 시도하세요.');return;}
-  var inv=await sbAdmin.auth.admin.inviteUserByEmail(r.email);
-  if(inv.error&&String(inv.error.message).indexOf('already')<0){alert('초대 실패: '+inv.error.message);return;}
+  var inv=await sbAdmin.auth.admin.inviteUserByEmail(r.email,{redirectTo:PORTAL_BASE});
+  if(inv.error&&String(inv.error.message||'').indexOf('already')<0){var st=inv.error.status||inv.error.code||'?';var hint=(String(st)==='500'||!inv.error.message)?'\n\n원인은 대개 SMTP 설정 미완료입니다. Supabase → Authentication → Emails → SMTP Settings 에서 Password(Gmail 앱 비밀번호)를 입력·저장하거나, Custom SMTP를 끄세요.':'';alert('초대 실패 (status '+st+'): '+(inv.error.message||JSON.stringify(inv.error))+hint);return;}
   var uid=(inv.data&&inv.data.user&&inv.data.user.id)||null;
   await sbAdmin.from('npc_directory').upsert({country:r.country,email:r.email,user_id:uid,active:false});
   alert('초대 재발송 완료: '+r.email);scrMain();}
 async function sendResetMail(c){var s=dataS();var a=s.npc_accounts.find(function(x){return x.country===c});if(!a||!a.email){alert('등록된 이메일이 없습니다.');return;}
   if(!confirm(c+' 등록 이메일('+a.email+')로 비밀번호 리셋 링크를 보낼까요?'))return;
-  if(LIVE){var r=await sbc.auth.resetPasswordForEmail(a.email);if(r.error){alert('발송 실패: '+r.error.message);return;}alert('리셋 링크 발송: '+a.email);scrMain();return;}
+  if(LIVE){var r=await sbc.auth.resetPasswordForEmail(a.email,{redirectTo:PORTAL_BASE});if(r.error){alert('발송 실패: '+r.error.message);return;}alert('리셋 링크 발송: '+a.email);scrMain();return;}
   s._seq=(s._seq||1)+2;
   s.outbox.push({id:s._seq,to:a.email,country:c,kind:'reset',token:'tk_'+s._seq+'_'+Math.random().toString(36).slice(2,10),sent_at:new Date().toISOString().slice(0,16).replace('T',' '),used:false});
   mS(s);alert('리셋 링크 발송(데모: NPC 화면 Inbox (demo)).');scrMain();}
