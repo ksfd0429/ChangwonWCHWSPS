@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Changwon 2026 · NPC Submission</title>
+<title>Changwon 2026 WCH NPC Portal by LOC</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#EAF1F7;--panel:#ffffff;--panel2:#F1F6FA;--line:#CBDBE8;--mut:#5D758B;--txt:#13314C;--acc:#1B6FA8;--g:#2E8B57;--y:#E87722;--r:#C94A3D;--navy:#16456B;--blue:#1B6FA8;--green:#2E8B57}
@@ -87,7 +87,7 @@ th{background:var(--navy);color:#fff;font-weight:600}
 </style>
 </head>
 <body>
-<header id="hdr" class="hide"><img src="assets/logo.png" alt="Changwon 2026"><h1>Changwon 2026 · NPC Submission</h1><span class="sp"></span><span id="who" class="muted" style="font-size:12px"></span> <button class="btn sec" style="padding:6px 10px" onclick="logout()">Logout</button></header>
+<header id="hdr" class="hide"><img src="assets/logo.png" alt="Changwon 2026"><h1>Changwon 2026 WCH NPC Portal <span style="opacity:.75;font-weight:600">by LOC</span></h1><span class="sp"></span><span id="who" class="muted" style="font-size:12px"></span> <button class="btn sec" style="padding:6px 10px" onclick="logout()">Logout</button></header>
 <div id="app"></div>
 <div id="pa" class="hide"></div>
 
@@ -150,7 +150,7 @@ function scrCountry(){
   if(!cfgOk()){stage('<div class="card"><h3>Setup required</h3><p class="muted" style="font-size:13px">This tool needs a Supabase Project URL and anon key. Open <b>submit.html</b> and fill in <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> at the top of the script, and run <b>supabase_schema.sql</b> in your Supabase SQL editor.</p></div>');return;}
   var mb = '';
   $('#app').innerHTML='<div class="center"><div class="box">'+mb+'<div class="logo"><img src="assets/logo.png"><img src="assets/ksfd.png" onerror="this.remove()"></div>'+
-    '<h2 style="margin:4px 0 2px;text-align:center;font-size:19px">NPC Submission</h2>'+
+    '<h2 style="margin:4px 0 2px;text-align:center;font-size:17px">Changwon 2026 WCH NPC Portal <span style="color:var(--acc)">by LOC</span></h2>'+
     '<p class="muted" style="text-align:center;margin:0 0 6px;font-size:12px">Changwon 2026 WSPS World Championships</p>'+
     '<div id="cslot" class="slotwrap"></div><div class="acr" id="cacr"></div><div class="offn muted" id="coffn"></div>'+
     '<div class="cnav"><button class="navb o" onpointerdown="holdShift(-1)" onpointerup="holdStop()" onpointerleave="holdStop()" onpointercancel="holdStop()" oncontextmenu="return false">&laquo;</button><button class="navb" onclick="cShift(-1)">&lsaquo;</button><span class="muted" style="font-size:12px">swipe · hold &laquo; &raquo;</span><button class="navb" onclick="cShift(1)">&rsaquo;</button><button class="navb o" onpointerdown="holdShift(1)" onpointerup="holdStop()" onpointerleave="holdStop()" onpointercancel="holdStop()" oncontextmenu="return false">&raquo;</button></div>'+
