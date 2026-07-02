@@ -165,7 +165,9 @@ var sbDb={
   addInvoice:async function(o){return sb.from('invoices').insert(o);},
   delInvoice:async function(id){return sb.from('invoices').delete().eq('id',id);},
   invAddrs:async function(c){var r=await sb.from('invoice_addresses').select('*').eq('country',c);return r.data||[];},
-  setInvAddr:async function(c,g,a){return sb.from('invoice_addresses').upsert({country:c,grp:g,addr:a},{onConflict:'country,grp'});}
+  setInvAddr:async function(c,g,a){return sb.from('invoice_addresses').upsert({country:c,grp:g,addr:a},{onConflict:'country,grp'});},
+  gFlights:async function(c){var r=await sb.from('group_flights').select('*').eq('country',c);return r.data||[];},
+  setGFlight:async function(c,g,o){var p=Object.assign({country:c,grp:g},o);return sb.from('group_flights').upsert(p,{onConflict:'country,grp'});}
 };
 var db = sbDb;
 
@@ -363,7 +365,7 @@ function lockedPoke(){
 }
 
 /* ============ shared helpers ============ */
-var _mem=[],_inv=[],_fg=[],_fsubs=[],_invc=[],_iaddr=[],_gp={};
+var _mem=[],_inv=[],_fg=[],_fsubs=[],_invc=[],_iaddr=[],_gp={},_gf=[],_gfGroups=[];
 function mName(m){var fn=(m.first_name||'').trim(),l=(m.last_name||'').trim();if(fn||l)return (l.toUpperCase()+' '+fn).trim();return m.name||'';}
 function grpOf(m){return (m.sub_group&&m.sub_group.trim())||'(Ungrouped)';}
 function groupsOf(){var g=[];_mem.forEach(function(m){var s=grpOf(m);if(g.indexOf(s)<0)g.push(s)});g.sort();return g;}
@@ -374,13 +376,49 @@ function nights(a,d){if(!a||!d)return '';var n=Math.round((new Date(d)-new Date(
 function sdmsNotice(){return '<div style="background:#FBE8D8;border:1px solid #E87722;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.65"><b style="color:#B4550E">SDMS 연동 안내</b><br>이 명단은 추후 <b>SDMS Final Entry 및 Accreditation 종료 후</b> SDMS에 입력된 명단으로 반영될 예정입니다.<br>다만 현재는 SDMS와 본 시스템이 연동되지 않으므로, <b>인보이스 · 초청장 · 총기정보를 미리 제출하려는 NPC께서는 선수단 정보를 수동으로 입력</b>해 주시기 바랍니다.<div class="muted" style="margin-top:6px;font-size:11.5px">The roster will reflect SDMS entries after Final Entry &amp; Accreditation close. Until synchronisation is available, NPCs wishing to submit invoices, invitation letters or firearm forms early are kindly asked to enter delegation details manually.</div></div>';}
 
 /* ============ Module 0: Delegation info ============ */
-async function modTeam(){stage('<div class="card"><span class="muted">Loading…</span></div>');pbStart(1);_mem=await db.members(S.country);pbStep();renderTeam();}
+async function modTeam(){stage('<div class="card"><span class="muted">Loading…</span></div>');pbStart(2);_mem=await db.members(S.country);pbStep();_gf=await db.gFlights(S.country);pbStep();renderTeam();}
 function renderTeam(){
   var rows=_mem.map(function(m,i){return '<tr onclick="mEdit('+i+')" style="cursor:pointer"><td><b>'+esc(mName(m)||'(새 인원)')+'</b></td><td>'+esc(m.position||'')+'</td><td>'+esc(m.dob||'')+'</td><td>'+esc(m.passport||'')+'</td><td>'+esc(m.sub_group||'')+'</td><td>'+esc(m.arrive||'')+(m.arr_flight?' · '+esc(m.arr_flight):'')+(m.arr_time?' '+esc(m.arr_time):'')+'</td><td>'+esc(m.depart||'')+(m.dep_flight?' · '+esc(m.dep_flight):'')+(m.dep_time?' '+esc(m.dep_time):'')+'</td><td>'+esc(m.room||'')+'</td><td>'+esc(m.wheelchair||'')+'</td><td><button class="btn r" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();mDel('+m.id+')">×</button></td></tr>';}).join('');
   stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; Back</button><b style="margin-left:6px">Delegation info (선수단 정보)</b></div><div style="margin-top:10px">'+sdmsNotice()+'</div></div>'+
    '<div class="card"><b>Roster — '+_mem.length+' member(s)</b><p class="muted" style="font-size:12px;margin:6px 0 8px">행을 누르면 편집 모달이 열립니다. 모달 상단 ‹ ›로 인원을 전환하며 입력하세요(전환 시 자동 저장).</p><div class="tbl"><table><thead><tr><th>Name</th><th>Position</th><th>Date of Birth</th><th>Passport</th><th>Group(세부소속)</th><th>Arrival</th><th>Departure</th><th>Room</th><th>Wheelchair</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="10" class="muted">No members yet.</td></tr>')+'</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn g" onclick="mAdd()">+ Add member</button></div></div>'+
-   '<div class="card"><b>Set travel per group</b><div class="row" style="gap:8px;align-items:flex-end;margin-top:8px"><div class="f" style="margin:0;flex:1;min-width:150px"><label>Apply to</label><select id="pg">'+grpOptions()+'</select></div><div class="f" style="margin:0"><label>Arrival</label><input id="pa" type="date" min="1900-01-01" max="2099-12-31"></div><div class="f" style="margin:0;width:92px"><label>Arr. flight</label><input id="paf" placeholder="OZ302"></div><div class="f" style="margin:0"><label>Landing</label><input id="pat" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)"></div><div class="f" style="margin:0"><label>Departure</label><input id="pd" type="date" min="1900-01-01" max="2099-12-31"></div><div class="f" style="margin:0;width:92px"><label>Dep. flight</label><input id="pdf"></div><div class="f" style="margin:0"><label>Take-off</label><input id="pdt" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)"></div><button class="btn" onclick="applyPeriod()">Apply</button></div></div>');
+   gfCardHtml()+'<div class="card"><b>Set travel per group</b><div class="row" style="gap:8px;align-items:flex-end;margin-top:8px"><div class="f" style="margin:0;flex:1;min-width:150px"><label>Apply to</label><select id="pg">'+grpOptions()+'</select></div><div class="f" style="margin:0"><label>Arrival</label><input id="pa" type="date" min="1900-01-01" max="2099-12-31"></div><div class="f" style="margin:0;width:92px"><label>Arr. flight</label><input id="paf" placeholder="OZ302"></div><div class="f" style="margin:0"><label>Landing</label><input id="pat" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)"></div><div class="f" style="margin:0"><label>Departure</label><input id="pd" type="date" min="1900-01-01" max="2099-12-31"></div><div class="f" style="margin:0;width:92px"><label>Dep. flight</label><input id="pdf"></div><div class="f" style="margin:0"><label>Take-off</label><input id="pdt" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)"></div><button class="btn" onclick="applyPeriod()">Apply</button></div></div>');
 }
+
+/* ===== Group flight schedules ===== */
+function gfOf(g){return (_gf||[]).find(function(x){return x.grp===g})||{};}
+function gfInputs(sfx,gf){gf=gf||{};
+  return '<td><input id="gfa'+sfx+'" type="date" min="1900-01-01" max="2099-12-31" value="'+esc(gf.arrive||'')+'" style="min-width:128px"></td>'+
+   '<td><input id="gfaf'+sfx+'" placeholder="OZ302" value="'+esc(gf.arr_flight||'')+'" style="width:86px"></td>'+
+   '<td><input id="gfat'+sfx+'" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(gf.arr_time||'')+'" style="width:66px"></td>'+
+   '<td><input id="gfd'+sfx+'" type="date" min="1900-01-01" max="2099-12-31" value="'+esc(gf.depart||'')+'" style="min-width:128px"></td>'+
+   '<td><input id="gfdf'+sfx+'" placeholder="OZ301" value="'+esc(gf.dep_flight||'')+'" style="width:86px"></td>'+
+   '<td><input id="gfdt'+sfx+'" inputmode="numeric" maxlength="5" placeholder="10:05" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(gf.dep_time||'')+'" style="width:66px"></td>';}
+function gfCardHtml(){_gfGroups=groupsOf();
+  if(!_mem.length)return '';
+  var rows=_gfGroups.map(function(g,i){return '<tr><td style="white-space:nowrap"><b>'+esc(g==='(Ungrouped)'?'Ungrouped':g)+'</b><span class="muted" style="display:block;font-size:10.5px">'+scopeMembers(g).length+'명</span></td>'+gfInputs(i,gfOf(g))+'<td><button class="btn g" style="padding:4px 10px;font-size:11px" onclick="gfSave('+i+')">저장</button></td></tr>';}).join('');
+  return '<div class="card"><b>Group flight schedules (그룹별 항공일정)</b>'+
+   '<p class="muted" style="font-size:12px;margin:6px 0 8px">그룹 일정을 저장하면, 편집 모달에서 <b>"그룹별 항공일정을 따릅니다"</b>를 체크한 인원 전원에게 자동 반영됩니다.</p>'+
+   '<div class="tbl"><table><thead><tr><th>Group</th><th>Arr. date</th><th>Flight</th><th>Landing</th><th>Dep. date</th><th>Flight</th><th>Take-off</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+   '<div class="msec" style="margin-top:14px">전 그룹 통일 (UNIFY ALL GROUPS)</div>'+
+   '<div class="tbl" style="margin-top:6px;border-color:var(--y)"><table><thead><tr><th>Arr. date</th><th>Flight</th><th>Landing</th><th>Dep. date</th><th>Flight</th><th>Take-off</th><th></th></tr></thead><tbody><tr>'+gfInputs('_all',null)+'<td><button class="btn y" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="gfSaveAll()">전 그룹 항공일정 일괄 저장</button></td></tr></tbody></table></div></div>';}
+function gfCollect(sfx){var ids=['gfa','gfaf','gfat','gfd','gfdf','gfdt'];var ks=['arrive','arr_flight','arr_time','depart','dep_flight','dep_time'];var o={};var bad=0;
+  for(var j=0;j<6;j++){var el=document.getElementById(ids[j]+sfx);var v=el?(el.value||'').trim():'';var ok=v!==''&&((ids[j]!=='gfat'&&ids[j]!=='gfdt')||timeOk(v));if(el)el.classList.toggle('fmiss',!ok);if(!ok)bad++;o[ks[j]]=v;}
+  return bad?null:o;}
+async function gfPropagate(g,o){var t=_mem.filter(function(m){return m.follow_flight==='Yes'&&grpOf(m)===g});
+  for(var j=0;j<t.length;j++){await db.updMember(t[j].id,{arrive:o.arrive,arr_flight:o.arr_flight,arr_time:o.arr_time,depart:o.depart,dep_flight:o.dep_flight,dep_time:o.dep_time});pbStep();}return t.length;}
+async function gfSave(i){var g=_gfGroups[i];if(!g)return;var o=gfCollect(i);if(!o){alert('모든 칸을 채우고 시간은 24시간제(HH:MM)로 입력하세요.');return;}
+  var fw=_mem.filter(function(m){return m.follow_flight==='Yes'&&grpOf(m)===g}).length;
+  pbStart(fw+2);var r=await db.setGFlight(S.country,g,o);pbStep();if(r&&r.error){alert(r.error.message);return;}
+  await gfPropagate(g,o);_gf=await db.gFlights(S.country);_mem=await db.members(S.country);pbStep();renderTeam();}
+async function gfSaveAll(){var o=gfCollect('_all');if(!o){alert('모든 칸을 채우고 시간은 24시간제(HH:MM)로 입력하세요.');return;}
+  if(!confirm('모든 그룹('+_gfGroups.length+'개)의 항공일정을 이 일정으로 통일하고, 그룹 일정을 따르는 인원 전원에게 반영합니다. 계속할까요?'))return;
+  var fw=_mem.filter(function(m){return m.follow_flight==='Yes'}).length;
+  pbStart(_gfGroups.length+fw+1);
+  for(var i=0;i<_gfGroups.length;i++){await db.setGFlight(S.country,_gfGroups[i],o);pbStep();await gfPropagate(_gfGroups[i],o);}
+  _gf=await db.gFlights(S.country);_mem=await db.members(S.country);pbStep();renderTeam();}
+function efFollowChg(){var c=document.getElementById('ef_follow');var s=document.getElementById('flightsec');if(s)s.style.display=(c&&c.checked)?'none':'';
+  if(c&&c.checked){['ef_arr','ef_arrf','ef_arrt','ef_dep','ef_depf','ef_dept'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('fmiss');});}}
+
 var _emIdx=-1;
 function mEdit(i){_emIdx=i;openMemModal();}
 var _msq='';
@@ -408,17 +446,20 @@ function memModalHtml(m,i){
   '<div class="row" style="gap:8px">'+fld('First name (이름)',inp('ef_first',m.first_name))+fld('Family name (성)',inp('ef_last',m.last_name))+'</div>'+
   '<div class="row" style="gap:8px">'+fld('Position',sel('ef_pos',m.position,['Athlete','Official']))+fld('Group (세부소속)',inp('ef_grp',m.sub_group))+'</div>'+
   '<div class="row" style="gap:8px">'+fld('Date of birth',inp('ef_dob',m.dob,'date'))+fld('Passport no.',inp('ef_pass',m.passport))+'</div>'+
+  '<label style="display:flex;gap:8px;align-items:center;margin:12px 0 2px;cursor:pointer;font-size:13px"><input type="checkbox" id="ef_follow" style="width:18px;height:18px;min-height:0;width:18px"'+(m.follow_flight==='Yes'?' checked':'')+' onchange="efFollowChg()"><b>그룹별 항공일정을 따릅니다</b> <span class="muted" style="font-size:11px">(Use group flight schedule)</span></label>'+
+  '<div id="flightsec"'+(m.follow_flight==='Yes'?' style="display:none"':'')+'>'+
   '<div class="msec">ARRIVAL (도착)</div>'+
   '<div class="row" style="gap:8px">'+fld('Date',inp('ef_arr',m.arrive,'date'))+fld('Flight',inp('ef_arrf',m.arr_flight))+fld('Landing',inp('ef_arrt',m.arr_time,'time'))+'</div>'+
   '<div class="msec">DEPARTURE (귀국)</div>'+
   '<div class="row" style="gap:8px">'+fld('Date',inp('ef_dep',m.depart,'date'))+fld('Flight',inp('ef_depf',m.dep_flight))+fld('Take-off',inp('ef_dept',m.dep_time,'time'))+'</div>'+
+  '</div>'+
   '<div class="msec">STAY (숙박)</div>'+
   '<div class="row" style="gap:8px">'+fld('Room type',sel('ef_room',m.room,['Twin','Single']))+fld('Wheelchair',sel('ef_wc',m.wheelchair,['No','Yes']))+'</div>'+
   '</div></div></div></div>';
 }
 function openMemModal(){var m=_mem[_emIdx];if(!m)return;var old=document.getElementById('mm');if(old)old.remove();document.body.insertAdjacentHTML('beforeend',memModalHtml(m,_emIdx));
   REQ_EF.forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',function(){el.classList.remove('fmiss')});});}
-function collectMem(){return {first_name:$('#ef_first').value,last_name:$('#ef_last').value,position:$('#ef_pos').value,dob:$('#ef_dob').value,passport:$('#ef_pass').value,sub_group:$('#ef_grp').value,arrive:$('#ef_arr').value,arr_flight:$('#ef_arrf').value,arr_time:$('#ef_arrt').value,depart:$('#ef_dep').value,dep_flight:$('#ef_depf').value,dep_time:$('#ef_dept').value,room:$('#ef_room').value,wheelchair:$('#ef_wc').value};}
+function collectMem(){return {first_name:$('#ef_first').value,last_name:$('#ef_last').value,position:$('#ef_pos').value,dob:$('#ef_dob').value,passport:$('#ef_pass').value,sub_group:$('#ef_grp').value,arrive:$('#ef_arr').value,arr_flight:$('#ef_arrf').value,arr_time:$('#ef_arrt').value,depart:$('#ef_dep').value,dep_flight:$('#ef_depf').value,dep_time:$('#ef_dept').value,room:$('#ef_room').value,wheelchair:$('#ef_wc').value,follow_flight:(document.getElementById('ef_follow')&&document.getElementById('ef_follow').checked)?'Yes':'No'};}
 function timeOk(v){return /^([01]\d|2[0-3]):[0-5]\d$/.test(v)}
 function tFmt(el){var raw=el.value;var d=raw.replace(/[^0-9]/g,'').slice(0,4);
   if(/^\d{1,2}:\d{0,2}$/.test(raw)){el.classList.remove('fmiss');return;}
@@ -428,11 +469,14 @@ function tBlur(el){var v=el.value.trim();var m=v.match(/^(\d{1,2}):(\d{1,2})$/);
   else if(/^\d{3}$/.test(v)){el.value='0'+v.charAt(0)+':'+v.slice(1);}
   if(el.value&&!timeOk(el.value))el.classList.add('fmiss');}
 var REQ_EF=['ef_first','ef_last','ef_grp','ef_dob','ef_pass','ef_arr','ef_arrf','ef_arrt','ef_dep','ef_depf','ef_dept'];
-function memValidate(){var miss=[];REQ_EF.forEach(function(id){var el=document.getElementById(id);if(!el)return;var v=(el.value||'').trim();var ok=v!==''&&((id!=='ef_arrt'&&id!=='ef_dept')||timeOk(v));el.classList.toggle('fmiss',!ok);if(!ok)miss.push(el);});
+function memValidate(){var miss=[];var _fl=document.getElementById('ef_follow');var _skip=(_fl&&_fl.checked)?{ef_arr:1,ef_arrf:1,ef_arrt:1,ef_dep:1,ef_depf:1,ef_dept:1}:{};REQ_EF.forEach(function(id){if(_skip[id])return;var el=document.getElementById(id);if(!el)return;var v=(el.value||'').trim();var ok=v!==''&&((id!=='ef_arrt'&&id!=='ef_dept')||timeOk(v));el.classList.toggle('fmiss',!ok);if(!ok)miss.push(el);});
   if(miss.length){var b=$('#msv');if(b){b.textContent='공란 '+miss.length+'개를 입력하세요';b.style.background='#C94A3D';setTimeout(function(){var b2=$('#msv');if(b2){b2.textContent='저장';b2.style.background='';}},1300);}miss[0].focus();return false;}return true;}
 async function memSave(flash){var m=_mem[_emIdx];if(!m||!document.getElementById('mm'))return true;
   if(!memValidate())return false;
-  var p=collectMem();Object.assign(m,p);pbStart(1);var r=await db.updMember(m.id,p);pbStep();
+  var p=collectMem();
+  if(p.follow_flight==='Yes'){var gk=((p.sub_group||'').trim())||'(Ungrouped)';var gfr=(_gf||[]).find(function(x){return x.grp===gk});
+    if(gfr){p.arrive=gfr.arrive;p.arr_flight=gfr.arr_flight;p.arr_time=gfr.arr_time;p.depart=gfr.depart;p.dep_flight=gfr.dep_flight;p.dep_time=gfr.dep_time;}}
+  Object.assign(m,p);pbStart(1);var r=await db.updMember(m.id,p);pbStep();
   if(r&&r.error){alert(r.error.message);return false;}
   if(flash){var b=$('#msv');if(b){b.textContent='저장됨 ✓';setTimeout(function(){var b2=$('#msv');if(b2)b2.textContent='저장';},900);}}
   return true;}
@@ -441,9 +485,9 @@ async function memCancel(){var m=_mem[_emIdx];var el=document.getElementById('mm
     if(confirm('저장되지 않은 새 인원입니다. 목록에서 삭제할까요?')){pbStart(2);await db.delMember(m.id);pbStep();_mem=await db.members(S.country);pbStep();}}
   renderTeam();}
 async function memNav(d){var n=_emIdx+d;if(n<0||n>=_mem.length)return;if(!await memSave(false))return;_emIdx=n;openMemModal();}
-async function memAddFromModal(){if(!await memSave(false))return;var r=await db.addMember({country:S.country,first_name:'',last_name:'',position:'Athlete',dob:'',passport:'',sub_group:'',arrive:'',depart:'',arr_flight:'',arr_time:'',dep_flight:'',dep_time:'',room:'Twin',wheelchair:'No'});if(r.error){alert(r.error.message);return;}_mem=await db.members(S.country);_emIdx=_mem.length-1;openMemModal();}
+async function memAddFromModal(){if(!await memSave(false))return;var r=await db.addMember({country:S.country,first_name:'',last_name:'',position:'Athlete',dob:'',passport:'',sub_group:'',arrive:'',depart:'',arr_flight:'',arr_time:'',dep_flight:'',dep_time:'',room:'Twin',wheelchair:'No',follow_flight:'No'});if(r.error){alert(r.error.message);return;}_mem=await db.members(S.country);_emIdx=_mem.length-1;openMemModal();}
 async function closeMemModal(){if(!await memSave(false))return;var el=document.getElementById('mm');if(el)el.remove();renderTeam();}
-async function mAdd(){var r=await db.addMember({country:S.country,first_name:'',last_name:'',position:'Athlete',dob:'',passport:'',sub_group:'',arrive:'',depart:'',arr_flight:'',arr_time:'',dep_flight:'',dep_time:'',room:'Twin',wheelchair:'No'});if(r.error){alert(r.error.message);return;}_mem=await db.members(S.country);renderTeam();_emIdx=_mem.length-1;openMemModal();}
+async function mAdd(){var r=await db.addMember({country:S.country,first_name:'',last_name:'',position:'Athlete',dob:'',passport:'',sub_group:'',arrive:'',depart:'',arr_flight:'',arr_time:'',dep_flight:'',dep_time:'',room:'Twin',wheelchair:'No',follow_flight:'No'});if(r.error){alert(r.error.message);return;}_mem=await db.members(S.country);renderTeam();_emIdx=_mem.length-1;openMemModal();}
 async function mSet(id,k,v){var m=_mem.find(function(x){return x.id===id});if(m)m[k]=v;await db.updMember(id,{[k]:v});}
 async function mDel(id){if(!confirm('Remove this member?'))return;await db.delMember(id);_mem=await db.members(S.country);renderTeam();}
 async function applyPeriod(){var g=$('#pg').value,p={};if($('#pa').value)p.arrive=$('#pa').value;if($('#paf').value)p.arr_flight=$('#paf').value;if($('#pat').value)p.arr_time=$('#pat').value;if($('#pd').value)p.depart=$('#pd').value;if($('#pdf').value)p.dep_flight=$('#pdf').value;if($('#pdt').value)p.dep_time=$('#pdt').value;if(!Object.keys(p).length){alert('Enter at least one field.');return;}if((p.arr_time&&!timeOk(p.arr_time))||(p.dep_time&&!timeOk(p.dep_time))){alert('시간은 24시간제 HH:MM으로 입력하세요 (예: 14:30 / Use 24-hour HH:MM).');return;}var t=scopeMembers(g);pbStart(t.length+1);for(var i=0;i<t.length;i++){await db.updMember(t[i].id,p);pbStep();}_mem=await db.members(S.country);pbStep();renderTeam();}
