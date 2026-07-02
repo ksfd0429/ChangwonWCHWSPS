@@ -213,7 +213,7 @@ function scrActivate(){
     '<div class="row" style="margin-top:12px"><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Country</button></div>'+
     '<div class="err" id="er"></div>');
 }
-async function doActivate(){var e=($('#em').value||'').trim();if(!/^\S+@\S+\.\S+$/.test(e)){$('#er').textContent='Enter a valid email address.';return;}
+async function doActivate(){var e=($('#em').value||'').trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){$('#er').textContent='Enter a valid email address.';return;}
   var r=await db.reqAdd(S.country,e);if(r.error){$('#er').textContent='Error: '+r.error.message;return;}notifyAdmin('New activation request — '+S.country,'NPC: '+S.country+' ('+cnameSafe(S.country)+')\nContact: '+e+'\nTime: '+new Date().toISOString()+'\n\nadmin.html에서 승인/반려하세요.');scrRequested(e);}
 function scrRequested(e){
   $('#app').innerHTML=authBox(authHead('Activation request submitted')+
