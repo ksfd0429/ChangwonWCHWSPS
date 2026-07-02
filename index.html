@@ -89,6 +89,7 @@ th{background:var(--navy);color:#fff;font-weight:600}
 #pbw{position:fixed;top:0;left:0;right:0;height:4px;z-index:99999;display:none;background:rgba(27,111,168,.12);pointer-events:none}
 #pb{height:100%;width:0%;background:linear-gradient(90deg,var(--acc,#1B6FA8),var(--g,#2E8B57));transition:width .15s ease}
 #pbt{position:fixed;top:7px;right:8px;z-index:99999;display:none;font-size:10px;font-weight:700;color:var(--acc,#1B6FA8);background:rgba(255,255,255,.9);border:1px solid var(--line,#CBDBE8);padding:1px 7px;border-radius:10px;pointer-events:none}
+.fmiss{border:2px solid #C94A3D !important;box-shadow:0 0 0 3px rgba(201,74,61,.25) !important}
 </style>
 </head>
 <body>
@@ -367,17 +368,17 @@ function renderTeam(){
   var rows=_mem.map(function(m,i){return '<tr onclick="mEdit('+i+')" style="cursor:pointer"><td><b>'+esc(mName(m)||'(새 인원)')+'</b></td><td>'+esc(m.position||'')+'</td><td>'+esc(m.dob||'')+'</td><td>'+esc(m.passport||'')+'</td><td>'+esc(m.sub_group||'')+'</td><td>'+esc(m.arrive||'')+(m.arr_flight?' · '+esc(m.arr_flight):'')+(m.arr_time?' '+esc(m.arr_time):'')+'</td><td>'+esc(m.depart||'')+(m.dep_flight?' · '+esc(m.dep_flight):'')+(m.dep_time?' '+esc(m.dep_time):'')+'</td><td>'+esc(m.room||'')+'</td><td>'+esc(m.wheelchair||'')+'</td><td><button class="btn r" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();mDel('+m.id+')">×</button></td></tr>';}).join('');
   stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; Back</button><b style="margin-left:6px">Delegation info (선수단 정보)</b></div><div style="margin-top:10px">'+sdmsNotice()+'</div></div>'+
    '<div class="card"><b>Roster — '+_mem.length+' member(s)</b><p class="muted" style="font-size:12px;margin:6px 0 8px">행을 누르면 편집 모달이 열립니다. 모달 상단 ‹ ›로 인원을 전환하며 입력하세요(전환 시 자동 저장).</p><div class="tbl"><table><thead><tr><th>Name</th><th>Position</th><th>Date of Birth</th><th>Passport</th><th>Group(세부소속)</th><th>Arrival</th><th>Departure</th><th>Room</th><th>Wheelchair</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="10" class="muted">No members yet.</td></tr>')+'</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn g" onclick="mAdd()">+ Add member</button></div></div>'+
-   '<div class="card"><b>Set travel per group</b><div class="row" style="gap:8px;align-items:flex-end;margin-top:8px"><div class="f" style="margin:0;flex:1;min-width:150px"><label>Apply to</label><select id="pg">'+grpOptions()+'</select></div><div class="f" style="margin:0"><label>Arrival</label><input id="pa" type="date" min="1900-01-01" max="2099-12-31"></div><div class="f" style="margin:0;width:92px"><label>Arr. flight</label><input id="paf" placeholder="OZ302"></div><div class="f" style="margin:0"><label>Landing</label><input id="pat" type="time"></div><div class="f" style="margin:0"><label>Departure</label><input id="pd" type="date" min="1900-01-01" max="2099-12-31"></div><div class="f" style="margin:0;width:92px"><label>Dep. flight</label><input id="pdf"></div><div class="f" style="margin:0"><label>Take-off</label><input id="pdt" type="time"></div><button class="btn" onclick="applyPeriod()">Apply</button></div></div>');
+   '<div class="card"><b>Set travel per group</b><div class="row" style="gap:8px;align-items:flex-end;margin-top:8px"><div class="f" style="margin:0;flex:1;min-width:150px"><label>Apply to</label><select id="pg">'+grpOptions()+'</select></div><div class="f" style="margin:0"><label>Arrival</label><input id="pa" type="date" min="1900-01-01" max="2099-12-31"></div><div class="f" style="margin:0;width:92px"><label>Arr. flight</label><input id="paf" placeholder="OZ302"></div><div class="f" style="margin:0"><label>Landing</label><input id="pat" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)"></div><div class="f" style="margin:0"><label>Departure</label><input id="pd" type="date" min="1900-01-01" max="2099-12-31"></div><div class="f" style="margin:0;width:92px"><label>Dep. flight</label><input id="pdf"></div><div class="f" style="margin:0"><label>Take-off</label><input id="pdt" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)"></div><button class="btn" onclick="applyPeriod()">Apply</button></div></div>');
 }
 var _emIdx=-1;
 function mEdit(i){_emIdx=i;openMemModal();}
 function memModalHtml(m,i){
   function fld(label,inner){return '<div class="f" style="flex:1;margin:8px 0;min-width:0"><label>'+label+'</label>'+inner+'</div>';}
-  function inp(id,v,t){return '<input id="'+id+'"'+(t?' type="'+t+'"':'')+(t==='date'?' min="1900-01-01" max="2099-12-31"':'')+' value="'+esc(v||'')+'">';}
+  function inp(id,v,t){if(t==='time')return '<input id="'+id+'" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(v||'')+'">';return '<input id="'+id+'"'+(t?' type="'+t+'"':'')+(t==='date'?' min="1900-01-01" max="2099-12-31"':'')+' value="'+esc(v||'')+'">';}
   function sel(id,v,opts){return '<select id="'+id+'">'+opts.map(function(o){return '<option'+(v===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select>';}
   return '<div class="mback" id="mm" onclick="if(event.target===this)closeMemModal()"><div class="modal">'+
-  '<div class="mtop"><button class="mnav" onclick="memNav(-1)"'+(i>0?'':' disabled')+'>&lsaquo;</button><button class="btn g" id="msv" style="flex:1" onclick="memSave(true)">저장</button><button class="mnav" onclick="memNav(1)"'+(i<_mem.length-1?'':' disabled')+'>&rsaquo;</button><button class="mnav" style="color:#2E8B57" title="인원 추가" onclick="memAddFromModal()">+</button><button class="mnav" style="color:#C94A3D" onclick="closeMemModal()">×</button></div>'+
-  '<p class="muted" style="font-size:12px;text-align:center;margin:8px 0">'+(i+1)+' / '+_mem.length+' · ‹ ›로 인원 전환 시 자동 저장됩니다</p>'+
+  '<div class="mtop"><button class="mnav" onclick="memNav(-1)"'+(i>0?'':' disabled')+'>&lsaquo;</button><button class="btn g" id="msv" style="flex:1" onclick="memSave(true)">저장</button><button class="btn sec" style="min-height:0;padding:8px 12px" onclick="memCancel()">취소</button><button class="mnav" onclick="memNav(1)"'+(i<_mem.length-1?'':' disabled')+'>&rsaquo;</button><button class="mnav" style="color:#2E8B57" title="인원 추가" onclick="memAddFromModal()">+</button><button class="mnav" style="color:#C94A3D" onclick="closeMemModal()">×</button></div>'+
+  '<p class="muted" style="font-size:12px;text-align:center;margin:8px 0">'+(i+1)+' / '+_mem.length+' · 모든 칸을 입력해야 저장·이동됩니다 · 미완성 시 <b>취소</b>로 나가기</p>'+
   '<div class="row" style="gap:8px">'+fld('First name (이름)',inp('ef_first',m.first_name))+fld('Family name (성)',inp('ef_last',m.last_name))+'</div>'+
   '<div class="row" style="gap:8px">'+fld('Position',sel('ef_pos',m.position,['Athlete','Official']))+fld('Group (세부소속)',inp('ef_grp',m.sub_group))+'</div>'+
   '<div class="row" style="gap:8px">'+fld('Date of birth',inp('ef_dob',m.dob,'date'))+fld('Passport no.',inp('ef_pass',m.passport))+'</div>'+
@@ -389,16 +390,37 @@ function memModalHtml(m,i){
   '<div class="row" style="gap:8px">'+fld('Room type',sel('ef_room',m.room,['Twin','Single']))+fld('Wheelchair',sel('ef_wc',m.wheelchair,['No','Yes']))+'</div>'+
   '</div></div>';
 }
-function openMemModal(){var m=_mem[_emIdx];if(!m)return;var old=document.getElementById('mm');if(old)old.remove();document.body.insertAdjacentHTML('beforeend',memModalHtml(m,_emIdx));}
+function openMemModal(){var m=_mem[_emIdx];if(!m)return;var old=document.getElementById('mm');if(old)old.remove();document.body.insertAdjacentHTML('beforeend',memModalHtml(m,_emIdx));
+  REQ_EF.forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',function(){el.classList.remove('fmiss')});});}
 function collectMem(){return {first_name:$('#ef_first').value,last_name:$('#ef_last').value,position:$('#ef_pos').value,dob:$('#ef_dob').value,passport:$('#ef_pass').value,sub_group:$('#ef_grp').value,arrive:$('#ef_arr').value,arr_flight:$('#ef_arrf').value,arr_time:$('#ef_arrt').value,depart:$('#ef_dep').value,dep_flight:$('#ef_depf').value,dep_time:$('#ef_dept').value,room:$('#ef_room').value,wheelchair:$('#ef_wc').value};}
-async function memSave(flash){var m=_mem[_emIdx];if(!m||!document.getElementById('mm'))return;var p=collectMem();Object.assign(m,p);await db.updMember(m.id,p);if(flash){var b=$('#msv');if(b){b.textContent='저장됨 ✓';setTimeout(function(){var b2=$('#msv');if(b2)b2.textContent='저장';},900);}}}
-async function memNav(d){var n=_emIdx+d;if(n<0||n>=_mem.length)return;await memSave(false);_emIdx=n;openMemModal();}
-async function memAddFromModal(){await memSave(false);var r=await db.addMember({country:S.country,first_name:'',last_name:'',position:'Athlete',dob:'',passport:'',sub_group:'',arrive:'',depart:'',arr_flight:'',arr_time:'',dep_flight:'',dep_time:'',room:'Twin',wheelchair:'No'});if(r.error){alert(r.error.message);return;}_mem=await db.members(S.country);_emIdx=_mem.length-1;openMemModal();}
-async function closeMemModal(){await memSave(false);var el=document.getElementById('mm');if(el)el.remove();renderTeam();}
+function timeOk(v){return /^([01]\d|2[0-3]):[0-5]\d$/.test(v)}
+function tFmt(el){var raw=el.value;var d=raw.replace(/[^0-9]/g,'').slice(0,4);
+  if(/^\d{1,2}:\d{0,2}$/.test(raw)){el.classList.remove('fmiss');return;}
+  el.value=(d.length===4)?d.slice(0,2)+':'+d.slice(2):d;el.classList.remove('fmiss');}
+function tBlur(el){var v=el.value.trim();var m=v.match(/^(\d{1,2}):(\d{1,2})$/);
+  if(m){el.value=('0'+m[1]).slice(-2)+':'+('0'+m[2]).slice(-2);}
+  else if(/^\d{3}$/.test(v)){el.value='0'+v.charAt(0)+':'+v.slice(1);}
+  if(el.value&&!timeOk(el.value))el.classList.add('fmiss');}
+var REQ_EF=['ef_first','ef_last','ef_grp','ef_dob','ef_pass','ef_arr','ef_arrf','ef_arrt','ef_dep','ef_depf','ef_dept'];
+function memValidate(){var miss=[];REQ_EF.forEach(function(id){var el=document.getElementById(id);if(!el)return;var v=(el.value||'').trim();var ok=v!==''&&((id!=='ef_arrt'&&id!=='ef_dept')||timeOk(v));el.classList.toggle('fmiss',!ok);if(!ok)miss.push(el);});
+  if(miss.length){var b=$('#msv');if(b){b.textContent='공란 '+miss.length+'개를 입력하세요';b.style.background='#C94A3D';setTimeout(function(){var b2=$('#msv');if(b2){b2.textContent='저장';b2.style.background='';}},1300);}miss[0].focus();return false;}return true;}
+async function memSave(flash){var m=_mem[_emIdx];if(!m||!document.getElementById('mm'))return true;
+  if(!memValidate())return false;
+  var p=collectMem();Object.assign(m,p);pbStart(1);var r=await db.updMember(m.id,p);pbStep();
+  if(r&&r.error){alert(r.error.message);return false;}
+  if(flash){var b=$('#msv');if(b){b.textContent='저장됨 ✓';setTimeout(function(){var b2=$('#msv');if(b2)b2.textContent='저장';},900);}}
+  return true;}
+async function memCancel(){var m=_mem[_emIdx];var el=document.getElementById('mm');if(el)el.remove();
+  if(m&&!(m.first_name||'').trim()&&!(m.last_name||'').trim()){
+    if(confirm('저장되지 않은 새 인원입니다. 목록에서 삭제할까요?')){pbStart(2);await db.delMember(m.id);pbStep();_mem=await db.members(S.country);pbStep();}}
+  renderTeam();}
+async function memNav(d){var n=_emIdx+d;if(n<0||n>=_mem.length)return;if(!await memSave(false))return;_emIdx=n;openMemModal();}
+async function memAddFromModal(){if(!await memSave(false))return;var r=await db.addMember({country:S.country,first_name:'',last_name:'',position:'Athlete',dob:'',passport:'',sub_group:'',arrive:'',depart:'',arr_flight:'',arr_time:'',dep_flight:'',dep_time:'',room:'Twin',wheelchair:'No'});if(r.error){alert(r.error.message);return;}_mem=await db.members(S.country);_emIdx=_mem.length-1;openMemModal();}
+async function closeMemModal(){if(!await memSave(false))return;var el=document.getElementById('mm');if(el)el.remove();renderTeam();}
 async function mAdd(){var r=await db.addMember({country:S.country,first_name:'',last_name:'',position:'Athlete',dob:'',passport:'',sub_group:'',arrive:'',depart:'',arr_flight:'',arr_time:'',dep_flight:'',dep_time:'',room:'Twin',wheelchair:'No'});if(r.error){alert(r.error.message);return;}_mem=await db.members(S.country);renderTeam();_emIdx=_mem.length-1;openMemModal();}
 async function mSet(id,k,v){var m=_mem.find(function(x){return x.id===id});if(m)m[k]=v;await db.updMember(id,{[k]:v});}
 async function mDel(id){if(!confirm('Remove this member?'))return;await db.delMember(id);_mem=await db.members(S.country);renderTeam();}
-async function applyPeriod(){var g=$('#pg').value,p={};if($('#pa').value)p.arrive=$('#pa').value;if($('#paf').value)p.arr_flight=$('#paf').value;if($('#pat').value)p.arr_time=$('#pat').value;if($('#pd').value)p.depart=$('#pd').value;if($('#pdf').value)p.dep_flight=$('#pdf').value;if($('#pdt').value)p.dep_time=$('#pdt').value;if(!Object.keys(p).length){alert('Enter at least one field.');return;}var t=scopeMembers(g);pbStart(t.length+1);for(var i=0;i<t.length;i++){await db.updMember(t[i].id,p);pbStep();}_mem=await db.members(S.country);pbStep();renderTeam();}
+async function applyPeriod(){var g=$('#pg').value,p={};if($('#pa').value)p.arrive=$('#pa').value;if($('#paf').value)p.arr_flight=$('#paf').value;if($('#pat').value)p.arr_time=$('#pat').value;if($('#pd').value)p.depart=$('#pd').value;if($('#pdf').value)p.dep_flight=$('#pdf').value;if($('#pdt').value)p.dep_time=$('#pdt').value;if(!Object.keys(p).length){alert('Enter at least one field.');return;}if((p.arr_time&&!timeOk(p.arr_time))||(p.dep_time&&!timeOk(p.dep_time))){alert('시간은 24시간제 HH:MM으로 입력하세요 (예: 14:30 / Use 24-hour HH:MM).');return;}var t=scopeMembers(g);pbStart(t.length+1);for(var i=0;i<t.length;i++){await db.updMember(t[i].id,p);pbStep();}_mem=await db.members(S.country);pbStep();renderTeam();}
 
 /* ============ Module 3: Shotgun ammo ============ */
 function modAmmo(){
