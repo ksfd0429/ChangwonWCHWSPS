@@ -66,6 +66,15 @@ summary{cursor:pointer;padding:8px 0;font-size:13px;font-weight:600}
 .mclose{width:36px;height:36px;border-radius:50%;border:1px solid #B7CCDD;background:#fff;font-size:17px;color:#C94A3D;cursor:pointer;font-weight:700}
 .board td,.board th{white-space:nowrap}
 @media(max-width:720px){.alayout{flex-direction:column}.snav{width:100%;flex-direction:row;flex-wrap:wrap;position:static}.snb{flex:1;min-width:130px}}
+.edrow{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:#F8FBFD}
+.edrow label{font-size:10px}
+.edrow input,.edrow select{min-height:38px;padding:7px 10px;font-size:13px}
+.edsec{font-size:10.5px;font-weight:700;color:var(--mut);letter-spacing:.4px}
+.edsplit{display:flex;gap:14px;align-items:flex-start}
+.edleft{flex:1;min-width:380px;display:flex;flex-direction:column}
+#edrows{overflow-y:auto;max-height:58vh;padding-right:4px}
+.edright{flex:1;min-width:380px;max-height:66vh;overflow-y:auto;background:#EAF1F7;border-radius:12px;padding:12px}
+@media(max-width:1020px){.edsplit{flex-direction:column}.edright{max-height:44vh;min-width:0;width:100%}.edleft{min-width:0;width:100%}}
 </style>
 </head>
 <body>
@@ -255,27 +264,41 @@ function itemsToTableA(items){
   h+='<tr><td colspan="3" style="border:none;padding:6px 8px"></td><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:center;font-size:14px">TOTAL</td><td style="border:1px solid #444;padding:6px 8px;text-align:right;font-weight:bold;font-size:14px">'+usdF(tot)+'</td></tr></tbody></table>';
   return h;}
 /* ===== 인보이스 항목 편집기 ===== */
-var _ed=null,_edId=0;
-function editInv(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;_edId=id;
+var _ed=null,_edId=0,_edV=null;
+function editInv(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;_edId=id;_edV=V;
   var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});
   _ed=(V.items&&V.items.length)?JSON.parse(JSON.stringify(V.items)):buildAutoItemsA(mem,s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));
   edRender();}
-function edRender(){var rows=_ed.map(function(r,i){return '<tr>'+
-  '<td><input value="'+esc(r.d||'')+'" onchange="edSet('+i+',\'d\',this.value)" style="min-width:180px"><input value="'+esc(r.s||'')+'" placeholder="(부가설명)" onchange="edSet('+i+',\'s\',this.value)" style="margin-top:3px;font-size:11px;min-height:30px"></td>'+
-  '<td><input value="'+esc(r.q||'')+'" onchange="edSet('+i+',\'q\',this.value)" style="width:95px"></td>'+
-  '<td><input value="'+esc(r.m||'')+'" onchange="edSet('+i+',\'m\',this.value)" style="width:95px"></td>'+
-  '<td><input value="'+esc(r.p||'')+'" onchange="edSet('+i+',\'p\',this.value)" style="width:110px"></td>'+
-  '<td><input type="number" value="'+(+r.t||0)+'" onchange="edSet('+i+',\'t\',+this.value)" style="width:100px;text-align:right"></td>'+
-  '<td><select onchange="edSet('+i+',\'sec\',this.value)" style="min-height:34px;padding:4px">'+['Accommodation','Transportation','Miscellaneous','Other'].map(function(o){return '<option'+(r.sec===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select></td>'+
-  '<td><button class="btn r" style="padding:3px 8px;font-size:11px" onclick="edDel('+i+')">×</button></td></tr>';}).join('');
-  var tot=_ed.reduce(function(a,b){return a+(+b.t||0)},0);
-  infoModal('인보이스 항목 편집 — 합계 <b>'+usdF(tot)+'</b>',
-   '<p class="muted" style="font-size:11.5px;margin:0 0 6px">가격 변경 · 임의 항목 신설 · 삭제가 가능합니다. Total(USD)이 문서 합산에 쓰입니다.</p>'+
-   '<div class="tbl"><table><thead><tr><th>Description</th><th>Qty</th><th>Mult</th><th>Price</th><th>Total(USD)</th><th>Section</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" class="muted">항목 없음</td></tr>')+'</tbody></table></div>'+
-   '<div class="row" style="margin-top:10px"><button class="btn sec" onclick="edAdd()">+ 항목 추가</button><button class="btn g" style="margin-left:auto" onclick="edSave()">저장</button></div>');}
-function edSet(i,k,v){if(_ed[i]){_ed[i][k]=v;if(k==='t')edRender();}}
-function edDel(i){_ed.splice(i,1);edRender();}
-function edAdd(){_ed.push({sec:'Other',d:'',s:'',q:'',m:'',p:'',t:0});edRender();}
+function edTotal(){return _ed.reduce(function(a,b){return a+(+b.t||0)},0);}
+function edRowsHtml(){
+  var SECS=['Accommodation','Transportation','Miscellaneous','Other'];
+  return _ed.map(function(r,i){
+    var opts=SECS.map(function(o){return '<option'+(r.sec===o?' selected':'')+'>'+o+'</option>'}).join('');
+    return '<div class="edrow">'+
+    '<div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap">'+
+     '<div class="f" style="margin:0;width:150px"><label>Section</label><select onchange="edSet('+i+',\'sec\',this.value)">'+opts+'</select></div>'+
+     '<div class="f" style="margin:0;flex:2;min-width:180px"><label>Description (항목명)</label><input value="'+esc(r.d||'')+'" oninput="edSet('+i+',\'d\',this.value)"></div>'+
+     '<div class="f" style="margin:0;width:120px"><label>Total (USD)</label><input type="number" value="'+(+r.t||0)+'" style="text-align:right;font-weight:700" oninput="edSet('+i+',\'t\',+this.value)"></div>'+
+     '<button class="btn r" style="padding:9px 12px;min-height:38px" onclick="edDel('+i+')">삭제</button>'+
+    '</div>'+
+    '<div class="row" style="gap:8px;align-items:flex-end;margin-top:8px;flex-wrap:wrap">'+
+     '<div class="f" style="margin:0;flex:2;min-width:170px"><label>부가설명 (선택)</label><input value="'+esc(r.s||'')+'" placeholder="예: (per person, incl. meals)" oninput="edSet('+i+',\'s\',this.value)"></div>'+
+     '<div class="f" style="margin:0;width:110px"><label>Quantity</label><input value="'+esc(r.q||'')+'" placeholder="7 Nights" oninput="edSet('+i+',\'q\',this.value)"></div>'+
+     '<div class="f" style="margin:0;width:110px"><label>× (인원 등)</label><input value="'+esc(r.m||'')+'" placeholder="* 3 People" oninput="edSet('+i+',\'m\',this.value)"></div>'+
+     '<div class="f" style="margin:0;width:130px"><label>Price 표기</label><input value="'+esc(r.p||'')+'" placeholder="* 220 USD =" oninput="edSet('+i+',\'p\',this.value)"></div>'+
+    '</div></div>';}).join('')||'<p class="muted" style="font-size:12.5px">항목이 없습니다. 아래 "+ 항목 추가"로 시작하세요.</p>';}
+function edRender(){var old=document.getElementById('dm');if(old)old.remove();
+  document.body.insertAdjacentHTML('beforeend','<div class="mback z2" id="dm" onclick="if(event.target===this)this.remove()"><div class="amodal" style="max-width:1500px;width:96vw">'+
+   '<div class="row" style="margin-bottom:10px"><b style="font-size:15px;color:var(--navy)">인보이스 항목 편집 — '+esc(_edV?_edV.country:'')+' · '+esc(_edV?_edV.title:'')+'</b><span class="muted" style="margin-left:12px">합계 <b id="edtot" style="color:var(--acc);font-size:15px">'+usdF(edTotal())+'</b></span><button class="btn" style="margin-left:auto;background:#7A2E1F;padding:6px 14px;min-height:0;font-size:12px" onclick="printEl(\'ed_doc\')">Print / PDF</button><button class="mclose" style="margin-left:8px" onclick="document.getElementById(\'dm\').remove()">×</button></div>'+
+   '<div class="edsplit">'+
+    '<div class="edleft"><div class="edsec" style="margin-bottom:6px">항목 편집 — 가격 변경 · 신설 · 삭제</div><div id="edrows">'+edRowsHtml()+'</div>'+
+     '<div class="row" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line)"><button class="btn sec" onclick="edAdd()">+ 항목 추가</button><button class="btn g" style="margin-left:auto;padding:10px 22px" onclick="edSave()">저장</button></div></div>'+
+    '<div class="edright"><div class="edsec" style="margin-bottom:6px">LIVE PREVIEW — 저장 전 미리보기</div><div id="edprev">'+invoiceDocA(_edV,_ed,'ed_doc')+'</div></div>'+
+   '</div></div></div>');}
+function edPrev(){var el=document.getElementById('edprev');if(el)el.innerHTML=invoiceDocA(_edV,_ed,'ed_doc');var t=document.getElementById('edtot');if(t)t.innerHTML=usdF(edTotal());}
+function edSet(i,k,v){if(_ed[i]){_ed[i][k]=v;edPrev();}}
+function edDel(i){_ed.splice(i,1);var el=document.getElementById('edrows');if(el)el.innerHTML=edRowsHtml();edPrev();}
+function edAdd(){_ed.push({sec:'Other',d:'',s:'',q:'',m:'',p:'',t:0});var el=document.getElementById('edrows');if(el){el.innerHTML=edRowsHtml();el.scrollTop=el.scrollHeight;}edPrev();}
 async function edSave(){
   if(LIVE){var r=await sbc.from('invoices').update({items:_ed}).eq('id',_edId);if(r.error){alert('저장 실패: '+r.error.message);return;}}
   else{var s=mL();var V=(s.invoices||[]).find(function(x){return x.id===_edId});if(V)V.items=_ed;mS(s);}
@@ -307,15 +330,17 @@ function docInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.
   mem.map(function(m){return '<tr><td>'+esc(memName(m))+'</td><td>'+esc(m.position)+'</td><td>'+esc(m.dob)+'</td><td>'+esc(m.arrive)+' ~ '+esc(m.depart)+'</td><td>'+esc(m.passport)+'</td></tr>'}).join('')+'</tbody></table>'+
   '<p>We confirm that the above-named individuals will depart the Republic of Korea upon conclusion of the Competition.</p>'+docFootA()+'</div>';
   docShow('초청장 — '+esc(L.country)+' · '+esc(L.title)+(isA?'':' <span class="tag y">pending</span>'),h);}
-function docV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var isA=V.status==='approved';var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});var b=bankS(s);
-  var h='<div class="doc" id="adm_doc">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+
+function invoiceDocA(V,itemsOverride,idOpt){var s=dataS();var isA=V.status==='approved';var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});var b=bankS(s);
+  var items=itemsOverride||((V.items&&V.items.length)?V.items:buildAutoItemsA(mem,s.firearms.filter(function(g){return g.country===V.country}),pricingS(s)));
+  return '<div class="doc" id="'+(idOpt||'adm_doc')+'">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+
   '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">Changwon 2026 WSPS World Championships</p>'+
   '<table style="width:100%;font-size:12.5px;margin:0 0 8px;border-collapse:collapse"><tr><td style="border:none;padding:2px 4px;width:13%"><b>Address:</b></td><td style="border:none;padding:2px 4px">'+esc(V.addr||'—')+'</td><td style="border:none;padding:2px 4px;text-align:right;width:8%"><b>To:</b></td><td style="border:none;padding:2px 4px;width:14%;text-align:center;font-weight:bold;font-size:16px;color:#16456B">'+esc(V.country)+'</td></tr>'+
   '<tr><td style="border:none;padding:2px 4px"><b>DATE</b></td><td style="border:none;padding:2px 4px">'+(isA?dfmtA(V.approved_at):'—')+'</td><td style="border:none;padding:2px 4px;text-align:right"><b>Invoice No.</b></td><td style="border:none;padding:2px 4px;text-align:center;font-weight:bold">'+(isA?'CW26INV-'+esc(V.no):'—')+'</td></tr></table>'+
   '<p style="font-size:11px;color:#555;margin:0 0 2px">Recipient: '+(V.title&&V.title!=='Entire delegation'?esc(V.title)+' — ':'')+esc(cnameA(V.country))+' delegation · '+mem.length+' member(s)</p>'+
-  ((V.items&&V.items.length)?itemsToTableA(V.items):itemsToTableA(buildAutoItemsA(mem,s.firearms.filter(function(g){return g.country===V.country}),pricingS(s))))+
-  (isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(V.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'<p>This is a <b>draft invoice request</b>. Amounts and Banking Information are entered by the OC upon approval.</p>')+docFootA()+'</div>';
-  docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),h);}
+  itemsToTableA(items)+
+  (isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(V.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'<p>This is a <b>draft invoice request</b>. Amounts and Banking Information are entered by the OC upon approval.</p>')+docFootA()+'</div>';}
+function docV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var isA=V.status==='approved';
+  docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),invoiceDocA(V,null,'adm_doc'));}
 function docF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');var sub=x.submitted_at;
   var list=s.firearms.filter(function(g){if(g.country!==x.country)return false;if(sc==='*ALL*')return true;var m=s.members.find(function(mm){return mm.country===g.country&&(memName(mm)===g.owner||mm.name===g.owner)});return m&&(((m.sub_group||'').trim())||'(Ungrouped)')===sc;});
   var ref='OC-F-'+x.country+'-'+String(sub||'').replace(/-/g,'');
