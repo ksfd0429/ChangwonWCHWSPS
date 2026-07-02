@@ -106,7 +106,7 @@ async function scrMain(){
   var pF=s.firearm_submissions.filter(function(x){return x.status!=='approved'}).length;
   var pV=(s.invoices||[]).filter(function(x){return x.status!=='approved'}).length;
   var pA=(s.activation_requests||[]).filter(function(x){return x.status==='pending'}).length;
-  var aqRows=(s.activation_requests||[]).slice().reverse().map(function(r){return '<tr><td>'+flagTd(r.country)+'</td><td>'+esc(r.email)+'</td><td>'+esc(r.requested_at||'')+'</td><td>'+(r.status==='pending'?'<span class="tag y">pending</span>':r.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag r">rejected</span>')+'</td><td>'+(r.status==='pending'?'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="aprAct('+r.id+',true)">Approve</button> <button class="btn r" style="padding:4px 9px;font-size:11px" onclick="aprAct('+r.id+',false)">Reject</button>':'')+'</td></tr>';}).join('');
+  var aqRows=(s.activation_requests||[]).slice().reverse().map(function(r){return '<tr><td>'+flagTd(r.country)+'</td><td>'+esc(r.email)+'</td><td>'+esc(r.requested_at||'')+'</td><td>'+(r.status==='pending'?'<span class="tag y">pending</span>':r.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag r">rejected</span>')+'</td><td>'+(r.status==='pending'?'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="aprAct('+r.id+',true)">Approve</button> <button class="btn r" style="padding:4px 9px;font-size:11px" onclick="aprAct('+r.id+',false)">Reject</button>':r.status==='approved'?'<button class="btn y" style="padding:4px 9px;font-size:11px" onclick="resendSetup('+r.id+')">Resend link</button>':'')+'</td></tr>';}).join('');
   var invRows=s.invitations.map(function(L){var mem=s.members.filter(function(m){return (L.member_ids||[]).indexOf(m.id)>=0});
     return '<tr><td>'+flagTd(L.country)+'</td><td>'+esc(L.title)+'</td><td>'+mem.length+'</td><td>'+(L.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending</span>')+'</td><td>'+(L.no?esc(L.no):'—')+'</td><td>'+esc(L.approved_at||'—')+'</td><td>'+(L.status==='approved'?'<button class="btn r" style="padding:4px 9px;font-size:11px" onclick="revokeInv('+L.id+')">Revoke</button>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="approveInv('+L.id+')">Approve</button>')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="detInv('+L.id+')">Detail</button></td></tr>';}).join('');
   var fRows=s.firearm_submissions.map(function(x,i){var sc=(x.grp||'*ALL*');
@@ -159,6 +159,21 @@ async function aprAct(id,ok){var s=dataS();var r=(s.activation_requests||[]).fin
   r.status='approved';r.decided_at=today();s._seq=(s._seq||1)+2;
   s.outbox.push({id:s._seq,to:r.email,country:r.country,kind:'setup',token:'tk_'+s._seq+'_'+Math.random().toString(36).slice(2,10),sent_at:new Date().toISOString().slice(0,16).replace('T',' '),used:false});
   mS(s);alert('승인 완료 — 비밀번호 세팅 링크 발송.\n(데모: NPC 화면의 Inbox (demo)에서 링크를 열어 확인)');scrMain();}
+async function resendSetup(id){var s=dataS();var r=(s.activation_requests||[]).find(function(x){return x.id===id});if(!r)return;
+  if(!confirm(r.country+' — '+r.email+' 로 비밀번호 세팅 링크를 다시 보낼까요?'))return;
+  if(!LIVE){s._seq=(s._seq||1)+2;
+    s.outbox.push({id:s._seq,to:r.email,country:r.country,kind:'setup',token:'tk_'+s._seq+'_'+Math.random().toString(36).slice(2,10),sent_at:new Date().toISOString().slice(0,16).replace('T',' '),used:false});
+    mS(s);alert('재발송 완료(데모: NPC 화면 Inbox (demo)).');scrMain();return;}
+  var d=(s.npc_directory||[]).find(function(x){return x.country===r.country});
+  if(d){var rr=await sbc.auth.resetPasswordForEmail(r.email);
+    if(rr.error){alert('발송 실패: '+rr.error.message);return;}
+    alert('비밀번호 세팅 링크 재발송 완료: '+r.email);return;}
+  if(!sbAdmin){alert('이 계정은 최초 초대가 아직 발송되지 않았습니다.\nservice key로 로그인한 뒤 다시 시도하세요.');return;}
+  var inv=await sbAdmin.auth.admin.inviteUserByEmail(r.email);
+  if(inv.error&&String(inv.error.message).indexOf('already')<0){alert('초대 실패: '+inv.error.message);return;}
+  var uid=(inv.data&&inv.data.user&&inv.data.user.id)||null;
+  await sbAdmin.from('npc_directory').upsert({country:r.country,email:r.email,user_id:uid,active:false});
+  alert('초대 재발송 완료: '+r.email);scrMain();}
 async function sendResetMail(c){var s=dataS();var a=s.npc_accounts.find(function(x){return x.country===c});if(!a||!a.email){alert('등록된 이메일이 없습니다.');return;}
   if(!confirm(c+' 등록 이메일('+a.email+')로 비밀번호 리셋 링크를 보낼까요?'))return;
   if(LIVE){var r=await sbc.auth.resetPasswordForEmail(a.email);if(r.error){alert('발송 실패: '+r.error.message);return;}alert('리셋 링크 발송: '+a.email);scrMain();return;}
