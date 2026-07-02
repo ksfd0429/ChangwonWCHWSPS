@@ -90,6 +90,17 @@ th{background:var(--navy);color:#fff;font-weight:600}
 #pb{height:100%;width:0%;background:linear-gradient(90deg,var(--acc,#1B6FA8),var(--g,#2E8B57));transition:width .15s ease}
 #pbt{position:fixed;top:7px;right:8px;z-index:99999;display:none;font-size:10px;font-weight:700;color:var(--acc,#1B6FA8);background:rgba(255,255,255,.9);border:1px solid var(--line,#CBDBE8);padding:1px 7px;border-radius:10px;pointer-events:none}
 .fmiss{border:2px solid #C94A3D !important;box-shadow:0 0 0 3px rgba(201,74,61,.25) !important}
+.modal.mwide{max-width:790px}
+.mwrap{display:flex;gap:14px;align-items:stretch}
+.mmain{flex:1;min-width:0}
+.mside{width:212px;min-width:170px;border-right:1px solid var(--line);padding:12px 12px 0 0;display:flex;flex-direction:column}
+.mside input{width:100%;min-height:38px;padding:8px 10px;font-size:12.5px;margin-bottom:8px}
+.mlist{overflow-y:auto;flex:1;max-height:66vh;padding-right:4px}
+.mgl{font-size:10.5px;font-weight:700;color:var(--mut);letter-spacing:.4px;text-transform:uppercase;margin:8px 0 3px;position:sticky;top:0;background:#fff;padding:2px 0}
+.mli{padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;border-left:3px solid transparent}
+.mli:hover{background:#F1F6FA}
+.mli.on{background:#E3EDF5;color:var(--navy);border-left:3px solid var(--acc)}
+@media(max-width:680px){.mside{display:none}.modal.mwide{max-width:500px}}
 </style>
 </head>
 <body>
@@ -372,11 +383,26 @@ function renderTeam(){
 }
 var _emIdx=-1;
 function mEdit(i){_emIdx=i;openMemModal();}
+var _msq='';
+function memListHtml(){var q=(_msq||'').toLowerCase();var groups={};
+  _mem.forEach(function(m,i){var g=grpOf(m);(groups[g]=groups[g]||[]).push({m:m,i:i});});
+  var keys=Object.keys(groups).sort(function(a,b){if(a==='(Ungrouped)')return 1;if(b==='(Ungrouped)')return -1;return a<b?-1:1;});
+  var h='';
+  keys.forEach(function(g){
+    var items=groups[g].filter(function(x){var n=(mName(x.m)||'').toLowerCase();return !q||n.indexOf(q)>=0;});
+    if(!items.length)return;
+    h+='<div class="mgl">'+esc(g==='(Ungrouped)'?'Ungrouped':g)+' <span style="font-weight:400">('+items.length+')</span></div>';
+    items.forEach(function(x){h+='<div class="mli'+(x.i===_emIdx?' on':'')+'" onclick="memJump('+x.i+')">'+esc(mName(x.m)||'(새 인원)')+'<span class="muted" style="font-size:10.5px;display:block;font-weight:400">'+esc(x.m.position||'')+(x.m.passport?' · '+esc(x.m.passport):'')+'</span></div>';});
+  });
+  return h||'<div class="muted" style="font-size:12px;padding:6px 2px">No match.</div>';}
+function memSideHtml(){return '<div class="mside"><input id="msq" placeholder="Search name…" value="'+esc(_msq)+'" oninput="msqChg(this.value)"><div class="mlist" id="mlistwrap">'+memListHtml()+'</div></div>';}
+function msqChg(v){_msq=v;var w=document.getElementById('mlistwrap');if(w)w.innerHTML=memListHtml();}
+async function memJump(i){if(i===_emIdx)return;if(!await memSave(false))return;_emIdx=i;openMemModal();var sq=document.getElementById('msq');if(sq){sq.focus();var vl=sq.value;sq.value='';sq.value=vl;}}
 function memModalHtml(m,i){
   function fld(label,inner){return '<div class="f" style="flex:1;margin:8px 0;min-width:0"><label>'+label+'</label>'+inner+'</div>';}
   function inp(id,v,t){if(t==='time')return '<input id="'+id+'" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(v||'')+'">';return '<input id="'+id+'"'+(t?' type="'+t+'"':'')+(t==='date'?' min="1900-01-01" max="2099-12-31"':'')+' value="'+esc(v||'')+'">';}
   function sel(id,v,opts){return '<select id="'+id+'">'+opts.map(function(o){return '<option'+(v===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select>';}
-  return '<div class="mback" id="mm" onclick="if(event.target===this)closeMemModal()"><div class="modal">'+
+  return '<div class="mback" id="mm" onclick="if(event.target===this)closeMemModal()"><div class="modal mwide"><div class="mwrap">'+memSideHtml()+'<div class="mmain">'+
   '<div class="mtop"><button class="mnav" onclick="memNav(-1)"'+(i>0?'':' disabled')+'>&lsaquo;</button><button class="btn g" id="msv" style="flex:1" onclick="memSave(true)">저장</button><button class="btn sec" style="min-height:0;padding:8px 12px" onclick="memCancel()">취소</button><button class="mnav" onclick="memNav(1)"'+(i<_mem.length-1?'':' disabled')+'>&rsaquo;</button><button class="mnav" style="color:#2E8B57" title="인원 추가" onclick="memAddFromModal()">+</button><button class="mnav" style="color:#C94A3D" onclick="closeMemModal()">×</button></div>'+
   '<p class="muted" style="font-size:12px;text-align:center;margin:8px 0">'+(i+1)+' / '+_mem.length+' · 모든 칸을 입력해야 저장·이동됩니다 · 미완성 시 <b>취소</b>로 나가기</p>'+
   '<div class="row" style="gap:8px">'+fld('First name (이름)',inp('ef_first',m.first_name))+fld('Family name (성)',inp('ef_last',m.last_name))+'</div>'+
@@ -388,7 +414,7 @@ function memModalHtml(m,i){
   '<div class="row" style="gap:8px">'+fld('Date',inp('ef_dep',m.depart,'date'))+fld('Flight',inp('ef_depf',m.dep_flight))+fld('Take-off',inp('ef_dept',m.dep_time,'time'))+'</div>'+
   '<div class="msec">STAY (숙박)</div>'+
   '<div class="row" style="gap:8px">'+fld('Room type',sel('ef_room',m.room,['Twin','Single']))+fld('Wheelchair',sel('ef_wc',m.wheelchair,['No','Yes']))+'</div>'+
-  '</div></div>';
+  '</div></div></div></div>';
 }
 function openMemModal(){var m=_mem[_emIdx];if(!m)return;var old=document.getElementById('mm');if(old)old.remove();document.body.insertAdjacentHTML('beforeend',memModalHtml(m,_emIdx));
   REQ_EF.forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',function(){el.classList.remove('fmiss')});});}
