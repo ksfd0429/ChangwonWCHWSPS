@@ -105,9 +105,9 @@ function scrLogin(){
   $('#pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
 }
 function doLogin(){var id=($('#aid').value||'').trim().toLowerCase();var acc=ADMIN_ACCOUNTS[id];if(!acc||acc.pw!==$('#pw').value){$('#er').textContent='Incorrect ID or password.';return;}
-  if(LIVE){var k=($('#svc')&&$('#svc').value||'').trim();if(k){SVC_KEY=k;try{sbAdmin=supabase.createClient(SUPABASE_URL,k,{auth:{autoRefreshToken:false,persistSession:false}});}catch(e){sbAdmin=null;}}}
-  CUR_ADMIN={id:id,role:acc.role};scrMain();}
-function logout(){CUR_ADMIN=null;scrLogin();}
+  if(LIVE){var k=($('#svc')&&$('#svc').value||'').trim();if(k){SVC_KEY=k;try{sbAdmin=supabase.createClient(SUPABASE_URL,k,{auth:{autoRefreshToken:false,persistSession:false}});}catch(e){sbAdmin=null;}try{sessionStorage.setItem('cw_svc',k)}catch(e){}}}
+  CUR_ADMIN={id:id,role:acc.role};try{sessionStorage.setItem('cw_adm',JSON.stringify(CUR_ADMIN))}catch(e){}scrMain();}
+function logout(){CUR_ADMIN=null;SVC_KEY='';sbAdmin=null;try{sessionStorage.removeItem('cw_adm');sessionStorage.removeItem('cw_svc')}catch(e){}scrLogin();}
 
 function nextNo(arr,used){var mx=0;arr.forEach(function(x){var n=parseInt(x.no,10);if(n>mx)mx=n});return String(mx+1).padStart(3,'0');}
 function flagTd(c){return '<b>'+esc(c)+'</b>';}
@@ -200,7 +200,11 @@ function detInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.
 function detF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');
   var list=s.firearms.filter(function(g){if(g.country!==x.country)return false;if(sc==='*ALL*')return true;var m=s.members.find(function(mm){return mm.country===g.country&&(memName(mm)===g.owner||mm.name===g.owner)});return m&&(((m.sub_group||'').trim())||'(Ungrouped)')===sc;});
   var el=$('#det');el.classList.remove('hide');el.innerHTML='<h3>'+esc(x.country)+' — firearms ('+esc(sc)+')</h3><div class="tbl"><table><thead><tr><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+list.map(function(g){return '<tr><td>'+esc(g.owner)+'</td><td>'+esc(g.manufacturer)+'</td><td>'+esc(g.model)+'</td><td>'+esc(g.serial)+'</td><td>'+esc(g.type)+'</td><td>'+esc(g.caliber)+'</td><td>'+((g.photo_full&&g.photo_num)?'2/2':'incomplete')+'</td></tr>'}).join('')+'</tbody></table></div>';}
-scrLogin();
+(function(){try{var a=JSON.parse(sessionStorage.getItem('cw_adm')||'null');
+  if(a&&a.id&&ADMIN_ACCOUNTS[a.id]){CUR_ADMIN=a;
+    if(LIVE){var k=sessionStorage.getItem('cw_svc')||'';if(k){SVC_KEY=k;try{sbAdmin=supabase.createClient(SUPABASE_URL,k,{auth:{autoRefreshToken:false,persistSession:false}});}catch(e){}}}
+    scrMain();return;}}catch(e){}
+  scrLogin();})();
 </script>
 </body>
 </html>
