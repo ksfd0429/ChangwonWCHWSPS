@@ -284,11 +284,11 @@ function scrLogin(){
 }
 async function doLogin(){var pw=$('#pw').value;pbStart(2);var a=await db.dirGet(S.country);pbStep();
   if(!a){pbEnd();$('#er').textContent='This delegation account is not activated yet.';return;}
-  if(MOCK){var h=await sha(pw);pbStep();if(h!==a.pass_hash){$('#er').textContent='Incorrect password.';return;}S.logged=true;scrMain();return;}
+  if(MOCK){var h=await sha(pw);pbStep();if(h!==a.pass_hash){$('#er').textContent='Incorrect password.';return;}try{sessionStorage.setItem('cw_npc',S.country)}catch(e){}S.logged=true;scrMain();return;}
   var r=await sb.auth.signInWithPassword({email:a.email,password:pw});pbStep();
   if(r.error){$('#er').textContent='Incorrect password.';return;}
   if(!a.active){try{await sb.from('npc_directory').update({active:true}).eq('country',S.country);}catch(e){}}
-  S.logged=true;scrMain();}
+  try{sessionStorage.setItem('cw_npc',S.country)}catch(e){}S.logged=true;scrMain();}
 
 function scrForgot(){
   $('#app').innerHTML=authBox(authHead('Reset your password')+
@@ -317,12 +317,12 @@ function scrSetPw(){
 async function doSetPw(){var a=$('#p1').value,b=$('#p2').value;
   if(!a||a.length<8){$('#er').textContent='Password must be at least 8 characters.';return;}
   if(a!==b){$('#er').textContent='Passwords do not match.';return;}
-  if(MOCK){var h=await sha(a);var r=await db.completeSetup(_setupToken,h);if(r.error){$('#er').textContent=r.error.message;return;}S.country=r.country;S.logged=true;scrMain();return;}
+  if(MOCK){var h=await sha(a);var r=await db.completeSetup(_setupToken,h);if(r.error){$('#er').textContent=r.error.message;return;}S.country=r.country;try{sessionStorage.setItem('cw_npc',S.country)}catch(e){}S.logged=true;scrMain();return;}
   var r2=await sb.auth.updateUser({password:a});if(r2.error){$('#er').textContent='Error: '+r2.error.message;return;}
   var em=(r2.data&&r2.data.user&&r2.data.user.email)||'';var uid=(r2.data&&r2.data.user&&r2.data.user.id)||'';try{if(em)await sb.from('npc_directory').update({active:true}).eq('email',em);if(uid)await sb.from('npc_directory').update({active:true}).eq('user_id',uid);}catch(e){}var d=em?await db.dirByEmail(em):null;
-  if(d){S.country=d.country;S.logged=true;scrMain();}else{alert('Password set. Please log in.');scrCountry();}}
+  if(d){S.country=d.country;try{sessionStorage.setItem('cw_npc',S.country)}catch(e){}S.logged=true;scrMain();}else{alert('Password set. Please log in.');scrCountry();}}
 
-function logout(){S.logged=false;S.country='';if(!MOCK&&sb)try{sb.auth.signOut()}catch(e){}scrCountry();}
+function logout(){S.logged=false;S.country='';try{sessionStorage.removeItem('cw_npc')}catch(e){}if(!MOCK&&sb)try{sb.auth.signOut()}catch(e){}scrCountry();}
 
 
 /* ============ Main ============ */
@@ -664,12 +664,22 @@ function printEl(id){var n=document.getElementById(id);if(!n){alert('No document
 
 /* warm up connection so the first lookup is fast */
 if(!MOCK&&sb&&cfgOk()){try{var _pc=document.createElement('link');_pc.rel='preconnect';_pc.href=SUPABASE_URL;document.head.appendChild(_pc);sb.from('npc_directory').select('country').limit(1).then(function(){});}catch(e){}}
+/* session restore: keep login across refresh */
+async function restoreSession(){
+  try{
+    if(MOCK){var c=sessionStorage.getItem('cw_npc');if(c){var a=await db.dirGet(c);if(a&&a.active){S.country=c;S.logged=true;scrMain();return true;}}return false;}
+    var sess=await sb.auth.getSession();
+    if(sess&&sess.data&&sess.data.session&&sess.data.session.user){
+      var em=sess.data.session.user.email;var d=em?await db.dirByEmail(em):null;
+      if(d&&d.country){S.country=d.country;S.logged=true;scrMain();return true;}}
+  }catch(e){}
+  return false;}
 /* entry: handle emailed setup/recovery links (invite & password reset) */
 if(!MOCK&&sb&&cfgOk()){
   try{sb.auth.onAuthStateChange(function(ev){if(ev==='PASSWORD_RECOVERY')scrSetPw();});}catch(e){}
-  if(/type=(invite|recovery|signup)/.test(location.hash)){scrSetPw();}else{scrCountry();}
+  if(/type=(invite|recovery|signup)/.test(location.hash)){scrSetPw();}else{restoreSession().then(function(ok){if(!ok)scrCountry();});}
 }else{
-  scrCountry();
+  restoreSession().then(function(ok){if(!ok)scrCountry();});
 }
 </script>
 </body>
