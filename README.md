@@ -19,14 +19,18 @@ admin.html 승인(→ 초대 메일 자동 발송) → 링크에서 비밀번호
 비밀번호 리셋도 등록 이메일로만.
 
 ## 관리자 (admin.html)
-- 로그인: loc_7766 / 142857 (프로토타입 계정)
-- **초대 메일 발송까지 하려면** 로그인 화면의 Service key 칸에 Supabase secret key
-  (대시보드 → Settings → API Keys → Secret keys) 입력 — 메모리에만 보관됨.
-  미입력 시 승인 상태 기록만 가능.
+- 로그인: **service_role(legacy) key 입력이 곧 인증** (ID/비밀번호 없음).
+  대시보드 → Settings → API Keys → service_role(legacy). 브라우저 세션 메모리에만 보관.
+- RLS v4 적용됨: NPC는 자국 데이터만, 승인/발급(status·no·approved_at·account)은 service key로만 가능.
 - 신규 활성화 요청 알림: ksfd0427@gmail.com (포털 상단 ADMIN_EMAIL 상수로 변경 가능,
   FormSubmit 최초 1회 확인 메일 승인 필요)
 
-## 남은 운영 작업
-- Auth > Emails: 초대/리셋 템플릿 문구·발신자명 대회 브랜드로 교체 (자체 SMTP 권장)
-- 실서비스 전 RLS를 국가별 정책으로 교체 (schema 하단 주석 참조)
-- 산탄총 탄약 카탈로그 모듈
+## 운영 메모 (2026-07-03)
+- RLS 국가별 정책(v4) 라이브 적용·검증 완료 (schema 파일 참조)
+- Custom SMTP: 설정 완료, **Gmail 앱 비밀번호만 입력 필요** (Auth → Emails → SMTP Settings → Password → Save)
+- keep-alive: `.github/workflows/keepalive.yml` — 주 2회 REST 핑으로 무료플랜 일시정지 방지 (Actions 탭에서 활성 확인)
+- i18n: 47개 언어 병기 + RTL + AI 번역 고지 (문서는 영어 단독)
+
+## 남은 작업
+- 산탄총 탄약 카탈로그 모듈 (카탈로그 확정 대기)
+- admin 엑셀 내보내기, 하위 관리자 계정, admin 감사 로그
