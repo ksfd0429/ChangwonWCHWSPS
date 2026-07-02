@@ -562,21 +562,37 @@ function fForm(){_photo={full:'',num:''};var ppl=_mem.map(function(m){return '<o
     '<div class="f"><label>Owner</label><input id="f_owner" list="ppl">'+'<datalist id="ppl">'+ppl+'</datalist></div>'+
     '<div class="row" style="gap:8px"><div class="f" style="flex:1"><label>Manufacturer</label><input id="f_man"></div><div class="f" style="flex:1"><label>Model</label><input id="f_mod"></div></div>'+
     '<div class="row" style="gap:8px"><div class="f" style="flex:1"><label>Serial number</label><input id="f_ser"></div><div class="f" style="flex:1"><label>Type</label><select id="f_type" onchange="fTypeChg()"><option value="">— select —</option>'+GTYPES.map(function(t){return '<option>'+t+'</option>'}).join('')+'</select></div><div class="f" style="flex:1"><label>Caliber</label><div id="f_cal"><input value="" placeholder="select Type" readonly></div></div></div>'+
-    '<div class="row" style="gap:10px"><div class="f" style="flex:1"><label>Full firearm photo (required)</label><input id="ph_full" type="file" accept="image/*" capture="environment"><div id="pv_full" class="muted" style="font-size:11px;margin-top:4px">No photo</div></div>'+
-    '<div class="f" style="flex:1"><label>Serial-number close-up (required)</label><input id="ph_num" type="file" accept="image/*" capture="environment"><div id="pv_num" class="muted" style="font-size:11px;margin-top:4px">No photo</div></div></div>'+
+    '<div class="row" style="gap:10px"><div class="f" style="flex:1"><label>Full firearm photo (required)</label><input id="ph_full" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_full" class="muted" style="font-size:11px;margin-top:4px">No photo</div></div>'+
+    '<div class="f" style="flex:1"><label>Serial-number close-up (required)</label><input id="ph_num" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_num" class="muted" style="font-size:11px;margin-top:4px">No photo</div></div></div>'+
+    '<p class="muted" style="font-size:11px;margin:2px 0 0">JPG · PNG · WebP · HEIC — 사진당 최대 15MB. 업로드 시 1024px JPG로 자동 변환·압축됩니다. (Max 15MB each; auto-converted to 1024px JPG)</p>'+
     '<div class="row" style="margin-top:8px"><button class="btn g" onclick="fSave()">Save</button><button class="btn sec" onclick="modFirearm()">Cancel</button></div></div>');
   bindPhoto('full');bindPhoto('num');
 }
 function fTypeChg(){var t=$('#f_type').value;var box=$('#f_cal');if(t==='Shotgun'){box.innerHTML='<select id="f_shsel" onchange="fShCal()"><option value="12ga">12ga</option><option value="__c">직접입력</option></select> <input id="f_shc" placeholder="e.g. 20ga" style="display:none;margin-top:4px">';}else{box.innerHTML='<input value="'+(calOf(t)||'')+'" readonly>';}}
 function fShCal(){var sel=$('#f_shsel'),c=$('#f_shc');if(!c)return;c.style.display=(sel.value==='__c')?'':'none';}
-function bindPhoto(k){var f=$('#ph_'+k);f.onchange=function(){if(f.files[0])resizeImg(f.files[0],function(d){_photo[k]=d;$('#pv_'+k).innerHTML='<img src="'+d+'" style="max-height:90px;border-radius:6px">'})}}
-function resizeImg(file,cb){var r=new FileReader();r.onload=function(e){var img=new Image();img.onload=function(){var m=280,w=img.width,h=img.height,s=Math.min(m/w,m/h,1);w=Math.round(w*s);h=Math.round(h*s);var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);cb(cv.toDataURL('image/jpeg',0.6))};img.src=e.target.result};r.readAsDataURL(file);}
+var PHOTO_MAX_MB=15;var PHOTO_TYPES=['image/jpeg','image/png','image/webp','image/heic','image/heif'];
+function bindPhoto(k){var f=$('#ph_'+k);f.onchange=function(){var file=f.files[0];if(!file)return;
+  var ty=(file.type||'').toLowerCase();
+  if(ty&&PHOTO_TYPES.indexOf(ty)<0){alert('지원 형식: JPG · PNG · WebP · HEIC\nAllowed formats: JPG / PNG / WebP / HEIC');f.value='';return;}
+  if(file.size>PHOTO_MAX_MB*1024*1024){alert('사진이 너무 큽니다 — 사진당 최대 '+PHOTO_MAX_MB+'MB\nMax '+PHOTO_MAX_MB+'MB per photo.');f.value='';return;}
+  resizeImg(file,function(d){_photo[k]=d;$('#pv_'+k).innerHTML='<img src="'+d+'" style="max-height:90px;border-radius:6px">'})}}
+function resizeImg(file,cb){var r=new FileReader();r.onload=function(e){var img=new Image();img.onload=function(){var m=MOCK?480:1024,w=img.width,h=img.height,s=Math.min(m/w,m/h,1);w=Math.round(w*s);h=Math.round(h*s);var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);var d=cv.toDataURL('image/jpeg',0.78);if(d.length>1000000)d=cv.toDataURL('image/jpeg',0.6);if(d.length>1000000)d=cv.toDataURL('image/jpeg',0.45);cb(d)};img.onerror=function(){alert('이미지를 읽을 수 없습니다. JPG 또는 PNG로 다시 시도해주세요.\nCould not read the image — please use JPG or PNG.')};img.src=e.target.result};r.readAsDataURL(file);}
+/* Storage 업로드: base64 → Supabase Storage 파일(URL 저장). 실패 시 base64 폴백 */
+async function upPhoto(dataUrl,kind){if(MOCK||!dataUrl||dataUrl.indexOf('data:')!==0)return dataUrl;
+  try{var blob=await (await fetch(dataUrl)).blob();
+    var path=S.country+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+kind+'.jpg';
+    var r=await sb.storage.from('firearms').upload(path,blob,{contentType:'image/jpeg'});
+    if(r.error)return dataUrl;
+    var u=sb.storage.from('firearms').getPublicUrl(path);
+    return (u&&u.data&&u.data.publicUrl)||dataUrl;
+  }catch(e){return dataUrl;}}
+async function delPhotoUrl(u){try{if(MOCK||!u||u.indexOf('/storage/')<0)return;var p=u.split('/firearms/')[1];if(p)await sb.storage.from('firearms').remove([decodeURIComponent(p)]);}catch(e){}}
 async function fSave(){var t=$('#f_type').value;if(!t){alert('Select a firearm type.');return;}var cal=calOf(t);if(t==='Shotgun'){var sel=$('#f_shsel');cal=(sel&&sel.value==='__c')?(($('#f_shc').value||'').trim()||'12ga'):'12ga';}
   var o={country:S.country,owner:$('#f_owner').value,manufacturer:$('#f_man').value,model:$('#f_mod').value,serial:$('#f_ser').value,type:t,caliber:cal,photo_full:_photo.full,photo_num:_photo.num};
   if(!o.owner||!o.manufacturer||!o.model||!o.serial){alert('Fill owner, manufacturer, model, serial.');return;}
   if(!o.photo_full||!o.photo_num){if(!confirm('Both photos are required for customs clearance. Save as draft anyway?'))return;}
-  var r=await db.addFirearm(o);if(r.error){alert(r.error.message);return;}modFirearm();}
-async function fDel(id){if(!confirm('Delete this firearm?'))return;await db.delFirearm(id);modFirearm();}
+  pbStart(3);o.photo_full=await upPhoto(o.photo_full,'full');pbStep();o.photo_num=await upPhoto(o.photo_num,'num');pbStep();var r=await db.addFirearm(o);pbStep();if(r.error){alert(r.error.message);return;}modFirearm();}
+async function fDel(id){if(!confirm('Delete this firearm?'))return;var fg0=_fg.find(function(x){return x.id===id});if(fg0){await delPhotoUrl(fg0.photo_full);await delPhotoUrl(fg0.photo_num);}await db.delFirearm(id);modFirearm();}
 
 async function fSubmit(){var g=$('#fsg').value;var list=scopeFirearms(g);if(!list.length){alert('No firearms in that scope.');return;}var bad=list.filter(function(x){return !x.photo_full||!x.photo_num});if(bad.length){alert(bad.length+' firearm(s) missing photos.');return;}await db.setFsub(S.country,g,new Date().toISOString().slice(0,10));alert('Firearm form submitted — confirmation issued (no approval required). Open View to print.');modFirearm();}
 function fCertDoc(s,g){var sub=s&&s.submitted_at;var ref=sub?('OC-F-'+S.country+'-'+String(s.submitted_at||'').replace(/-/g,'')):'';var wm=sub?'':'<div class="wm"><span>NOT<br>SUBMITTED</span></div>';var list=scopeFirearms(g);var label=g==='*ALL*'?'':' — group <b>'+esc(g)+'</b>';

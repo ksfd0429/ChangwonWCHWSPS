@@ -216,16 +216,34 @@ async function scrMain(){
   var FSTAT='<div class="stats" style="margin-bottom:10px"><div class="stat"><b>'+s.firearms.length+'</b><span>총 등록 총기</span></div>'+Object.keys(ftypes).map(function(t){return '<div class="stat"><b>'+ftypes[t]+'</b><span>'+esc(t)+'</span></div>'}).join('')+'</div>'+
    '<div class="tbl" style="margin-bottom:12px"><table><thead><tr><th>NPC</th><th>총기</th><th>Air</th><th>.22</th><th>Shotgun</th><th>사진 완료</th></tr></thead><tbody>'+(fcRows||'<tr><td colspan="6" class="muted">None.</td></tr>')+'</tbody></table></div>'+
    '<div class="edsec" style="margin:4px 0 4px">전체 총기 목록</div><div class="tbl"><table><thead><tr><th>NPC</th><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+(fAllRows||'<tr><td colspan="8" class="muted">None.</td></tr>')+'</tbody></table></div>';
-  var revC={},revA=0,revP=0;
-  (s.invoices||[]).forEach(function(V){var t=invTotalOf(V,s);var o=revC[V.country]=revC[V.country]||{n:0,a:0,p:0};o.n++;if(V.status==='approved'){o.a+=t;revA+=t;}else{o.p+=t;revP+=t;}});
+  var revC={},revA=0,revP=0,secAgg={},itemAgg={},ivdHtml='';
+  (s.invoices||[]).forEach(function(V){var items=invItemsOf(V,s);var t=items.reduce(function(a,b){return a+(+b.t||0)},0);
+    var appr=V.status==='approved';
+    var o=revC[V.country]=revC[V.country]||{n:0,a:0,p:0};o.n++;if(appr){o.a+=t;revA+=t;}else{o.p+=t;revP+=t;}
+    items.forEach(function(it){var v=+it.t||0;
+      var sa=secAgg[it.sec||'Other']=secAgg[it.sec||'Other']||{a:0,p:0};if(appr)sa.a+=v;else sa.p+=v;
+      var ia=itemAgg[it.d||'(무제)']=itemAgg[it.d||'(무제)']||{n:0,a:0,p:0};ia.n++;if(appr)ia.a+=v;else ia.p+=v;});
+    ivdHtml+='<details class="ivd" style="margin:6px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fff">'+
+     '<summary style="cursor:pointer;font-size:12.5px;font-weight:700;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span>'+esc(V.country)+'</span><span class="muted" style="font-weight:400">'+esc(V.title)+'</span>'+(appr?'<span class="tag g">approved'+(V.no?' · CW26INV-'+esc(V.no):'')+'</span>':'<span class="tag y">pending</span>')+'<span style="margin-left:auto;color:var(--navy)">'+usdF(t)+'</span></summary>'+
+     '<div class="tbl" style="margin-top:8px"><table><thead><tr><th>Section</th><th>Description</th><th>Qty</th><th>×</th><th>Price</th><th style="text-align:right">Total</th></tr></thead><tbody>'+
+     items.map(function(it){return '<tr><td style="font-size:11px">'+esc(it.sec||'Other')+'</td><td>'+esc(it.d||'')+(it.s?'<span class="muted" style="display:block;font-size:10px">'+esc(it.s)+'</span>':'')+'</td><td>'+esc(it.q||'')+'</td><td>'+esc(it.m||'')+'</td><td>'+esc(it.p||'')+'</td><td style="text-align:right">'+usdF(+it.t||0)+'</td></tr>'}).join('')+
+     '</tbody></table></div></details>';});
+  var secRows=Object.keys(secAgg).map(function(k){var o=secAgg[k];return '<tr><td><b>'+esc(k)+'</b></td><td>'+usdF(o.a)+'</td><td>'+usdF(o.p)+'</td><td><b>'+usdF(o.a+o.p)+'</b></td></tr>';}).join('');
+  var itemRows=Object.keys(itemAgg).sort(function(a,b){return (itemAgg[b].a+itemAgg[b].p)-(itemAgg[a].a+itemAgg[a].p)}).map(function(k){var o=itemAgg[k];return '<tr><td>'+esc(k)+'</td><td>'+o.n+'</td><td>'+usdF(o.a)+'</td><td>'+usdF(o.p)+'</td><td><b>'+usdF(o.a+o.p)+'</b></td></tr>';}).join('');
   var revRows=Object.keys(revC).sort().map(function(c){var o=revC[c];
     return '<tr><td><b>'+esc(c)+'</b> <span class="muted" style="font-size:10.5px">'+esc(cnameA(c))+'</span></td><td>'+o.n+'</td><td>'+usdF(o.a)+'</td><td>'+usdF(o.p)+'</td><td><b>'+usdF(o.a+o.p)+'</b></td></tr>';}).join('');
   var REV='<div class="stats" style="margin-bottom:10px">'+
    '<div class="stat"><b style="color:#1F6B42">'+usdF(revA)+'</b><span>확정 수입 (승인됨)</span></div>'+
    '<div class="stat"><b style="color:#B4550E">'+usdF(revP)+'</b><span>대기 수입 (미승인)</span></div>'+
    '<div class="stat"><b style="color:#16456B">'+usdF(revA+revP)+'</b><span>총 예정 수입</span></div></div>'+
-   '<div class="tbl"><table class="rvt"><thead><tr><th>NPC</th><th>인보이스</th><th>승인 금액</th><th>대기 금액</th><th>합계</th></tr></thead><tbody>'+(revRows||'<tr><td colspan="5" class="muted">인보이스가 없습니다.</td></tr>')+
+   '<div class="edsec" style="margin:4px 0">분야(섹션)별 수입</div>'+
+   '<div class="tbl" style="margin-bottom:12px"><table class="rvt"><thead><tr><th>Section</th><th>승인</th><th>대기</th><th>합계</th></tr></thead><tbody>'+(secRows||'<tr><td colspan="4" class="muted">—</td></tr>')+'</tbody></table></div>'+
+   '<div class="edsec" style="margin:4px 0">항목별 수입 (금액순)</div>'+
+   '<div class="tbl" style="margin-bottom:12px"><table class="rvt"><thead><tr><th>Description</th><th>건수</th><th>승인</th><th>대기</th><th>합계</th></tr></thead><tbody>'+(itemRows||'<tr><td colspan="5" class="muted">—</td></tr>')+'</tbody></table></div>'+
+   '<div class="edsec" style="margin:4px 0">국가별 수입</div>'+
+   '<div class="tbl" style="margin-bottom:12px"><table class="rvt"><thead><tr><th>NPC</th><th>인보이스</th><th>승인 금액</th><th>대기 금액</th><th>합계</th></tr></thead><tbody>'+(revRows||'<tr><td colspan="5" class="muted">인보이스가 없습니다.</td></tr>')+
    '<tr style="font-weight:bold;background:#F1F6FA"><td>TOTAL</td><td>'+(s.invoices||[]).length+'</td><td>'+usdF(revA)+'</td><td>'+usdF(revP)+'</td><td>'+usdF(revA+revP)+'</td></tr></tbody></table></div>'+
+   '<div class="edsec" style="margin:4px 0">인보이스별 상세 (펼쳐서 항목 확인)</div>'+(ivdHtml||'<p class="muted" style="font-size:12px">인보이스가 없습니다.</p>')+
    '<p class="muted" style="font-size:11px;margin:8px 0 0">금액은 각 인보이스의 항목 스냅샷 합계(없으면 현재 단가로 자동 계산) 기준입니다.</p>';
   _SEC={act:{t:'0. Account activation requests',h:ACT},inv:{t:'1. Invitation letters',h:INV},f:{t:'2. Firearm submission confirmations',h:FR},v:{t:'3. Invoices',h:VC},bank:{t:'Banking information (납부 계좌 관리)',h:BANK},price:{t:'Invoice pricing (단가 관리)',h:PRICE},acc:{t:'NPC accounts',h:ACC},roster:{t:'All delegations roster ('+s.members.length+')',h:ROSTER},pstat:{t:'참가자 총 현황',h:PSTAT},fstat:{t:'총기 총 현황',h:FSTAT},rev:{t:'수입 총현황 (예정 수입)',h:REV}};
   function navb(k,label,n){return '<button class="snb" onclick="openSec(\''+k+'\')"><span>'+label+'</span>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';}
@@ -301,7 +319,8 @@ function itemsToTableA(items){
   h+='<tr><td colspan="3" style="border:none;padding:6px 8px"></td><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:center;font-size:14px">TOTAL</td><td style="border:1px solid #444;padding:6px 8px;text-align:right;font-weight:bold;font-size:14px">'+usdF(tot)+'</td></tr></tbody></table>';
   return h;}
 /* ===== 인보이스 항목 편집기 ===== */
-function invTotalOf(V,s){var items=(V.items&&V.items.length)?V.items:buildAutoItemsA(s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0}),s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));return items.reduce(function(a,b){return a+(+b.t||0)},0);}
+function invItemsOf(V,s){return (V.items&&V.items.length)?V.items:buildAutoItemsA(s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0}),s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));}
+function invTotalOf(V,s){return invItemsOf(V,s).reduce(function(a,b){return a+(+b.t||0)},0);}
 var _ed=null,_edId=0,_edV=null;
 function editInv(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;_edId=id;_edV=V;
   var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});
@@ -399,6 +418,7 @@ async function resetCountry(c){
     var ts=['members','invitations','firearms','firearm_submissions','invoices','invoice_addresses','group_flights','activation_requests','npc_directory'];
     pbStart(ts.length+1);
     for(var i=0;i<ts.length;i++){await sbc.from(ts[i]).delete().eq('country',c);pbStep();}
+    try{var ls=await sbc.storage.from('firearms').list(c,{limit:1000});if(ls&&ls.data&&ls.data.length){await sbc.storage.from('firearms').remove(ls.data.map(function(o2){return c+'/'+o2.name}));}}catch(e){}
     if(uid&&sbAdmin){try{await sbAdmin.auth.admin.deleteUser(uid);}catch(e){}}
     else if(uid){alert('참고: Auth 로그인 계정 삭제는 service key로 로그인한 경우에만 가능합니다. (데이터는 모두 삭제됨)');}
     pbStep();
