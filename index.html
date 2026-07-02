@@ -590,7 +590,7 @@ function fCertDoc(s,g){var sub=s&&s.submitted_at;var ref=sub?('OC-F-'+S.country+
 function fCert(g){var box=$('#fpv');if(!box)return;var s=subFor(g);var sub=s&&s.submitted_at;var label=g==='*ALL*'?'Entire delegation':g;var st=sub?'<button class="btn" style="margin-left:auto" onclick="printEl(\'fd\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">Not submitted — preview</span>';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>Submission confirmation — '+esc(label)+'</b>'+st+'</div>'+fCertDoc(s,g);}
 
 /* ============ Module 4: Invoice ============ */
-async function modInvoice(){stage('<div class="card"><span class="muted">Loading…</span></div>');pbStart(4);_mem=await db.members(S.country);pbStep();_invc=await db.invoices(S.country);pbStep();_iaddr=await db.invAddrs(S.country);pbStep();try{var bv=await db.getSetting('banking');_bank=bv?JSON.parse(bv):null;}catch(e){_bank=null;}pbStep();renderInvoice();}
+async function modInvoice(){stage('<div class="card"><span class="muted">Loading…</span></div>');pbStart(5);_mem=await db.members(S.country);pbStep();_invc=await db.invoices(S.country);pbStep();_iaddr=await db.invAddrs(S.country);pbStep();_fg=await db.firearms(S.country);pbStep();try{var bv=await db.getSetting('banking');_bank=bv?JSON.parse(bv):null;var pv=await db.getSetting('pricing');_pricing=pv?JSON.parse(pv):null;}catch(e){}pbStep();renderInvoice();}
 var _invTab='group';var _ivGroups=[];
 function invTab(t){_invTab=t;renderInvoice();}
 function invScope(){if(_invTab==='all')return '*ALL*';if(_invTab==='group')return $('#vg')?$('#vg').value:null;return null;}
@@ -608,7 +608,7 @@ async function reqInvoiceCustom(){var t=($('#vt')&&$('#vt').value||'').trim();va
   if(!sel.length){alert('인보이스에 포함할 인원을 1명 이상 선택하세요.');return;}
   if(!t){$('#vt').classList.add('fmiss');alert('수취인명(To)을 입력하세요.');return;}
   if(!a){$('#va').classList.add('fmiss');alert('수취인 주소를 입력하세요.');return;}
-  pbStart(3);var r=await db.addInvoice({country:S.country,title:t,member_ids:sel.map(function(m){return m.id}),status:'pending',no:'',addr:a});pbStep();
+  pbStart(3);var r=await db.addInvoice({country:S.country,title:t,member_ids:sel.map(function(m){return m.id}),status:'pending',no:'',addr:a,items:buildAutoItems(sel)});pbStep();
   if(r.error){alert(r.error.message);return;}
   try{await db.setInvAddr(S.country,t,a);_iaddr=await db.invAddrs(S.country);}catch(e){}pbStep();
   _invc=await db.invoices(S.country);pbStep();renderInvoice();}
@@ -633,7 +633,7 @@ function renderInvoice(){
      '<button class="btn g" style="width:100%" onclick="reqInvoiceCustom()">Request draft — <span id="ivcnt">0</span> selected</button>';
   }
   stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; Back</button><b style="margin-left:6px">Invoice</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">Manage roster &rarr;</button></div><p class="muted" style="font-size:12px">인보이스는 선수단 정보(객실 종류 · 투숙 기간)와 연동됩니다. 금액은 조직위 승인 시 확정·기재됩니다.</p></div>'+
-  '<div class="card"><b>Request invoice</b>'+tabbar+body+'</div>'+
+  '<div class="card"><b>Request invoice</b>'+tabbar+body+billingOpts()+'</div>'+
   '<div class="card"><b>Requested invoices</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>No.</th><th>Scope</th><th>Members</th><th>Status</th><th></th></tr></thead><tbody>'+
    (_invc.length?_invc.map(function(V){var n=(V.member_ids||[]).length;return '<tr><td>'+(V.no?'<b>'+esc(V.no)+'</b>':'<span class="muted">— pending</span>')+'</td><td>'+esc(V.title)+'</td><td>'+n+'</td><td>'+(V.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending approval</span>')+'</td><td><button class="btn sec" style="padding:3px 8px" onclick="prevInvoice('+V.id+')">Preview</button>'+(V.status==='approved'?'':' <button class="btn r" style="padding:3px 8px" onclick="withdrawInvoice('+V.id+')">Withdraw</button>')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">No invoices requested yet.</td></tr>')+
   '</tbody></table></div></div>'+
@@ -643,19 +643,59 @@ function renderInvoice(){
 function addrOf(g){var x=_iaddr.find(function(a){return (a.grp||'*ALL*')===g});return x?(x.addr||''):'';}
 function invScopeChg(){var g=invScope();if($('#va')&&g)$('#va').value=addrOf(g);invcPreviewDraft();}
 async function saveInvAddr(){if(_invTab==='custom'){invcPreviewDraft();return;}var g=invScope(),a=$('#va').value.trim();if(!g)return;await db.setInvAddr(S.country,g,a);_iaddr=await db.invAddrs(S.country);invcPreviewDraft();}
-async function reqInvoice(){var g=invScope();if(!g)return;var mem=scopeMembers(g);if(!mem.length){alert('No members in that scope.');return;}var a=addrOf(g);if(!a){alert('Register the recipient address first.');return;}var t=(g==='*ALL*'?'Entire delegation':g);var r=await db.addInvoice({country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:'',addr:a});if(r.error){alert(r.error.message);return;}_invc=await db.invoices(S.country);renderInvoice();}
+async function reqInvoice(){var g=invScope();if(!g)return;var mem=scopeMembers(g);if(!mem.length){alert('No members in that scope.');return;}var a=addrOf(g);if(!a){alert('Register the recipient address first.');return;}var t=(g==='*ALL*'?'Entire delegation':g);var r=await db.addInvoice({country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:'',addr:a,items:buildAutoItems(mem)});if(r.error){alert(r.error.message);return;}_invc=await db.invoices(S.country);renderInvoice();}
 async function withdrawInvoice(id){var V=_invc.find(function(x){return x.id===id});if(!V||V.status==='approved')return;if(!confirm('Withdraw this invoice request?'))return;await db.delInvoice(id);_invc=await db.invoices(S.country);renderInvoice();}
+var _pricing=null;
+var PRICING_DEFAULT={single:300,twin:220,tr1:280,tr2:450,firearm:30,training:5};
+function pricingOf(){return _pricing?Object.assign({},PRICING_DEFAULT,_pricing):PRICING_DEFAULT;}
+function usdF(n){return Math.round(n).toLocaleString('en-US')+' USD';}
+function dfmt(iso){var d=new Date(iso);if(isNaN(d.getTime()))return iso||'—';var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return d.getDate()+'-'+M[d.getMonth()]+'-'+String(d.getFullYear()).slice(-2);}
+var _trOpt='1',_trPer={},_trSlots=0;
+function trOptOf(m){return _trPer[m.id]||_trOpt;}
+function buildAutoItems(mem){var P=pricingOf();var items=[];
+  function nOf(m){return Number(nights(m.arrive,m.depart))||0;}
+  function byN(list){var o={};list.forEach(function(m){var n=nOf(m);if(n>0)(o[n]=o[n]||[]).push(m)});return o;}
+  [['Twin',P.twin],['Single',P.single]].forEach(function(rt){var g=byN(mem.filter(function(m){return (m.room||'Twin')===rt[0]}));Object.keys(g).sort(function(a,b){return a-b}).forEach(function(n){var c=g[n].length;items.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. breakfast/lunch/dinner)',q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1]});});});
+  [['1','Transportation — Option 1','(ICN/PUS → ground vehicle → Changwon)',P.tr1],['2','Transportation — Option 2','(ICN → domestic flight → PUS → Changwon)',P.tr2]].forEach(function(cfg){
+    var c=mem.filter(function(m){return trOptOf(m)===cfg[0]}).length;
+    if(c)items.push({sec:'Transportation',d:cfg[1],s:cfg[2],q:c+' People',m:'',p:'* '+cfg[3]+' USD =',t:c*cfg[3]});});
+  var fa=mem.filter(function(m){return (_fg||[]).some(function(g2){return g2.owner===mName(m)||g2.owner===m.name})}).length;
+  if(fa)items.push({sec:'Miscellaneous',d:'Firearms Import/Export Fee',s:'(per athlete)',q:fa+' Athlete(s)',m:'',p:'* '+P.firearm+' USD =',t:fa*P.firearm});
+  var ts2=Number(_trSlots)||0;
+  if(ts2>0)items.push({sec:'Miscellaneous',d:'Unofficial Training Fee',s:'(per training slot)',q:ts2+' Slot(s)',m:'',p:'* '+P.training+' USD =',t:ts2*P.training});
+  return items;}
+function itemsToTable(items){
+  function rowH(r){return '<tr><td style="border:1px solid #bbb;padding:4px 8px">'+esc(r.d)+(r.s?'<span style="display:block;font-size:9.5px;color:#a33">'+esc(r.s)+'</span>':'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.q||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.m||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.p||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+usdF(+r.t||0)+'</td></tr>';}
+  function secH(name,total){return '<tr><td colspan="4" style="border:1px solid #bbb;padding:5px 8px;font-weight:bold;font-size:14px">'+esc(name)+'</td><td style="border:1px solid #bbb;padding:5px 8px;text-align:right;font-weight:bold">'+usdF(total)+'</td></tr>';}
+  var order=[],by={};(items||[]).forEach(function(it){var k=it.sec||'Other';if(!by[k]){by[k]=[];order.push(k);}by[k].push(it);});
+  var h='<table style="width:100%;margin:10px 0;border-collapse:collapse;font-size:12px"><thead><tr><th style="border:1px solid #444;padding:5px 8px;width:33%">Description</th><th style="border:1px solid #444;padding:5px 8px">Quantity</th><th style="border:1px solid #444;padding:5px 8px"></th><th style="border:1px solid #444;padding:5px 8px">Price</th><th style="border:1px solid #444;padding:5px 8px;width:18%">Total</th></tr></thead><tbody>';
+  var tot=0;order.forEach(function(k){var st=by[k].reduce(function(a,b){return a+(+b.t||0)},0);tot+=st;h+=secH(k,st)+by[k].map(rowH).join('');});
+  h+='<tr><td colspan="3" style="border:none;padding:6px 8px"></td><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:center;font-size:14px">TOTAL</td><td style="border:1px solid #444;padding:6px 8px;text-align:right;font-weight:bold;font-size:14px">'+usdF(tot)+'</td></tr></tbody></table>';
+  if(!order.length)h+='<p style="font-size:11.5px;color:#a33">No billable items yet — members need arrival/departure dates in Delegation info.</p>';
+  return h;}
+function invItemsTable(mem){return itemsToTable(buildAutoItems(mem));}
+function billingOpts(){var P=pricingOf();
+  var per=_mem.map(function(m){var v=_trPer[m.id]||'';return '<tr><td style="white-space:nowrap">'+esc(mName(m)||'(새 인원)')+'</td><td>'+esc(grpOf(m)==='(Ungrouped)'?'Ungrouped':grpOf(m))+'</td><td><select onchange="trPerChg('+m.id+',this.value)" style="min-height:34px;padding:4px 8px"><option value=""'+(v===''?' selected':'')+'>기본값</option><option value="1"'+(v==='1'?' selected':'')+'>Option 1 ('+P.tr1+')</option><option value="2"'+(v==='2'?' selected':'')+'>Option 2 ('+P.tr2+')</option></select></td></tr>';}).join('');
+  return '<div class="msec" style="margin-top:14px">BILLING OPTIONS (수송 · 훈련)</div>'+
+  '<div class="row" style="gap:8px;margin-top:6px;align-items:flex-end;flex-wrap:wrap">'+
+  '<div class="f" style="margin:0;flex:1;min-width:250px"><label>Transportation option (전체 기본값)</label><select id="tropt" onchange="trOptChg(this.value)"><option value="1"'+(_trOpt==='1'?' selected':'')+'>Option 1 — ICN/PUS 육로 직행 · USD '+P.tr1+'/person</option><option value="2"'+(_trOpt==='2'?' selected':'')+'>Option 2 — ICN→국내선→PUS · USD '+P.tr2+'/person</option></select></div>'+
+  '<div class="f" style="margin:0;width:160px"><label>Unofficial training (slots)</label><input id="trslots" type="number" min="0" value="'+(Number(_trSlots)||0)+'" oninput="trSlotsChg(this.value)"></div></div>'+
+  '<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12px;color:var(--acc);font-weight:700">개인별 수송 옵션 지정 (선택)</summary><div class="tbl" style="margin-top:6px;max-height:220px;overflow:auto"><table><thead><tr><th>Name</th><th>Group</th><th>Transport</th></tr></thead><tbody>'+(per||'<tr><td colspan="3" class="muted">No members.</td></tr>')+'</tbody></table></div></details>'+
+  '<p class="muted" style="font-size:11px;margin:6px 0 0">총기 수출입 수수료(USD '+P.firearm+'/athlete)는 총기 등록 명단에서 자동 계산됩니다. 미리보기에서 초안을 확인한 뒤 제출하세요.</p>';}
+function trOptChg(v){_trOpt=v;invcPreviewDraft();}
+function trPerChg(id,v){if(v)_trPer[id]=v;else delete _trPer[id];invcPreviewDraft();}
+function trSlotsChg(v){_trSlots=v;invcPreviewDraft();}
 var _bank=null;
 var BANK_DEFAULT={holder:'Korea Shooting Federation for Disabled',account:'180-012-197038',bank:'Shinhan Bank',swift:'SHBKKRSE',addr:'134, Sangmujayu-ro, Seo-gu, Gwangju-city 61963, Korea',note:'Please make all the payments in USD Dollar. Any bank fees or charges Must be paid by the payee on top of the balance at the time of payment. Any outstanding fees must be paid prior to collection of start numbers.'};
 function bankOf(){return _bank?Object.assign({},BANK_DEFAULT,_bank):BANK_DEFAULT;}
 function bankBlockHTML(V){var b=bankOf();return '<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc((V&&V.account)||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>';}
 function invoiceDoc(V){var isA=V.status==='approved';var wm=isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>';var mem=_mem.filter(function(m){return (V.member_ids||[]).indexOf(m.id)>=0});
   return '<div class="doc" id="vi">'+wm+'<div class="lh"><img src="assets/logo.png" style="height:46px"><div style="flex:1;text-align:center;font-weight:bold;font-size:13px;line-height:1.35;color:#16456B">Korea Shooting Federation for Disabled<br>Changwon 2026 WSPS World Championships Organising Committee</div><img src="assets/ksfd.png" onerror="this.remove()" style="height:46px"></div>'+
-  '<p style="display:flex;justify-content:space-between;font-size:12px"><span>No. '+(isA?'Changwon 2026 WSPS WCH OC-I-'+esc(V.no):'— issued upon approval')+'</span><span>Date: '+(isA?esc(V.approved_at||''):'—')+'</span></p>'+
-  '<h2 style="font-size:20px">INVOICE</h2><p style="text-align:center;font-weight:bold">Changwon 2026 WSPS World Championships</p>'+
-  '<p style="margin:2px 0"><b>To:</b> '+(V.title&&V.title!=='Entire delegation'?'<b>'+esc(V.title)+'</b> — ':'')+esc(cname(V.country))+' delegation</p><p style="margin:2px 0"><b>NPC Code:</b> '+esc(V.country)+'</p><p style="margin:2px 0 10px"><b>Address:</b> '+esc(V.addr||addrOf(V.title&&V.title!=='Entire delegation'?V.title:'*ALL*')||'—')+'</p>'+
-  '<table style="width:100%;margin:14px 0"><thead><tr><th>Full Name</th><th>Room</th><th>Arrival</th><th>Departure</th><th>Nights</th><th>Wheelchair</th></tr></thead><tbody>'+
-  mem.map(function(m){return '<tr><td>'+esc(mName(m))+'</td><td>'+esc(m.room||'')+'</td><td>'+esc(m.arrive||'')+'</td><td>'+esc(m.depart||'')+'</td><td>'+nights(m.arrive,m.depart)+'</td><td>'+esc(m.wheelchair||'')+'</td></tr>'}).join('')+'</tbody></table>'+
+  '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">Changwon 2026 WSPS World Championships</p>'+
+  '<table style="width:100%;font-size:12.5px;margin:0 0 8px;border-collapse:collapse"><tr><td style="border:none;padding:2px 4px;width:13%"><b>Address:</b></td><td style="border:none;padding:2px 4px">'+esc(V.addr||addrOf(V.title&&V.title!=='Entire delegation'?V.title:'*ALL*')||'—')+'</td><td style="border:none;padding:2px 4px;text-align:right;width:8%"><b>To:</b></td><td style="border:none;padding:2px 4px;width:14%;text-align:center;font-weight:bold;font-size:16px;color:#16456B">'+esc(V.country)+'</td></tr>'+
+  '<tr><td style="border:none;padding:2px 4px"><b>DATE</b></td><td style="border:none;padding:2px 4px">'+(isA?dfmt(V.approved_at):'—')+'</td><td style="border:none;padding:2px 4px;text-align:right"><b>Invoice No.</b></td><td style="border:none;padding:2px 4px;text-align:center;font-weight:bold">'+(isA?'CW26INV-'+esc(V.no):'—')+'</td></tr></table>'+
+  '<p style="font-size:11px;color:#555;margin:0 0 2px">Recipient: '+(V.title&&V.title!=='Entire delegation'?esc(V.title)+' — ':'')+esc(cname(V.country))+' delegation · '+mem.length+' member(s)</p>'+
+  itemsToTable((V.items&&V.items.length)?V.items:buildAutoItems(mem))+
   (isA?bankBlockHTML(V):'<p>This is a <b>draft invoice request</b>. Amounts and the <b>Banking Information</b> for payment to the Organizing Committee are entered by the OC upon approval — the final invoice is then issued to your delegation.</p>')+'<p style="margin-top:30px">With best regards,</p><p style="margin-top:20px"><b>President</b><br>Korea Shooting Federation for the Disabled</p><div class="dft">ZIP 61998 · 8F, Mareukbokgar-ro 154, Seo-gu, Gwangju, Republic of Korea<br>PHONE +82 62 710 5391 / FAX +82 62 710 9851 / ksfd0427@hanmail.net / www.ksfd.kosad.kr</div></div>';}
 function prevInvoice(id){var V=_invc.find(function(x){return x.id===id});if(!V)return;var box=$('#vpv');var isA=V.status==='approved';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+(V.no?esc(V.no)+' · ':'')+esc(V.title)+'</b>'+(isA?'<button class="btn" style="margin-left:auto" onclick="printEl(\'vi\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">Preview only — issued on approval</span>')+'</div>'+invoiceDoc(V);}
 function invcPreviewDraft(){var box=$('#vpv');if(!box)return;var mem,t,a;
