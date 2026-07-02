@@ -41,9 +41,15 @@ th{background:#7A2E1F;color:#fff;font-weight:600}
 .hide{display:none}
 summary{cursor:pointer;padding:8px 0;font-size:13px;font-weight:600}
 .flag{height:14px;border:0.5px solid #0003;border-radius:2px;vertical-align:middle}
+
+/* top progress bar (real %) */
+#pbw{position:fixed;top:0;left:0;right:0;height:4px;z-index:99999;display:none;background:rgba(27,111,168,.12);pointer-events:none}
+#pb{height:100%;width:0%;background:linear-gradient(90deg,var(--acc,#1B6FA8),var(--g,#2E8B57));transition:width .15s ease}
+#pbt{position:fixed;top:7px;right:8px;z-index:99999;display:none;font-size:10px;font-weight:700;color:var(--acc,#1B6FA8);background:rgba(255,255,255,.9);border:1px solid var(--line,#CBDBE8);padding:1px 7px;border-radius:10px;pointer-events:none}
 </style>
 </head>
 <body>
+<div id="pbw"><div id="pb"></div></div><div id="pbt"></div>
 <header id="hdr" class="hide"><img src="assets/logo.png"><h1>Changwon 2026 · OC Admin</h1><span class="sp"></span><span id="who" style="color:#fff;opacity:.85;font-size:12px"></span> <button class="btn sec" style="padding:6px 10px" onclick="logout()">Logout</button></header>
 <div id="app"></div>
 <script>
@@ -60,12 +66,21 @@ var _S=null;
 async function fetchAll(){
   if(!LIVE){_S=mL();return _S;}
   var out={};var ts=['activation_requests','npc_directory','members','invitations','firearms','firearm_submissions','invoices'];
-  for(var i=0;i<ts.length;i++){var r=await sbc.from(ts[i]).select('*');out[ts[i]]=r.data||[];}
+  pbStart(ts.length);
+  for(var i=0;i<ts.length;i++){var r=await sbc.from(ts[i]).select('*');out[ts[i]]=r.data||[];pbStep();}
   out.npc_accounts=out.npc_directory;out.invoices=out.invoices||[];
   _S=out;return out;}
 function dataS(){return LIVE?(_S||{npc_accounts:[],activation_requests:[],members:[],invitations:[],firearms:[],firearm_submissions:[],invoices:[]}):mL();}
 var ADMIN_ACCOUNTS={'loc_7766':{pw:'142857',role:'Master administrator'}}; // 하위 관리자(loc_xxxx)는 추후 추가
 var CUR_ADMIN=null;
+
+/* ==== top progress bar: real percentage of processed steps ==== */
+var _pbT=1,_pbN=0,_pbHide=null;
+function pbSet(p){p=Math.max(0,Math.min(100,Math.round(p)));var b=document.getElementById('pb'),t=document.getElementById('pbt');if(b)b.style.width=p+'%';if(t)t.textContent=p+'%';}
+function pbStart(total){_pbT=Math.max(1,total||1);_pbN=0;clearTimeout(_pbHide);var w=document.getElementById('pbw'),t=document.getElementById('pbt');if(w)w.style.display='block';if(t)t.style.display='block';pbSet(0);}
+function pbStep(n){_pbN+=(n||1);pbSet(_pbN/_pbT*100);if(_pbN>=_pbT)pbEnd();}
+function pbEnd(){pbSet(100);clearTimeout(_pbHide);_pbHide=setTimeout(function(){var w=document.getElementById('pbw'),t=document.getElementById('pbt');if(w)w.style.display='none';if(t)t.style.display='none';},400);}
+
 var NPCS_MIN={};
 function $(s){return document.querySelector(s)}
 function esc(v){return (v==null?'':String(v)).replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])})}
