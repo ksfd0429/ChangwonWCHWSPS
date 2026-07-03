@@ -1,4 +1,6 @@
-# Changwon 2026 WCH — NPC Submission Portal
+# Changwon 2026 WCH — NPC Submission Por
+<!-- redeploy trigger 2026-07-03 -->
+tal
 
 각국(NPC)이 링크 하나로 접속해 명단·초청장·총기·인보이스를 제출하는 시스템.
 백엔드는 Supabase(사용자에게 비노출), 프론트는 대회 브랜드 단일 파일.
