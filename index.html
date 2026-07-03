@@ -56,7 +56,7 @@ th{background:var(--navy);color:#fff;font-weight:600}
 .box{width:380px;max-width:94vw;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 24px}
 .box .logo{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .box .logo img{height:48px}
-.doc{background:#fff;color:#111;max-width:760px;margin:0 auto;padding:40px 46px;border-radius:6px;font-family:"Times New Roman",serif;position:relative;overflow:hidden}
+.doc{background:#fff;color:#111;width:794px;box-sizing:border-box;margin:0;padding:52px 60px;border-radius:2px;font-family:"Times New Roman",serif;position:relative;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.12)}.docfit{overflow:hidden;position:relative;margin:0 auto;cursor:zoom-in}.docfit>.doc{transform-origin:top left}.docfit::after{content:'\2922';position:absolute;top:6px;right:8px;background:rgba(22,69,107,.85);color:#fff;font-size:12px;line-height:1;padding:5px 7px;border-radius:14px;pointer-events:none;z-index:6}.docmback .docfit{cursor:default}.docmback .docfit::after{display:none}.docmback{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:120;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:20px}.docmx{position:fixed;top:12px;right:14px;z-index:121;background:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .doc h2{text-align:center;letter-spacing:1px}
 .doc table{color:#111;font-size:13px}.doc table th,.doc table td{border:1px solid #999;background:#fff;color:#111}
 .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5}
@@ -83,7 +83,7 @@ th{background:var(--navy);color:#fff;font-weight:600}
 .navb.o{width:40px;height:40px;font-size:14px;background:#F1F6FA}
 .lh{display:flex;align-items:center;gap:10px;border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:10px}
 .dft{border-top:1px solid #ccc;margin-top:22px;padding-top:8px;font-size:10.5px;color:#777;line-height:1.5;text-align:center}
-@media print{body *{visibility:hidden}#pa,#pa *{visibility:visible}#pa{position:absolute;left:0;top:0;width:100%}}
+@media print{body *{visibility:hidden}#pa,#pa *{visibility:visible}#pa{position:absolute;left:0;top:0}#pa .doc{transform:none!important;width:794px;box-shadow:none;margin:0;border:none}.docfit{overflow:visible!important;height:auto!important}.docfit::after{display:none}@page{size:A4;margin:0}}
 
 /* top progress bar (real %) */
 #pbw{position:fixed;top:0;left:0;right:0;height:4px;z-index:99999;display:none;background:rgba(27,111,168,.12);pointer-events:none}
@@ -10297,6 +10297,29 @@ function invcPreviewDraft(){var box=$('#vpv');if(!box)return;var mem,t,a;
   box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+L('Live preview')+' — '+esc(t)+' ('+mem.length+' members)</b><span class="tag y" style="margin-left:auto">'+tl('PENDING APPROVAL — amounts issued on approval')+'</span></div>'+invoiceDoc(V);}
 
 /* ============ print ============ */
+
+/* ===== A4 문서: 화면 자동 줌(transform scale) + 탭 확대 모달 · 인쇄는 실 A4 ===== */
+var A4W=794,_fitT;
+function openDocModal(doc){var ov=document.createElement('div');ov.className='docmback';
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  var x=document.createElement('button');x.className='docmx';x.innerHTML='&times;';x.onclick=function(){ov.remove();};
+  var fit=document.createElement('div');fit.className='docfit';
+  var clone=doc.cloneNode(true);clone.style.transform='';clone.removeAttribute('id');
+  fit.appendChild(clone);ov.appendChild(x);ov.appendChild(fit);document.body.appendChild(ov);
+  var avail=Math.min(A4W,(window.innerWidth||A4W)-40),scale=avail/A4W;
+  clone.style.transform='scale('+scale+')';fit.style.width=avail+'px';fit.style.height=(clone.offsetHeight*scale)+'px';}
+function fitDoc(doc){if(!doc||!doc.parentNode)return;var fit=doc.parentNode;
+  if(!(fit.className&&/(^|\s)docfit(\s|$)/.test(fit.className))){
+    var w=document.createElement('div');w.className='docfit';doc.parentNode.insertBefore(w,doc);w.appendChild(doc);
+    w.addEventListener('click',function(){openDocModal(doc);});fit=w;}
+  var host=fit.parentNode,avail=(host&&host.clientWidth)||fit.clientWidth||A4W,scale=Math.min(1,(avail-2)/A4W);
+  doc.style.transform='scale('+scale+')';fit.style.height=(doc.offsetHeight*scale)+'px';}
+function fitDocsIn(root){root=root||document;if(!root.querySelectorAll)return;var ds=root.querySelectorAll('.doc');
+  for(var i=0;i<ds.length;i++){var d=ds[i];if(d.closest&&(d.closest('#pa')||d.closest('.docmback')))continue;fitDoc(d);}}
+function scheduleFit(){clearTimeout(_fitT);_fitT=setTimeout(function(){fitDocsIn(document);},50);}
+function _fitSetup(){if(window.MutationObserver&&document.body){try{new MutationObserver(scheduleFit).observe(document.body,{childList:true,subtree:true});}catch(e){}}scheduleFit();}
+if(document.body)_fitSetup();else window.addEventListener('DOMContentLoaded',_fitSetup);
+window.addEventListener('resize',scheduleFit);
 function printEl(id){var n=document.getElementById(id);if(!n){alert('No document');return;}$('#pa').innerHTML='<div class="doc">'+n.innerHTML+'</div>';$('#pa').classList.remove('hide');window.print();setTimeout(function(){$('#pa').classList.add('hide')},400);}
 
 /* warm up connection so the first lookup is fast */
