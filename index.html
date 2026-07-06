@@ -9872,12 +9872,12 @@ async function doActivate(){var e=($('#em').value||'').trim();if(!/^[^\s@]+@[^\s
   pbStart(1);var r=await db.reqAdd(S.country,e);pbStep();if(r.error){$('#er').textContent='Error: '+r.error.message;return;}notifyAdmin('New activation request — '+S.country,'NPC: '+S.country+' ('+cnameSafe(S.country)+')\nContact: '+e+'\nTime: '+new Date().toISOString()+'\n\nReview in admin.html (approve/reject).');scrRequested(e);}
 function scrRequested(e){
   $('#app').innerHTML=authBox(authHead(L('Activation request submitted'))+
-    '<p style="font-size:13px;line-height:1.6;text-align:center">'+L('Your request is now under review by the Organizing Committee.')+L('Once approved, a password setup link will be sent to')+'<b>'+esc(maskEmail(e))+'</b></p>'+
+    '<p style="font-size:13px;line-height:1.6;text-align:center">'+L('Your request is now under review by the Organizing Committee.')+L('Once approved, a password setup link will be sent to')+'<b>'+esc(maskEmail(e))+'</b></p>'+'<p class="muted" style="font-size:11.5px;text-align:center">'+L('Using Gmail? If the email is not in your inbox, please also check the Updates tab.')+'</p>'+
     '<div class="row" style="margin-top:14px;justify-content:center"><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Country</button></div>');
 }
 function scrPendingReq(rq){
   $('#app').innerHTML=authBox(authHead(L('Activation request under review'))+
-    '<p style="font-size:13px;line-height:1.6;text-align:center">'+L('An activation request for this delegation was submitted')+(rq.requested_at?'<b>'+esc(rq.requested_at)+'</b>':'')+L('Once approved, a password setup link will be sent to')+'<b>'+esc(maskEmail(rq.email))+'</b></p>'+
+    '<p style="font-size:13px;line-height:1.6;text-align:center">'+L('An activation request for this delegation was submitted')+(rq.requested_at?'<b>'+esc(rq.requested_at)+'</b>':'')+L('Once approved, a password setup link will be sent to')+'<b>'+esc(maskEmail(rq.email))+'</b></p>'+'<p class="muted" style="font-size:11.5px;text-align:center">'+L('Using Gmail? If the email is not in your inbox, please also check the Updates tab.')+'</p>'+
     '<p class="muted" style="font-size:11.5px;text-align:center">'+L('If this was not requested by your federation, please contact the Organizing Committee.')+'</p>'+
     '<div class="row" style="margin-top:10px;justify-content:center"><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Country</button></div>');
 }
