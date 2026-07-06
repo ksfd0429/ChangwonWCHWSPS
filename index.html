@@ -9772,8 +9772,8 @@ function tl(en){return esc(trS(en)||en);}
 function applyDir(){try{document.documentElement.dir=isRTL()?'rtl':'ltr';var b=document.getElementById('lgbtn');if(b){b.textContent=trS('Logout')||'Logout';b.title='Logout';}}catch(e){}}
 /* ============ DB layer (Supabase) ============ */
 var sbDb={
-  dirGet:async function(c){var r=await sb.from('npc_directory').select('*').eq('country',c).maybeSingle();return r.data;},
-  dirByEmail:async function(e){var r=await sb.from('npc_directory').select('*').eq('email',e).maybeSingle();return r.data;},
+  dirGet:async function(c){var r=await sb.rpc('dir_lookup',{p_country:c});var d=(r.data&&r.data[0])||null;return d?{country:c,email:d.email,active:d.active}:null;},
+  dirByEmail:async function(e){var r=await sb.rpc('dir_country',{p_email:e});return r.data?{country:r.data,email:e}:null;},
   reqLatest:async function(c){var r=await sb.from('activation_requests').select('*').eq('country',c).order('id',{ascending:false}).limit(1).maybeSingle();return r.data;},
   reqAdd:async function(c,e){return sb.from('activation_requests').insert({country:c,email:e,status:'pending'});},
   members:async function(c){var r=await sb.from('members').select('*').eq('country',c).order('id');return r.data||[];},
@@ -10369,7 +10369,7 @@ window.addEventListener('resize',scheduleFit);
 function printEl(id){var n=document.getElementById(id);if(!n){alert('No document');return;}$('#pa').innerHTML='<div class="doc">'+n.innerHTML+'</div>';$('#pa').classList.remove('hide');var _dc=$('#pa').querySelector('.doc');$('#pa').classList.toggle('multi',!!(_dc&&_dc.scrollHeight>1125));window.print();setTimeout(function(){$('#pa').classList.add('hide');$('#pa').classList.remove('multi')},400);}
 
 /* warm up connection so the first lookup is fast */
-if(!MOCK&&sb&&cfgOk()){try{var _pc=document.createElement('link');_pc.rel='preconnect';_pc.href=SUPABASE_URL;document.head.appendChild(_pc);sb.from('npc_directory').select('country').limit(1).then(function(){});}catch(e){}}
+if(!MOCK&&sb&&cfgOk()){try{var _pc=document.createElement('link');_pc.rel='preconnect';_pc.href=SUPABASE_URL;document.head.appendChild(_pc);sb.rpc('dir_country',{p_email:''}).then(function(){});}catch(e){}}
 /* session restore: keep login across refresh */
 async function restoreSession(){
   try{
