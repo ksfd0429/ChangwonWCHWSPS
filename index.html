@@ -9970,7 +9970,29 @@ async function scrMain(){applyDir();
      '<div class="tile'+LC+'" onclick="'+(locked?'lockedPoke()':'modFirearm()')+'"><div class="pictbox"><svg width="46" height="36" viewBox="0 0 160 125" fill="none" stroke-linejoin="round" stroke-linecap="round"><g transform="translate(16 40) rotate(-28 64 32)" stroke="#2E8B57" stroke-width="3"><path d="M16 6 H29 V11 H104 V8 H126 V19 H118 V33 H56 V28 H20 V11 H16 Z" fill="#fff"></path><path d="M20 11 H56 V28 H20 Z" fill="#2E8B57" stroke="none"></path><path d="M56 19 H118 V33 H56 Z" fill="#2E8B57" stroke="none"></path><path d="M26 28 H46 L24 50 H30 V56 H0 V50 H4 Z" fill="#fff"></path></g><g transform="translate(16 40) rotate(28 64 32)"><g transform="translate(128 0) scale(-1 1)" stroke="#2E8B57" stroke-width="3"><path d="M26 10 H36 V16 H62 V19 H112 V16 H134 V26 H112 V23 H62 V28 H30 V16 H26 Z" fill="#fff"></path><path d="M26 28 H46 L24 50 H30 V56 H0 V50 H4 Z" fill="#2E8B57"></path></g></g></svg></div><div><b>'+L('2. Firearm import/export')+'</b><div class="muted" style="font-size:12px">'+L('Firearms & photos')+'</div></div><span class="arr">›</span></div>'+
      '<div class="tile'+LC+'" onclick="'+(locked?'lockedPoke()':'modAmmo()')+'"><div class="pictbox"><svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="#1B6FA8" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><rect x="10" y="16" width="12" height="31" rx="2"></rect><rect x="10" y="21" width="12" height="19" fill="#1B6FA8" stroke="none"></rect><rect x="9" y="47" width="14" height="4.5" rx="1.5"></rect><rect x="42" y="16" width="12" height="31" rx="2"></rect><rect x="42" y="21" width="12" height="19" fill="#1B6FA8" stroke="none"></rect><rect x="41" y="47" width="14" height="4.5" rx="1.5"></rect><rect x="26" y="9" width="12" height="38" rx="2"></rect><rect x="26" y="14" width="12" height="26" fill="#1B6FA8" stroke="none"></rect><rect x="25" y="47" width="14" height="4.5" rx="1.5"></rect></svg></div><div><b>'+L('3. Shotgun ammunition')+'</b><div class="muted" style="font-size:12px">'+L('Reservation')+'</div></div><span class="arr">›</span></div>'+
      '<div class="tile'+LC+'" onclick="'+(locked?'lockedPoke()':'modInvoice()')+'"><div class="pictbox"><svg width="34" height="34" viewBox="0 0 64 64" fill="none" stroke="#E87722" stroke-width="4" stroke-linecap="round"><rect x="14" y="6" width="36" height="52" rx="4"></rect><path d="M22 18 H42 M22 26 H42 M22 34 H34"></path><circle cx="40" cy="45" r="8"></circle><path d="M22 46 H28"></path></svg></div><div><b>'+L('4. Invoice')+'</b><div class="muted" style="font-size:12px">'+L('Accommodation & services')+'</div></div><span class="arr">›</span></div>'+
-    '</div></div>');
+    '</div></div>'+
+    '<div class="card"><h3>'+L('Account')+'</h3><div class="row" style="align-items:center;gap:10px;flex-wrap:wrap"><span class="muted" style="font-size:12px">'+L('You can change your delegation account password here.')+'</span><button class="btn sec" style="margin-left:auto;padding:7px 12px" onclick="scrChangePw()">'+L('Change password')+'</button></div></div>');
+}
+
+function scrChangePw(){
+  var h='<div class="mback" id="cpw" onclick="if(event.target===this)closeCpw()"><div class="modal" style="max-width:400px"><div class="row" style="margin-bottom:10px;align-items:center"><b>'+L('Change password')+'</b><button class="btn sec" style="margin-left:auto;padding:5px 10px" onclick="closeCpw()">&times;</button></div>'+
+  '<div class="f"><label>'+L('New password')+'</label><input id="cpw1" type="password" autocomplete="new-password"></div>'+
+  '<div class="f"><label>'+L('Confirm new password')+'</label><input id="cpw2" type="password" autocomplete="new-password"></div>'+
+  '<p class="muted" style="font-size:11.5px">'+L('At least 6 characters.')+'</p>'+
+  '<button class="btn g" style="width:100%;margin-top:6px" onclick="doChangePw()">'+L('Save new password')+'</button>'+
+  '<div class="err" id="cpwerr" style="margin-top:8px"></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);var e=document.getElementById('cpw1');if(e)e.focus();
+}
+function closeCpw(){var e=document.getElementById('cpw');if(e)e.remove();}
+async function doChangePw(){
+  var p1=($('#cpw1')&&$('#cpw1').value)||'',p2=($('#cpw2')&&$('#cpw2').value)||'',er=$('#cpwerr');if(er){er.style.color='#A93226';er.textContent='';}
+  if(p1.length<6){if(er)er.textContent=tl('At least 6 characters.');return;}
+  if(p1!==p2){if(er)er.textContent=tl('Passwords do not match.');return;}
+  if(MOCK){alert('MOCK: password change simulated.');closeCpw();return;}
+  if(er){er.style.color='#555';er.textContent=tl('Saving…');}
+  var r=await sb.auth.updateUser({password:p1});
+  if(r.error){if(er){er.style.color='#A93226';er.textContent='Error: '+r.error.message;}return;}
+  closeCpw();alert(T('Your password has been changed. Please use the new password the next time you log in.'));
 }
 
 function lockedPoke(){
