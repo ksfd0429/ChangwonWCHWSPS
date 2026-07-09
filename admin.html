@@ -276,7 +276,7 @@ function scrManualNew(){if(!CUR_ADMIN){scrLogin();return;}
    '<div class="f"><label>표 데이터 (한 줄=한 행, 열은 &quot;|&quot; 로 구분)</label><textarea id="md_rows" rows="5" oninput="manualLive()"></textarea><p class="muted" id="md_hint" style="font-size:11px;margin:4px 0 0"></p></div>'+
    '<div class="f" id="md_acctbox" style="display:none"><label>인보이스 납부 계좌번호</label><input id="md_acct" oninput="manualLive()" placeholder="비우면 기본 관리 계좌"></div>'+
    '<div class="f"><label>마무리문 / Closing</label><textarea id="md_close" rows="2" oninput="manualLive()"></textarea></div>'+
-   '<div class="row" style="gap:8px"><button class="btn sec" onclick="manualPreview()">전체 미리보기</button><button class="btn g" style="flex:1" onclick="manualSave()">저장 & 문서번호 발급</button></div>';
+   '<button class="btn g" style="width:100%;margin-top:4px" onclick="manualSave()">저장 & 문서번호 발급</button>';
   stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; 뒤로</button><b style="margin-left:8px">✍️ 수동 문서 작성</b><span class="muted" style="margin-left:auto;font-size:12px">좌: 세부사항 입력 · 우: 실시간 미리보기 · 머리말/꼬리말은 초청장 기준</span></div></div>'+
    '<div class="row" style="gap:14px;align-items:flex-start;flex-wrap:wrap">'+
    '<div class="card" style="flex:1;min-width:330px;max-width:480px">'+form+'</div>'+
