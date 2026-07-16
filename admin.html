@@ -264,39 +264,100 @@ async function scrMain(){
 }
 var _REGVIEW=[];
 function TNMANUAL(t){return ({invitation:'초청장',invoice:'인보이스',firearms:'총기확인서',custom:'기타'})[t]||t;}
-function manualHint(){var t=($('#md_type')&&$('#md_type').value)||'';var H={invitation:'표 각 줄: Full Name | Position | Date of Birth | Period of Stay | Passport No. | Passport Expiry',invoice:'표 각 줄: Description | Amount',firearms:'표 각 줄: Owner | Manufacturer | Model | Serial No. | Type | Caliber',custom:'표(선택): 각 줄을 | 로 구분. 표가 필요 없으면 비워두세요.'};var h=$('#md_hint');if(h)h.textContent=H[t]||'';var ab=$('#md_acctbox');if(ab)ab.style.display=(t==='invoice')?'block':'none';}
+var MD_TPL={
+ invitation:{tbl:['Full Name','Position','Date of Birth','Period of Stay','Passport No.','Passport Expiry'],slots:[
+   ['to','수신 (TO)','To Whom It May Concern','text',''],
+   ['title','제목 (TITLE)','Request Letter for Visa Issuance (Letter of Invitation)','text',''],
+   ['event','대회명','Changwon 2026 WSPS World Championships','text',''],
+   ['period','대회 기간','7–16 September 2026','text',''],
+   ['venue','개최지','Changwon, Republic of Korea','text',''],
+   ['host','주최 (문장에 삽입)','the Korea Shooting Federation for the Disabled ("KSFD") and the Changwon 2026 WSPS WCH Organizing Committee ("LOC")','text',''],
+   ['cname','대상 국가명','','text','비우면 국가코드로 자동 표기'],
+   ['scope','대상 범위 / 비고','','text','예: Veterans Team (비우면 생략)'],
+   ['closing','마무리 확인문','We confirm that the above-named individuals will depart the Republic of Korea upon conclusion of the Competition.','area','']
+ ]},
+ invoice:{tbl:['Description','Amount'],slots:[
+   ['to','수신처 (To)','','text','청구 대상 기관/단체명'],
+   ['addr','수신 주소','','text',''],
+   ['event','대회명','Changwon 2026 WSPS World Championships','text',''],
+   ['intro','도입문 (선택)','','area','표 위에 넣을 안내문 (비우면 생략)'],
+   ['account','납부 계좌번호','','text','비우면 기본 관리 계좌'],
+   ['closing','마무리문 (선택)','','area','']
+ ]},
+ firearms:{tbl:['Owner','Manufacturer','Model','Serial No.','Type','Caliber'],slots:[
+   ['event','대회명','Changwon 2026 WSPS World Championships','text',''],
+   ['cname','대상 국가명','','text','비우면 국가코드로 자동 표기'],
+   ['scope','대상 그룹 / 비고','','text','비우면 전체 델리게이션'],
+   ['refdate','제출 / 확인일','','text','비우면 발행일 사용'],
+   ['closing','마무리문','This confirmation is issued for customs and administrative reference. The listed firearms are declared for temporary import/export for the duration of the Competition.','area','']
+ ]},
+ custom:{tbl:null,slots:[
+   ['title2','제목 (선택)','','text',''],
+   ['intro','본문 도입','','area',''],
+   ['closing','본문 마무리','','area','']
+ ]}
+};
+function mdRenderSlots(type){var box=document.getElementById('md_slots');if(!box)return;var tpl=MD_TPL[type]||MD_TPL.custom;box.innerHTML=(tpl.slots||[]).map(function(sl){var id='mds_'+sl[0];var hint=sl[4]?'<p class="muted" style="font-size:11px;margin:3px 0 0">'+esc(sl[4])+'</p>':'';var ctl=(sl[3]==='area')?'<textarea id="'+id+'" rows="2" oninput="manualLive()">'+esc(sl[2])+'</textarea>':'<input id="'+id+'" value="'+esc(sl[2])+'" oninput="manualLive()">';return '<div class="f"><label>'+esc(sl[1])+'</label>'+ctl+hint+'</div>';}).join('');}
+function mdTypeChange(v){var f=$('#md_full');if(f)f.checked=false;var fb=$('#md_fullbox');if(fb)fb.style.display='none';var sb=$('#md_slots');if(sb)sb.style.display='block';var ta=$('#md_full_html');if(ta)ta.value='';mdRenderSlots(v);manualHint();manualLive();}
+function mdFullToggle(){var on=$('#md_full')&&$('#md_full').checked;var sb=document.getElementById('md_slots');var fb=document.getElementById('md_fullbox');var ta=document.getElementById('md_full_html');
+ if(on){if(ta&&!ta.value.trim()){try{ta.value=mdBody(manualCollect());}catch(e){}}if(sb)sb.style.display='none';if(fb)fb.style.display='block';}
+ else{if(sb)sb.style.display='block';if(fb)fb.style.display='none';}manualLive();}
+function manualHint(){var t=($('#md_type')&&$('#md_type').value)||'';var H={invitation:'표: Full Name | Position | Date of Birth | Period of Stay | Passport No. | Passport Expiry',invoice:'표: Description | Amount',firearms:'표: Owner | Manufacturer | Model | Serial No. | Type | Caliber',custom:'표(선택): 각 줄을 | 로 구분. 표가 필요 없으면 비워두세요.'};var h=$('#md_hint');if(h)h.textContent=H[t]||'';}
 function scrManualNew(){if(!CUR_ADMIN){scrLogin();return;}
-  var opt=function(v,l){return '<option value="'+v+'">'+l+'</option>';};
-  var form='<div class="row" style="gap:10px;flex-wrap:wrap"><div class="f" style="flex:1;min-width:150px"><label>문서 유형</label><select id="md_type" onchange="manualHint();manualLive()">'+opt('invitation','초청장 (Invitation)')+opt('invoice','인보이스 (Invoice)')+opt('firearms','총기확인서 (Firearm)')+opt('custom','기타 (자유서식)')+'</select></div>'+
-   '<div class="f" style="width:100px"><label>국가</label><input id="md_ctry" oninput="manualLive()" placeholder="KOR"></div>'+
-   '<div class="f" style="width:140px"><label>발행일</label><input id="md_date" type="date" value="'+today()+'" oninput="manualLive()"></div></div>'+
-   '<div class="f"><label>제목 / TITLE</label><input id="md_title" oninput="manualLive()" placeholder="Request Letter for Visa Issuance"></div>'+
-   '<div class="f"><label>열람 허용 국가 (쉼표 · 비우면 마스터 전용)</label><input id="md_view" placeholder="KOR, JPN"></div>'+
-   '<div class="f"><label>도입문 / Intro</label><textarea id="md_intro" rows="3" oninput="manualLive()"></textarea></div>'+
-   '<div class="f"><label>표 데이터 (한 줄=한 행, 열은 &quot;|&quot; 로 구분)</label><textarea id="md_rows" rows="5" oninput="manualLive()"></textarea><p class="muted" id="md_hint" style="font-size:11px;margin:4px 0 0"></p></div>'+
-   '<div class="f" id="md_acctbox" style="display:none"><label>인보이스 납부 계좌번호</label><input id="md_acct" oninput="manualLive()" placeholder="비우면 기본 관리 계좌"></div>'+
-   '<div class="f"><label>마무리문 / Closing</label><textarea id="md_close" rows="2" oninput="manualLive()"></textarea></div>'+
-   '<button class="btn g" style="width:100%;margin-top:4px" onclick="manualSave()">저장 & 문서번호 발급</button>';
-  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; 뒤로</button><b style="margin-left:8px">✍️ 수동 문서 작성</b><span class="muted" style="margin-left:auto;font-size:12px">좌: 세부사항 입력 · 우: 실시간 미리보기 · 머리말/꼬리말은 초청장 기준</span></div></div>'+
-   '<div class="row" style="gap:14px;align-items:flex-start;flex-wrap:wrap">'+
-   '<div class="card" style="flex:1;min-width:330px;max-width:480px">'+form+'</div>'+
-   '<div class="card" style="flex:1.25;min-width:340px"><div class="row" style="margin-bottom:8px;align-items:center"><b>미리보기</b><span class="muted" style="margin-left:auto;font-size:11px">입력 즉시 반영</span></div><div id="md_prev" style="border:1px solid #ddd;border-radius:8px;overflow:auto;max-height:78vh;background:#fff"></div></div>'+
-   '</div>');
-  manualHint();manualLive();}
+ var opt=function(v,l){return '<option value="'+v+'">'+l+'</option>';};
+ var form='<div class="row" style="gap:10px;flex-wrap:wrap"><div class="f" style="flex:1;min-width:150px"><label>문서 유형</label><select id="md_type" onchange="mdTypeChange(this.value)">'+opt('invitation','초청장 (Invitation)')+opt('invoice','인보이스 (Invoice)')+opt('firearms','총기확인서 (Firearm)')+opt('custom','기타 (자유서식)')+'</select></div>'+
+  '<div class="f" style="width:100px"><label>국가</label><input id="md_ctry" oninput="manualLive()" placeholder="KOR"></div>'+
+  '<div class="f" style="width:140px"><label>발행일</label><input id="md_date" type="date" value="'+today()+'" oninput="manualLive()"></div></div>'+
+  '<div class="f"><label>열람 허용 국가 (쉼표 · 비우면 마스터 전용)</label><input id="md_view" placeholder="KOR, JPN"></div>'+
+  '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:4px 0 8px;padding:6px 8px;background:#F3EEFA;border-radius:6px;cursor:pointer"><input type="checkbox" id="md_full" onchange="mdFullToggle()"> ✏️ 전체 편집 모드 — 지정 빈칸이 아니라 본문 문구 전체를 직접 수정</label>'+
+  '<div id="md_slots"></div>'+
+  '<div class="f" id="md_fullbox" style="display:none"><label>본문 전체 (직접 편집 · HTML 허용)</label><textarea id="md_full_html" rows="14" oninput="manualLive()"></textarea><p class="muted" style="font-size:11px;margin:3px 0 0">머리말·꼬리말·서명은 자동으로 붙습니다. 이 영역은 본문만 편집합니다. 체크하면 현재 템플릿이 자동으로 채워집니다.</p></div>'+
+  '<div class="f"><label>표 데이터 (한 줄=한 행, 열은 "|" 로 구분)</label><textarea id="md_rows" rows="5" oninput="manualLive()"></textarea><p class="muted" id="md_hint" style="font-size:11px;margin:4px 0 0"></p></div>'+
+  '<button class="btn g" style="width:100%;margin-top:4px" onclick="manualSave()">저장 & 문서번호 발급</button>';
+ stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; 뒤로</button><b style="margin-left:8px">✍️ 수동 문서 작성</b><span class="muted" style="margin-left:auto;font-size:12px">좌: 지정 항목만 입력 · 우: 실시간 미리보기 · 머리말/꼬리말은 초청장 기준</span></div></div>'+
+  '<div class="row" style="gap:14px;align-items:flex-start;flex-wrap:wrap">'+
+  '<div class="card" style="flex:1;min-width:330px;max-width:480px">'+form+'</div>'+
+  '<div class="card" style="flex:1.25;min-width:340px"><div class="row" style="margin-bottom:8px;align-items:center"><b>미리보기</b><span class="muted" style="margin-left:auto;font-size:11px">입력 즉시 반영</span></div><div id="md_prev" style="border:1px solid #ddd;border-radius:8px;overflow:auto;max-height:78vh;background:#fff"></div></div>'+
+  '</div>');
+ mdRenderSlots('invitation');manualHint();manualLive();}
 function manualLive(){var el=document.getElementById('md_prev');if(!el)return;try{var m=manualCollect();el.innerHTML='<div style="transform:scale(.68);transform-origin:top left;width:147%;padding:6px">'+manualDocHTML(m)+'</div>';}catch(e){el.innerHTML='<p class="muted" style="padding:10px">미리보기 오류: '+esc(e.message||'')+'</p>';}}
-function manualCollect(){
-  var rows=(($('#md_rows')&&$('#md_rows').value)||'').split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length;}).map(function(l){return l.split(/\s*\|\s*/);});
-  var viewers=(($('#md_view')&&$('#md_view').value)||'').split(',').map(function(x){return x.trim().toUpperCase();}).filter(function(x){return x;});
-  return {doc_type:($('#md_type')&&$('#md_type').value)||'custom',country:(($('#md_ctry')&&$('#md_ctry').value)||'').trim().toUpperCase(),title:(($('#md_title')&&$('#md_title').value)||'').trim(),issued_at:($('#md_date')&&$('#md_date').value)||today(),viewers:viewers,reg_no:null,payload:{intro:($('#md_intro')&&$('#md_intro').value)||'',closing:($('#md_close')&&$('#md_close').value)||'',rows:rows,account:(($('#md_acct')&&$('#md_acct').value)||'').trim()}};}
-function manualDocHTML(m){var p=m.payload||{};var rows=p.rows||[];
-  function tb(heads){return '<table style="width:100%;margin:14px 0"><thead><tr>'+heads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody>'+(rows.length?rows.map(function(r){return '<tr>'+heads.map(function(_x,i){return '<td>'+esc(r[i]||'')+'</td>';}).join('')+'</tr>';}).join(''):'<tr><td colspan="'+heads.length+'" style="color:#888">—</td></tr>')+'</tbody></table>';}
-  function pr(t){t=String(t||'').trim();if(!t)return '';return t.split(/\n\n+/).map(function(x){return '<p>'+esc(x).replace(/\n/g,'<br>')+'</p>';}).join('');}
-  var body='';
-  if(m.doc_type==='invitation'){body='<p style="font-size:13px;margin:10px 0 2px"><b>TO:</b> To Whom It May Concern</p><p style="font-size:13px;margin:2px 0 12px"><b>TITLE:</b> '+(esc(m.title)||'Letter of Invitation')+'</p><hr class="docrule">'+pr(p.intro)+tb(['Full Name','Position','Date of Birth','Period of Stay','Passport No.','Passport Expiry'])+pr(p.closing);}
-  else if(m.doc_type==='invoice'){var b=bankS(dataS());body='<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">Changwon 2026 WSPS World Championships</p><hr class="docrule">'+pr(p.intro)+tb(['Description','Amount'])+'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(p.account||b.account)+'<br>Address: '+esc(b.addr)+'</div>'+pr(p.closing);}
-  else if(m.doc_type==='firearms'){body='<h2 style="font-size:19px">CONFIRMATION OF FIREARM SUBMISSION</h2><p style="text-align:center;font-weight:bold">Changwon 2026 WSPS World Championships</p><hr class="docrule">'+pr(p.intro)+tb(['Owner','Manufacturer','Model','Serial No.','Type','Caliber'])+pr(p.closing);}
-  else{body=(m.title?'<h2 style="font-size:19px;text-align:center;margin:8px 0">'+esc(m.title)+'</h2><hr class="docrule">':'')+pr(p.intro)+(rows.length?tb(['A','B','C','D','E','F'].slice(0,Math.max(1,(rows[0]||[]).length))):'')+pr(p.closing);}
-  return '<div class="doc" id="adm_doc">'+docHeadA()+body+docFootA({sign:true,no:m.reg_no,date:m.issued_at})+'</div>';}
+function manualCollect(){var type=($('#md_type')&&$('#md_type').value)||'custom';var tpl=MD_TPL[type]||MD_TPL.custom;
+ var slots={};(tpl.slots||[]).forEach(function(sl){var el=document.getElementById('mds_'+sl[0]);slots[sl[0]]=el?el.value:sl[2];});
+ var rows=(($('#md_rows')&&$('#md_rows').value)||'').split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length;}).map(function(l){return l.split(/\s*\|\s*/);});
+ var viewers=(($('#md_view')&&$('#md_view').value)||'').split(',').map(function(x){return x.trim().toUpperCase();}).filter(function(x){return x;});
+ var country=(($('#md_ctry')&&$('#md_ctry').value)||'').trim().toUpperCase();
+ var full=!!($('#md_full')&&$('#md_full').checked);var fullhtml=($('#md_full_html')&&$('#md_full_html').value)||'';
+ var title=(type==='invitation'?(slots.title||''):type==='invoice'?(slots.to||''):type==='firearms'?('Firearm confirmation'+(slots.scope?' — '+slots.scope:'')):(slots.title2||''))||'(수동문서)';
+ return {doc_type:type,country:country,title:title,issued_at:($('#md_date')&&$('#md_date').value)||today(),viewers:viewers,reg_no:null,payload:{slots:slots,rows:rows,fullEdit:full,fullhtml:fullhtml}};}
+function mdBody(m){var p=m.payload||{};var S=p.slots||{};var rows=p.rows||[];var code=m.country||'';
+ function tb(heads){return '<table style="width:100%;margin:14px 0"><thead><tr>'+heads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody>'+(rows.length?rows.map(function(r){return '<tr>'+heads.map(function(_x,i){return '<td>'+esc(r[i]||'')+'</td>';}).join('')+'</tr>';}).join(''):'<tr><td colspan="'+heads.length+'" style="color:#888">—</td></tr>')+'</tbody></table>';}
+ function pr(t){t=String(t||'').trim();if(!t)return '';return t.split(/\n\n+/).map(function(x){return '<p>'+esc(x).replace(/\n/g,'<br>')+'</p>';}).join('');}
+ function g(k,d){var v=S[k];v=(v==null?'':String(v)).trim();return v||d||'';}
+ if(m.doc_type==='invitation'){var cn=g('cname')||(code?cnameA(code):'');var scope=g('scope');
+  return '<p style="font-size:13px;margin:10px 0 2px"><b>TO:</b> '+esc(g('to','To Whom It May Concern'))+'</p><p style="font-size:13px;margin:2px 0 12px"><b>TITLE:</b> '+esc(g('title','Letter of Invitation'))+'</p><hr class="docrule">'+
+   '<p>This letter is to request your cooperation in the visa issuance procedure for the participants of the '+esc(g('event','Changwon 2026 WSPS World Championships'))+' (the &quot;Competition&quot;), which will be held on '+esc(g('period'))+' in '+esc(g('venue'))+', and is hosted by '+esc(g('host'))+'. The KSFD and LOC kindly request your cooperation for the following members of the <b>'+esc(cn)+(code?' ('+esc(code)+')':'')+'</b> delegation'+(scope?' &mdash; <b>'+esc(scope)+'</b>':'')+'. Below are the details:</p>'+
+   tb(MD_TPL.invitation.tbl)+pr(g('closing'));}
+ if(m.doc_type==='invoice'){var b=bankS(dataS());
+  return '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">'+esc(g('event','Changwon 2026 WSPS World Championships'))+'</p>'+
+   '<table style="width:100%;font-size:12.5px;margin:0 0 8px;border-collapse:collapse"><tr><td style="border:none;padding:2px 4px;width:13%"><b>To:</b></td><td style="border:none;padding:2px 4px;font-weight:bold">'+esc(g('to','—'))+'</td><td style="border:none;padding:2px 4px;text-align:right;width:10%"><b>NPC:</b></td><td style="border:none;padding:2px 4px;width:14%;text-align:center;font-weight:bold;font-size:16px;color:#16456B">'+esc(code)+'</td></tr><tr><td style="border:none;padding:2px 4px"><b>Address:</b></td><td style="border:none;padding:2px 4px" colspan="3">'+esc(g('addr','—'))+'</td></tr><tr><td style="border:none;padding:2px 4px"><b>DATE</b></td><td style="border:none;padding:2px 4px" colspan="3">'+esc(m.issued_at||'')+'</td></tr></table><hr class="docrule">'+
+   pr(g('intro'))+tb(MD_TPL.invoice.tbl)+'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(g('account')||b.account)+'<br>Address: '+esc(b.addr)+'</div>'+pr(g('closing'));}
+ if(m.doc_type==='firearms'){var cn2=g('cname')||(code?cnameA(code):'');var sc2=g('scope');var rd=g('refdate')||m.issued_at||'';
+  return '<h2 style="font-size:19px">CONFIRMATION OF FIREARM SUBMISSION</h2><p style="text-align:center;font-weight:bold">'+esc(g('event','Changwon 2026 WSPS World Championships'))+'</p><hr class="docrule">'+
+   '<p>This is to confirm that the <b>'+esc(cn2)+(code?' ('+esc(code)+')':'')+'</b> delegation'+(sc2?' &mdash; group <b>'+esc(sc2)+'</b>':'')+' has submitted the following firearm import/export information'+(rd?' on <b>'+esc(rd)+'</b>':'')+' for customs clearance:</p>'+
+   tb(MD_TPL.firearms.tbl)+pr(g('closing'));}
+ return (m.title?'<h2 style="font-size:19px;text-align:center;margin:8px 0">'+esc(g('title2')||m.title)+'</h2><hr class="docrule">':'')+pr(g('intro'))+(rows.length?tb(['A','B','C','D','E','F'].slice(0,Math.max(1,(rows[0]||[]).length))):'')+pr(g('closing'));}
+function mdBodyLegacy(m){var p=m.payload||{};var rows=p.rows||[];
+ function tb(heads){return '<table style="width:100%;margin:14px 0"><thead><tr>'+heads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody>'+(rows.length?rows.map(function(r){return '<tr>'+heads.map(function(_x,i){return '<td>'+esc(r[i]||'')+'</td>';}).join('')+'</tr>';}).join(''):'<tr><td colspan="'+heads.length+'" style="color:#888">—</td></tr>')+'</tbody></table>';}
+ function pr(t){t=String(t||'').trim();if(!t)return '';return t.split(/\n\n+/).map(function(x){return '<p>'+esc(x).replace(/\n/g,'<br>')+'</p>';}).join('');}
+ if(m.doc_type==='invitation'){return '<p style="font-size:13px;margin:10px 0 2px"><b>TO:</b> To Whom It May Concern</p><p style="font-size:13px;margin:2px 0 12px"><b>TITLE:</b> '+(esc(m.title)||'Letter of Invitation')+'</p><hr class="docrule">'+pr(p.intro)+tb(['Full Name','Position','Date of Birth','Period of Stay','Passport No.','Passport Expiry'])+pr(p.closing);}
+ if(m.doc_type==='invoice'){var b=bankS(dataS());return '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">Changwon 2026 WSPS World Championships</p><hr class="docrule">'+pr(p.intro)+tb(['Description','Amount'])+'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(p.account||b.account)+'<br>Address: '+esc(b.addr)+'</div>'+pr(p.closing);}
+ if(m.doc_type==='firearms'){return '<h2 style="font-size:19px">CONFIRMATION OF FIREARM SUBMISSION</h2><p style="text-align:center;font-weight:bold">Changwon 2026 WSPS World Championships</p><hr class="docrule">'+pr(p.intro)+tb(['Owner','Manufacturer','Model','Serial No.','Type','Caliber'])+pr(p.closing);}
+ return (m.title?'<h2 style="font-size:19px;text-align:center;margin:8px 0">'+esc(m.title)+'</h2><hr class="docrule">':'')+pr(p.intro)+(rows.length?tb(['A','B','C','D','E','F'].slice(0,Math.max(1,(rows[0]||[]).length))):'')+pr(p.closing);}
+function manualDocHTML(m){var p=m.payload||{};var body;
+ if(p.fullEdit&&p.fullhtml!=null&&String(p.fullhtml).trim()){body=String(p.fullhtml);}
+ else if(p.slots){body=mdBody(m);}
+ else{body=mdBodyLegacy(m);}
+ return '<div class="doc" id="adm_doc">'+docHeadA()+body+docFootA({sign:true,no:m.reg_no,date:m.issued_at})+'</div>';}
 function manualPreview(){var m=manualCollect();docShow('미리보기 · '+esc(TNMANUAL(m.doc_type)),manualDocHTML(m));}
 async function manualSave(){var m=manualCollect();if(!confirm('이 문서를 저장하고 문서장부에 번호를 발급할까요?'))return;
   if(LIVE){var ins=await sbc.from('manual_docs').insert({doc_type:m.doc_type,country:m.country,title:m.title,payload:m.payload,viewer_countries:m.viewers,issued_at:m.issued_at}).select('id').single();
