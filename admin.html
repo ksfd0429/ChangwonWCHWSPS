@@ -377,7 +377,7 @@ function manualDocHTML(m){var p=m.payload||{};var body;
  else{body=mdBodyLegacy(m);}
  return '<div class="doc" id="adm_doc">'+docHeadA()+body+docFootA({sign:true,no:m.reg_no,date:m.issued_at})+'</div>';}
 /* ===== 수동 문서: 문서 위 인라인 편집 (재설계) ===== */
-var _mdSlots={};
+var _mdSlots={};var _mdFullHtml=null;
 function mdSlotsDefaults(type){var tpl=MD_TPL[type]||MD_TPL.custom;var o={};(tpl.slots||[]).forEach(function(sl){o[sl[0]]=sl[2];});return o;}
 function es(k,ph){var raw=(_mdSlots[k]==null?'':String(_mdSlots[k]));return '<span class="eslot" contenteditable="true" data-k="'+esc(k)+'" data-ph="'+esc(ph||'')+'" oninput="mdSlotEdit(this)">'+esc(raw)+'</span>';}
 function mdSlotEdit(el){var k=el.getAttribute('data-k');_mdSlots[k]=el.textContent;}
@@ -403,12 +403,12 @@ function mdEditBody(type,code){var cn=cnameA(code)||code||'';var date=($('#md_da
      '<p>This is to confirm that the <b>'+es('cname',cn)+(code?' ('+esc(code)+')':'')+'</b> delegation — group <b>'+es('scope','(전체면 비움)')+'</b> has submitted the following firearm import/export information on <b>'+es('refdate',date)+'</b> for customs clearance:</p>'+
      etb(MD_TPL.firearms.tbl,'firearms')+'<p>'+es('closing')+'</p>';}
   return '<h2 style="font-size:19px;text-align:center;margin:8px 0">'+es('title2','(제목)')+'</h2><hr class="docrule"><p>'+es('intro','(본문 도입)')+'</p>'+etb(mdGridCols('custom'),'custom')+'<p>'+es('closing','(본문 마무리)')+'</p>';}
-function mdFullEditHTML(type,code,date){var m=manualCollect();m.payload.fullEdit=false;var body=mdBody(m);return '<div class="doc">'+docHeadA()+'<div id="md_fullbody" contenteditable="true" style="outline:1px dashed #C9A400;background:#FFFDF5;padding:6px;min-height:220px">'+body+'</div>'+docFootA({sign:true,no:null,date:date})+'</div>';}
+function mdFullEditHTML(type,code,date){if(_mdFullHtml==null){var m=manualCollect();m.payload.fullEdit=false;_mdFullHtml=mdBody(m);}return '<div class="doc">'+docHeadA()+'<div id="md_fullbody" contenteditable="true" oninput="_mdFullHtml=this.innerHTML" style="outline:1px dashed #C9A400;background:#FFFDF5;padding:6px;min-height:220px">'+_mdFullHtml+'</div>'+docFootA({sign:true,no:null,date:date})+'</div>';}
 function mdEditRender(){var host=document.getElementById('md_doc');if(!host)return;var type=($('#md_type')&&$('#md_type').value)||'custom';var code=(($('#md_ctry')&&$('#md_ctry').value)||'').trim().toUpperCase();var date=($('#md_date')&&$('#md_date').value)||'';
   if($('#md_full')&&$('#md_full').checked){host.innerHTML=mdFullEditHTML(type,code,date);return;}
   host.innerHTML='<div class="doc" id="md_doc_inner">'+docHeadA()+mdEditBody(type,code)+docFootA({sign:true,no:null,date:date})+'</div>';}
-function mdTypeChange(v){_mdSlots=mdSlotsDefaults(v);_mdRows=[];_mdCustCols=2;var f=$('#md_full');if(f)f.checked=false;mdEditRender();}
-function mdFullToggle(){mdEditRender();}
+function mdTypeChange(v){_mdSlots=mdSlotsDefaults(v);_mdRows=[];_mdCustCols=2;_mdFullHtml=null;var f=$('#md_full');if(f)f.checked=false;mdEditRender();}
+function mdFullToggle(){if(!($('#md_full')&&$('#md_full').checked)){_mdFullHtml=null;}mdEditRender();}
 function mdCell(ri,ci,v){if(!_mdRows[ri])_mdRows[ri]=[];_mdRows[ri][ci]=v;}
 function mdRowAdd(){var type=($('#md_type')&&$('#md_type').value)||'custom';var n=mdGridCols(type).length;var row=[];for(var i=0;i<n;i++)row.push('');_mdRows.push(row);mdEditRender();}
 function mdRowDel(ri){_mdRows.splice(ri,1);mdEditRender();}
@@ -418,12 +418,12 @@ function manualCollect(){var type=($('#md_type')&&$('#md_type').value)||'custom'
   var rows=(_mdRows||[]).map(function(r){return (r||[]).map(function(c){return (c==null?'':String(c)).trim();});}).filter(function(r){return r.some(function(c){return c.length;});});
   var viewers=(($('#md_view')&&$('#md_view').value)||'').split(',').map(function(x){return x.trim().toUpperCase();}).filter(function(x){return x;});
   var country=(($('#md_ctry')&&$('#md_ctry').value)||'').trim().toUpperCase();
-  var full=!!($('#md_full')&&$('#md_full').checked);var fb=document.getElementById('md_fullbody');var fullhtml=(full&&fb)?fb.innerHTML:'';
+  var full=!!($('#md_full')&&$('#md_full').checked);var fb=document.getElementById('md_fullbody');var fullhtml=full?((_mdFullHtml!=null)?_mdFullHtml:(fb?fb.innerHTML:'')):'';
   var slots={};(tpl.slots||[]).forEach(function(sl){slots[sl[0]]=(_mdSlots[sl[0]]!=null?_mdSlots[sl[0]]:sl[2]);});
   var title=((type==='invitation'||type==='invitation_official')?(slots.title||''):type==='invoice'?(slots.to||''):type==='firearms'?('Firearm confirmation'+(slots.scope?' — '+slots.scope:'')):(slots.title2||''))||'(수동문서)';
   return {doc_type:type,country:country,title:title,issued_at:($('#md_date')&&$('#md_date').value)||today(),viewers:viewers,reg_no:null,payload:{slots:slots,rows:rows,fullEdit:full,fullhtml:fullhtml}};}
 function scrManualNew(seed){if(!CUR_ADMIN){scrLogin();return;}
-  _mdSlots=mdSlotsDefaults('invitation');_mdRows=[];_mdCustCols=2;
+  _mdSlots=mdSlotsDefaults('invitation');_mdRows=[];_mdCustCols=2;_mdFullHtml=null;
   var opt=function(v,l){return '<option value="'+v+'">'+l+'</option>';};
   var style='<style id="md_estyle">.eslot{background:#FFF7D6;border-bottom:1px dashed #C9A400;padding:0 3px;border-radius:2px;cursor:text;min-width:16px;display:inline-block}.eslot:focus{outline:none;background:#FFEFA6}.eslot:empty:before{content:attr(data-ph);color:#b3a25a}.ecell{width:100%;border:1px solid #dcdcdc;border-radius:3px;padding:3px 5px;font:inherit;box-sizing:border-box;background:#FFFDF5}.ecell:focus{outline:none;border-color:#C9A400;background:#FFF7D6}.exbtn{border:none;background:none;color:#c33;cursor:pointer;font-size:15px;padding:0 2px}#md_doc .doc{margin:0 auto;box-shadow:0 1px 8px rgba(0,0,0,.14)}</style>';
   var dl='<datalist id="dl_pos"><option>Athlete</option><option>Coach</option><option>Team Leader</option><option>Official</option><option>Guide</option><option>Shooter</option><option>Technical Official</option><option>Physiotherapist</option><option>Doctor</option></datalist><datalist id="dl_ftype"><option>Air Rifle</option><option>Air Pistol</option><option>Rifle</option><option>Pistol</option><option>Shotgun</option></datalist><datalist id="dl_func"><option>International Technical Officer</option><option>International Referee</option><option>Referee</option><option>Judge</option><option>Jury Member</option><option>Classifier</option><option>Technical Delegate</option><option>Range Officer</option></datalist>';
@@ -439,7 +439,7 @@ function scrManualNew(seed){if(!CUR_ADMIN){scrLogin();return;}
    style+dl+
    '<div class="card">'+bar+'</div>'+
    '<div class="card"><div id="md_doc" style="overflow:auto;background:#eef1f4;border-radius:8px;padding:14px"></div></div>');
-  if(seed){var ts=$('#md_type');if(ts)ts.value=seed.doc_type||'invitation';var ct=$('#md_ctry');if(ct)ct.value=seed.country||'';_mdSlots=Object.assign(mdSlotsDefaults(seed.doc_type||'invitation'),seed.slots||{});_mdRows=(seed.rows||[]).map(function(r){return (r||[]).slice();});if((MD_TPL[seed.doc_type]||MD_TPL.custom).tbl==null)_mdCustCols=Math.max(2,(((seed.rows||[])[0])||[]).length||2);}
+  if(seed){var ts=$('#md_type');if(ts)ts.value=seed.doc_type||'invitation';var ct=$('#md_ctry');if(ct)ct.value=seed.country||'';_mdSlots=Object.assign(mdSlotsDefaults(seed.doc_type||'invitation'),seed.slots||{});_mdRows=(seed.rows||[]).map(function(r){return (r||[]).slice();});if((MD_TPL[seed.doc_type]||MD_TPL.custom).tbl==null)_mdCustCols=Math.max(2,(((seed.rows||[])[0])||[]).length||2);if(seed.fullEdit&&seed.fullhtml){var mf=$('#md_full');if(mf)mf.checked=true;_mdFullHtml=seed.fullhtml;}else{_mdFullHtml=null;}}
   mdEditRender();}
 
 function manualPreview(){var m=manualCollect();docShow('미리보기 · '+esc(TNMANUAL(m.doc_type)),manualDocHTML(m));}
@@ -723,7 +723,7 @@ function buildDraftSeed(src){var s=dataS();if(!src)return null;
  if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});if(!L)return null;var mem=s.members.filter(function(m){return m.country===L.country&&(L.member_ids||[]).indexOf(m.id)>=0});return {doc_type:'invitation',country:L.country,slots:{cname:cnameA(L.country),scope:(L.title&&L.title!=='Entire delegation'?L.title:'')},rows:mem.map(function(m){return [memName(m),m.position||'',m.dob||'',((m.arrive||'')+' ~ '+(m.depart||'')),m.passport||'',m.passport_expiry||''];})};}
  if(src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});if(!V)return null;var items=invItemsOf(V,s);return {doc_type:'invoice',country:V.country,slots:{to:V.title||'',addr:V.addr||'',account:V.account||''},rows:items.map(function(it){return [it.d||'',usdF(+it.t||0)];})};}
  if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];if(!x)return null;var list=fscopeList(s,x);return {doc_type:'firearms',country:x.country,slots:{scope:(x.grp&&x.grp!=='*ALL*'?x.grp:''),refdate:x.submitted_at||''},rows:list.map(function(g){return [g.owner||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||''];})};}
- if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(x){return x.id===src.id});if(!m)return null;var p=m.payload||{};return {doc_type:m.doc_type,country:m.country||'',slots:Object.assign({},p.slots||{}),rows:(p.rows||[]).map(function(r){return (r||[]).slice();})};}
+ if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(x){return x.id===src.id});if(!m)return null;var p=m.payload||{};return {doc_type:m.doc_type,country:m.country||'',slots:Object.assign({},p.slots||{}),rows:(p.rows||[]).map(function(r){return (r||[]).slice();}),fullEdit:!!p.fullEdit,fullhtml:p.fullhtml||''};}
  return null;}
 function draftDoc(){var seed=buildDraftSeed(_DRAFTSRC);if(!seed){alert('이 문서는 기안(복사) 대상이 아닙니다.');return;}var dm=document.getElementById('dm');if(dm)dm.remove();var am=document.getElementById('am');if(am)am.remove();scrManualNew(seed);}
 
