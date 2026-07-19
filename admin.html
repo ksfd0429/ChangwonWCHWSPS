@@ -422,7 +422,7 @@ function manualCollect(){var type=($('#md_type')&&$('#md_type').value)||'custom'
   var slots={};(tpl.slots||[]).forEach(function(sl){slots[sl[0]]=(_mdSlots[sl[0]]!=null?_mdSlots[sl[0]]:sl[2]);});
   var title=((type==='invitation'||type==='invitation_official')?(slots.title||''):type==='invoice'?(slots.to||''):type==='firearms'?('Firearm confirmation'+(slots.scope?' — '+slots.scope:'')):(slots.title2||''))||'(수동문서)';
   return {doc_type:type,country:country,title:title,issued_at:($('#md_date')&&$('#md_date').value)||today(),viewers:viewers,reg_no:null,payload:{slots:slots,rows:rows,fullEdit:full,fullhtml:fullhtml}};}
-function scrManualNew(){if(!CUR_ADMIN){scrLogin();return;}
+function scrManualNew(seed){if(!CUR_ADMIN){scrLogin();return;}
   _mdSlots=mdSlotsDefaults('invitation');_mdRows=[];_mdCustCols=2;
   var opt=function(v,l){return '<option value="'+v+'">'+l+'</option>';};
   var style='<style id="md_estyle">.eslot{background:#FFF7D6;border-bottom:1px dashed #C9A400;padding:0 3px;border-radius:2px;cursor:text;min-width:16px;display:inline-block}.eslot:focus{outline:none;background:#FFEFA6}.eslot:empty:before{content:attr(data-ph);color:#b3a25a}.ecell{width:100%;border:1px solid #dcdcdc;border-radius:3px;padding:3px 5px;font:inherit;box-sizing:border-box;background:#FFFDF5}.ecell:focus{outline:none;border-color:#C9A400;background:#FFF7D6}.exbtn{border:none;background:none;color:#c33;cursor:pointer;font-size:15px;padding:0 2px}#md_doc .doc{margin:0 auto;box-shadow:0 1px 8px rgba(0,0,0,.14)}</style>';
@@ -439,6 +439,7 @@ function scrManualNew(){if(!CUR_ADMIN){scrLogin();return;}
    style+dl+
    '<div class="card">'+bar+'</div>'+
    '<div class="card"><div id="md_doc" style="overflow:auto;background:#eef1f4;border-radius:8px;padding:14px"></div></div>');
+  if(seed){var ts=$('#md_type');if(ts)ts.value=seed.doc_type||'invitation';var ct=$('#md_ctry');if(ct)ct.value=seed.country||'';_mdSlots=Object.assign(mdSlotsDefaults(seed.doc_type||'invitation'),seed.slots||{});_mdRows=(seed.rows||[]).map(function(r){return (r||[]).slice();});if((MD_TPL[seed.doc_type]||MD_TPL.custom).tbl==null)_mdCustCols=Math.max(2,(((seed.rows||[])[0])||[]).length||2);}
   mdEditRender();}
 
 function manualPreview(){var m=manualCollect();docShow('미리보기 · '+esc(TNMANUAL(m.doc_type)),manualDocHTML(m));}
@@ -448,7 +449,7 @@ async function manualSave(){var m=manualCollect();if(!confirm('이 문서를 저
     if(reg!=null){await sbc.from('manual_docs').update({reg_no:reg}).eq('id',id);}alert('수동 문서 저장 완료 ✔\n문서번호: '+docNoFmt(reg));}
   else{var s=mL();s.manual_docs=s.manual_docs||[];var id=(s._mseq=(s._mseq||0)+1);var reg=mockIssue(s,m.doc_type,m.country,m.title,'manual_docs',id);s.manual_docs.push({id:id,doc_type:m.doc_type,country:m.country,title:m.title,payload:m.payload,viewer_countries:m.viewers,reg_no:reg,issued_at:m.issued_at});mS(s);alert('수동 문서 저장(데모) · '+docNoFmt(reg));}
   scrMain();}
-function viewManual(id){var m=(dataS().manual_docs||[]).find(function(x){return x.id===id;});if(!m){alert('문서를 찾을 수 없습니다.');return;}docShow('수동 문서 · '+esc(TNMANUAL(m.doc_type))+(m.country?' · '+esc(m.country):'')+(m.title?' — '+esc(m.title):''),manualDocHTML(m));}
+function viewManual(id){var m=(dataS().manual_docs||[]).find(function(x){return x.id===id;});if(!m){alert('문서를 찾을 수 없습니다.');return;}_DRAFTSRC={kind:'manual',id:id};docShow('수동 문서 · '+esc(TNMANUAL(m.doc_type))+(m.country?' · '+esc(m.country):'')+(m.title?' — '+esc(m.title):''),manualDocHTML(m));}
 function openRegDoc(i){var r=(_REGVIEW||[])[i];if(!r)return;var s=dataS();var t=r.source_table,k=r.source_key;
   if(t==='invitations'){docInv(parseInt(k,10));return;}
   if(t==='invoices'){docV(parseInt(k,10));return;}
@@ -716,7 +717,16 @@ function _fitSetup(){if(window.MutationObserver&&document.body){try{new Mutation
 if(document.body)_fitSetup();else window.addEventListener('DOMContentLoaded',_fitSetup);
 window.addEventListener('resize',scheduleFit);
 function printEl(id){var n=document.getElementById(id);if(!n){alert('No document');return;}var pa=document.getElementById('pa');pa.innerHTML='<div class="doc">'+n.innerHTML+'</div>';pa.classList.remove('hide');var _dc=pa.querySelector('.doc');pa.classList.toggle('multi',!!(_dc&&_dc.scrollHeight>1125));window.print();setTimeout(function(){pa.classList.add('hide');pa.classList.remove('multi')},400);}
-function docShow(title,html){infoModal(title+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button>',html);}
+function docShow(title,html){infoModal(title+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn" style="background:#2E6B5B;padding:5px 12px;min-height:0;font-size:12px" onclick="draftDoc()">📝 기안(복사)</button>',html);}
+var _DRAFTSRC=null;
+function buildDraftSeed(src){var s=dataS();if(!src)return null;
+ if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});if(!L)return null;var mem=s.members.filter(function(m){return m.country===L.country&&(L.member_ids||[]).indexOf(m.id)>=0});return {doc_type:'invitation',country:L.country,slots:{cname:cnameA(L.country),scope:(L.title&&L.title!=='Entire delegation'?L.title:'')},rows:mem.map(function(m){return [memName(m),m.position||'',m.dob||'',((m.arrive||'')+' ~ '+(m.depart||'')),m.passport||'',m.passport_expiry||''];})};}
+ if(src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});if(!V)return null;var items=invItemsOf(V,s);return {doc_type:'invoice',country:V.country,slots:{to:V.title||'',addr:V.addr||'',account:V.account||''},rows:items.map(function(it){return [it.d||'',usdF(+it.t||0)];})};}
+ if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];if(!x)return null;var list=fscopeList(s,x);return {doc_type:'firearms',country:x.country,slots:{scope:(x.grp&&x.grp!=='*ALL*'?x.grp:''),refdate:x.submitted_at||''},rows:list.map(function(g){return [g.owner||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||''];})};}
+ if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(x){return x.id===src.id});if(!m)return null;var p=m.payload||{};return {doc_type:m.doc_type,country:m.country||'',slots:Object.assign({},p.slots||{}),rows:(p.rows||[]).map(function(r){return (r||[]).slice();})};}
+ return null;}
+function draftDoc(){var seed=buildDraftSeed(_DRAFTSRC);if(!seed){alert('이 문서는 기안(복사) 대상이 아닙니다.');return;}var dm=document.getElementById('dm');if(dm)dm.remove();var am=document.getElementById('am');if(am)am.remove();scrManualNew(seed);}
+
 function docHeadA(){return '<div class="dhead"><div class="lh"><img src="assets/logo.png" style="height:68px"><div style="flex:1;text-align:center;font-weight:bold;font-size:16px;line-height:1.4;color:#16456B">Korea Shooting Federation for Disabled<br>Changwon 2026 WSPS World Championships Organising Committee</div><img src="assets/ksfd.png" onerror="this.remove()" style="height:68px"></div></div><div class="dbody">';}
 function docFootA(opt){opt=opt||{};var num=(opt.no!=null)?'Changwon 2026 WSPS World Championships-'+('000'+String(opt.no||'').replace(/\D/g,'')).slice(-3)+' ('+esc(opt.date||'')+')':'';var sig=opt.sign?'<div class="sigwrap"><p class="signame"><b>Korea Shooting Federation for Disabled</b></p><div class="sigcluster"><span class="sigrole">President</span><span class="sigbar"></span><img class="sigimg" src="assets/Signature.png" alt="" onerror="this.style.display=\'none\'"><img class="sealimg" src="assets/Stamp.png" alt="" onerror="this.style.display=\'none\'"></div></div>':'<p style="margin-top:14px"><b>President</b><br>Korea Shooting Federation for Disabled</p>';var body=('mid' in opt)?opt.mid:sig;return '</div><div class="dfoot"><div class="dsign"><p style="margin-top:44px">With best regards,</p>'+body+'</div><div class="dft"><div class="dftrow1"><span class="docno">'+num+'</span><span class="dftaddr">ZIP 61998&nbsp;&nbsp;&nbsp;&nbsp;8F, Mareukbokgar-ro 154, Seo-gu, Gwangju, Republic of Korea</span></div><div class="dftrow2">PHONE +82 62 710 5391 / FAX +82 62 710 9851 / Email(ksfd0427@hanmail.net) / http://www.ksfd.kosad.kr</div></div></div>';}
 function docInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.id===id});if(!L)return;var isA=L.status==='approved';var mem=s.members.filter(function(m){return m.country===L.country&&(L.member_ids||[]).indexOf(m.id)>=0});
@@ -726,7 +736,7 @@ function docInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.
   '<table style="width:100%;margin:14px 0"><thead><tr><th>Full Name</th><th>Position</th><th>Date of Birth</th><th>Period of Stay</th><th>Passport No.</th><th>Passport Expiry</th></tr></thead><tbody>'+
   mem.map(function(m){return '<tr><td>'+esc(memName(m))+'</td><td>'+esc(m.position)+'</td><td>'+esc(m.dob)+'</td><td>'+esc(m.arrive)+' ~ '+esc(m.depart)+'</td><td>'+esc(m.passport)+'</td><td>'+esc(m.passport_expiry||'')+'</td></tr>'}).join('')+'</tbody></table>'+
   '<p>We confirm that the above-named individuals will depart the Republic of Korea upon conclusion of the Competition.</p>'+docFootA(isA?{sign:true,no:L.reg_no,date:L.approved_at}:{})+'</div>';
-  docShow('초청장 — '+esc(L.country)+' · '+esc(L.title)+(isA?'':' <span class="tag y">pending</span>'),h);}
+  _DRAFTSRC={kind:'invitation',id:id};docShow('초청장 — '+esc(L.country)+' · '+esc(L.title)+(isA?'':' <span class="tag y">pending</span>'),h);}
 function invoiceDocA(V,itemsOverride,idOpt){var s=dataS();var isA=V.status==='approved';var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});var b=bankS(s);
   var items=itemsOverride||((V.items&&V.items.length)?V.items:buildAutoItemsA(mem,s.firearms.filter(function(g){return g.country===V.country}),pricingS(s)));
   return '<div class="doc" id="'+(idOpt||'adm_doc')+'">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+
@@ -738,7 +748,7 @@ function invoiceDocA(V,itemsOverride,idOpt){var s=dataS();var isA=V.status==='ap
   itemsToTableA(items)+
   (isA?'':'<p>This is a <b>draft invoice request</b>. Amounts and Banking Information are entered by the OC upon approval.</p>')+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(V.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'')})+'</div>';}
 function docV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var isA=V.status==='approved';
-  docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),invoiceDocA(V,null,'adm_doc'));}
+  _DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),invoiceDocA(V,null,'adm_doc'));}
 function docF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');var sub=x.submitted_at;
   var list=s.firearms.filter(function(g){if(g.country!==x.country)return false;if(sc==='*ALL*')return true;var m=s.members.find(function(mm){return mm.country===g.country&&(memName(mm)===g.owner||mm.name===g.owner)});return m&&(((m.sub_group||'').trim())||'(Ungrouped)')===sc;});
   var ref='OC-F-'+x.country+'-'+String(sub||'').replace(/-/g,'');
@@ -749,7 +759,7 @@ function docF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var s
   '<table style="width:100%;margin:14px 0"><thead><tr><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial No.</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+
   (list.length?list.map(function(g2){return '<tr><td>'+esc(g2.owner)+'</td><td>'+esc(g2.manufacturer)+'</td><td>'+esc(g2.model)+'</td><td>'+esc(g2.serial)+'</td><td>'+esc(g2.type)+'</td><td>'+esc(g2.caliber)+'</td><td>'+((g2.photo_full&&g2.photo_num)?'2/2':((g2.photo_full?1:0)+(g2.photo_num?1:0))+'/2')+'</td></tr>'}).join(''):'<tr><td colspan="7" style="color:#888">No firearms in this scope.</td></tr>')+'</tbody></table>'+
   '<p>This confirmation is issued for customs and administrative reference. The listed firearms are declared for temporary import/export for the duration of the Competition.</p>'+docFootA({no:x.reg_no,date:x.issued_at})+'</div>';
-  docShow('총기 확인서 — '+esc(x.country)+' · '+esc(sc==='*ALL*'?'Entire delegation':sc),h);}
+  _DRAFTSRC={kind:'firearms',i:i};docShow('총기 확인서 — '+esc(x.country)+' · '+esc(sc==='*ALL*'?'Entire delegation':sc),h);}
 async function resetCountry(c){
   if(!confirm('['+c+'] 국가의 계정과 모든 귀속 데이터(명단·초청장·총기·인보이스·활성화 요청·항공일정·주소)를 삭제합니다.\n디버깅용 기능입니다. 계속할까요?'))return;
   if(!confirm('정말로 삭제합니까? 이 작업은 되돌릴 수 없습니다.'))return;
