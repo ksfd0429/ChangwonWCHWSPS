@@ -298,11 +298,27 @@ var MD_TPL={
  ]}
 };
 function mdRenderSlots(type){var box=document.getElementById('md_slots');if(!box)return;var tpl=MD_TPL[type]||MD_TPL.custom;box.innerHTML=(tpl.slots||[]).map(function(sl){var id='mds_'+sl[0];var hint=sl[4]?'<p class="muted" style="font-size:11px;margin:3px 0 0">'+esc(sl[4])+'</p>':'';var ctl=(sl[3]==='area')?'<textarea id="'+id+'" rows="2" oninput="manualLive()">'+esc(sl[2])+'</textarea>':'<input id="'+id+'" value="'+esc(sl[2])+'" oninput="manualLive()">';return '<div class="f"><label>'+esc(sl[1])+'</label>'+ctl+hint+'</div>';}).join('');}
-function mdTypeChange(v){var f=$('#md_full');if(f)f.checked=false;var fb=$('#md_fullbox');if(fb)fb.style.display='none';var sb=$('#md_slots');if(sb)sb.style.display='block';var ta=$('#md_full_html');if(ta)ta.value='';mdRenderSlots(v);manualHint();manualLive();}
+/* ===== 표 그리드 편집기 (직관적 셀 입력) ===== */
+var _mdRows=[],_mdCustCols=2;
+function mdGridCols(type){var tpl=MD_TPL[type]||MD_TPL.custom;if(tpl.tbl)return tpl.tbl.slice();var a=[];for(var i=0;i<_mdCustCols;i++)a.push('열 '+(i+1));return a;}
+function mdGridInit(type){_mdRows=[];if((MD_TPL[type]||MD_TPL.custom).tbl==null)_mdCustCols=2;mdGridRender();}
+function mdGridRender(){var box=document.getElementById('md_grid');if(!box)return;var type=($('#md_type')&&$('#md_type').value)||'custom';var cols=mdGridCols(type);var isCustom=(MD_TPL[type]||MD_TPL.custom).tbl==null;
+  var head='<tr>'+cols.map(function(h,ci){return '<th style="font-size:11px;font-weight:600;text-align:left;padding:2px 4px;color:#555;white-space:nowrap">'+esc(h)+(isCustom&&_mdCustCols>1?' <button type="button" title="열 삭제" onclick="mdColDel('+ci+')" style="border:none;background:none;color:#c33;cursor:pointer;font-size:11px;padding:0">×</button>':'')+'</th>';}).join('')+'<th style="width:24px"></th></tr>';
+  var body=_mdRows.map(function(r,ri){return '<tr>'+cols.map(function(_h,ci){return '<td style="padding:1px 2px"><input value="'+esc((r&&r[ci])||'')+'" oninput="mdCell('+ri+','+ci+',this.value)" style="width:100%;padding:5px 6px;font-size:12px;border:1px solid var(--line);border-radius:4px;box-sizing:border-box;min-height:0"></td>';}).join('')+'<td style="text-align:center;padding:0"><button type="button" onclick="mdRowDel('+ri+')" title="행 삭제" style="border:none;background:none;color:#c33;cursor:pointer;font-size:15px;padding:0 2px">×</button></td></tr>';}).join('');
+  if(!_mdRows.length)body='<tr><td colspan="'+(cols.length+1)+'" style="padding:8px 4px;color:#999;font-size:12px">아직 행이 없습니다. 아래 “+ 행 추가”를 누르세요.</td></tr>';
+  box.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
+   '<div class="row" style="gap:6px;margin-top:6px"><button type="button" class="btn sec" style="padding:5px 12px;font-size:12px" onclick="mdRowAdd()">+ 행 추가</button>'+(isCustom?'<button type="button" class="btn sec" style="padding:5px 12px;font-size:12px" onclick="mdColAdd()">+ 열 추가</button>':'')+'</div>';}
+function mdCell(ri,ci,v){if(!_mdRows[ri])_mdRows[ri]=[];_mdRows[ri][ci]=v;manualLive();}
+function mdRowAdd(){var type=($('#md_type')&&$('#md_type').value)||'custom';var n=mdGridCols(type).length;var row=[];for(var i=0;i<n;i++)row.push('');_mdRows.push(row);mdGridRender();manualLive();}
+function mdRowDel(ri){_mdRows.splice(ri,1);mdGridRender();manualLive();}
+function mdColAdd(){_mdCustCols++;_mdRows.forEach(function(r){r.push('');});mdGridRender();manualLive();}
+function mdColDel(ci){if(_mdCustCols<=1)return;_mdCustCols--;_mdRows.forEach(function(r){r.splice(ci,1);});mdGridRender();manualLive();}
+
+function mdTypeChange(v){var f=$('#md_full');if(f)f.checked=false;var fb=$('#md_fullbox');if(fb)fb.style.display='none';var sb=$('#md_slots');if(sb)sb.style.display='block';var ta=$('#md_full_html');if(ta)ta.value='';mdRenderSlots(v);mdGridInit(v);manualHint();manualLive();}
 function mdFullToggle(){var on=$('#md_full')&&$('#md_full').checked;var sb=document.getElementById('md_slots');var fb=document.getElementById('md_fullbox');var ta=document.getElementById('md_full_html');
  if(on){if(ta&&!ta.value.trim()){try{ta.value=mdBody(manualCollect());}catch(e){}}if(sb)sb.style.display='none';if(fb)fb.style.display='block';}
  else{if(sb)sb.style.display='block';if(fb)fb.style.display='none';}manualLive();}
-function manualHint(){var t=($('#md_type')&&$('#md_type').value)||'';var H={invitation:'표: Full Name | Position | Date of Birth | Period of Stay | Passport No. | Passport Expiry',invoice:'표: Description | Amount',firearms:'표: Owner | Manufacturer | Model | Serial No. | Type | Caliber',custom:'표(선택): 각 줄을 | 로 구분. 표가 필요 없으면 비워두세요.'};var h=$('#md_hint');if(h)h.textContent=H[t]||'';}
+function manualHint(){var t=($('#md_type')&&$('#md_type').value)||'';var H={invitation:'· 각 칸을 직접 입력',invoice:'· 항목/금액 입력',firearms:'· 총기 정보 입력',custom:'· 표가 필요 없으면 비워두세요'};var h=$('#md_hint');if(h)h.textContent=H[t]||'';}
 function scrManualNew(){if(!CUR_ADMIN){scrLogin();return;}
  var opt=function(v,l){return '<option value="'+v+'">'+l+'</option>';};
  var form='<div class="row" style="gap:10px;flex-wrap:wrap"><div class="f" style="flex:1;min-width:150px"><label>문서 유형</label><select id="md_type" onchange="mdTypeChange(this.value)">'+opt('invitation','초청장 (Invitation)')+opt('invoice','인보이스 (Invoice)')+opt('firearms','총기확인서 (Firearm)')+opt('custom','기타 (자유서식)')+'</select></div>'+
@@ -312,18 +328,18 @@ function scrManualNew(){if(!CUR_ADMIN){scrLogin();return;}
   '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:4px 0 8px;padding:6px 8px;background:#F3EEFA;border-radius:6px;cursor:pointer"><input type="checkbox" id="md_full" onchange="mdFullToggle()"> ✏️ 전체 편집 모드 — 지정 빈칸이 아니라 본문 문구 전체를 직접 수정</label>'+
   '<div id="md_slots"></div>'+
   '<div class="f" id="md_fullbox" style="display:none"><label>본문 전체 (직접 편집 · HTML 허용)</label><textarea id="md_full_html" rows="14" oninput="manualLive()"></textarea><p class="muted" style="font-size:11px;margin:3px 0 0">머리말·꼬리말·서명은 자동으로 붙습니다. 이 영역은 본문만 편집합니다. 체크하면 현재 템플릿이 자동으로 채워집니다.</p></div>'+
-  '<div class="f"><label>표 데이터 (한 줄=한 행, 열은 "|" 로 구분)</label><textarea id="md_rows" rows="5" oninput="manualLive()"></textarea><p class="muted" id="md_hint" style="font-size:11px;margin:4px 0 0"></p></div>'+
+  '<div class="f"><label>표 내용 <span id="md_hint" class="muted" style="font-weight:normal;font-size:11px"></span></label><div id="md_grid"></div></div>'+
   '<button class="btn g" style="width:100%;margin-top:4px" onclick="manualSave()">저장 & 문서번호 발급</button>';
  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; 뒤로</button><b style="margin-left:8px">✍️ 수동 문서 작성</b><span class="muted" style="margin-left:auto;font-size:12px">좌: 지정 항목만 입력 · 우: 실시간 미리보기 · 머리말/꼬리말은 초청장 기준</span></div></div>'+
   '<div class="row" style="gap:14px;align-items:flex-start;flex-wrap:wrap">'+
   '<div class="card" style="flex:1;min-width:330px;max-width:480px">'+form+'</div>'+
   '<div class="card" style="flex:1.25;min-width:340px"><div class="row" style="margin-bottom:8px;align-items:center"><b>미리보기</b><span class="muted" style="margin-left:auto;font-size:11px">입력 즉시 반영</span></div><div id="md_prev" style="border:1px solid #ddd;border-radius:8px;overflow:auto;max-height:78vh;background:#fff"></div></div>'+
   '</div>');
- mdRenderSlots('invitation');manualHint();manualLive();}
+ mdRenderSlots('invitation');mdGridInit('invitation');manualHint();manualLive();}
 function manualLive(){var el=document.getElementById('md_prev');if(!el)return;try{var m=manualCollect();el.innerHTML='<div style="transform:scale(.68);transform-origin:top left;width:147%;padding:6px">'+manualDocHTML(m)+'</div>';}catch(e){el.innerHTML='<p class="muted" style="padding:10px">미리보기 오류: '+esc(e.message||'')+'</p>';}}
 function manualCollect(){var type=($('#md_type')&&$('#md_type').value)||'custom';var tpl=MD_TPL[type]||MD_TPL.custom;
  var slots={};(tpl.slots||[]).forEach(function(sl){var el=document.getElementById('mds_'+sl[0]);slots[sl[0]]=el?el.value:sl[2];});
- var rows=(($('#md_rows')&&$('#md_rows').value)||'').split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length;}).map(function(l){return l.split(/\s*\|\s*/);});
+ var rows=(_mdRows||[]).map(function(r){return (r||[]).map(function(c){return (c==null?'':String(c)).trim();});}).filter(function(r){return r.some(function(c){return c.length;});});
  var viewers=(($('#md_view')&&$('#md_view').value)||'').split(',').map(function(x){return x.trim().toUpperCase();}).filter(function(x){return x;});
  var country=(($('#md_ctry')&&$('#md_ctry').value)||'').trim().toUpperCase();
  var full=!!($('#md_full')&&$('#md_full').checked);var fullhtml=($('#md_full_html')&&$('#md_full_html').value)||'';
