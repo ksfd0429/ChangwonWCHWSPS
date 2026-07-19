@@ -169,7 +169,7 @@ async function scrMain(){
   var invRows=s.invitations.map(function(L){var mem=s.members.filter(function(m){return (L.member_ids||[]).indexOf(m.id)>=0});
     return '<tr><td>'+flagTd(L.country)+'</td><td>'+esc(L.title)+'</td><td>'+mem.length+'</td><td>'+(L.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending</span>')+'</td><td>'+(L.no?esc(L.no):'—')+'</td><td>'+esc(L.approved_at||'—')+'</td><td>'+(L.status==='approved'?'<button class="btn r" style="padding:4px 9px;font-size:11px" onclick="revokeInv('+L.id+')">Revoke</button>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="approveInv('+L.id+')">Approve</button>')+(L.status==='approved'?'':' <button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editLet('+L.id+')">편집</button>')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="detInv('+L.id+')">Detail</button> <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docInv('+L.id+')">문서</button></td></tr>';}).join('');
   var fRows=s.firearm_submissions.map(function(x,i){var sc=(x.grp||'*ALL*');
-    return '<tr><td>'+flagTd(x.country)+'</td><td>'+esc(sc==='*ALL*'?'Entire delegation':sc)+'</td><td>'+esc(x.submitted_at||'')+'</td><td><span class="tag g">submitted</span></td><td style="font-size:11px">OC-F-'+esc(x.country)+'-'+esc(String(x.submitted_at||'').replace(/-/g,''))+'</td><td><button class="btn" style="padding:4px 9px;font-size:11px;background:#2E6B5B" onclick="photoF('+i+')">🖼 사진</button> '+(x.reg_no?'<span class="tag g">발행 #'+esc(x.reg_no)+'</span>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="issueF('+i+')">발행</button>')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docF('+i+')">문서</button> <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="detF('+i+')">Detail</button></td></tr>';}).join('');
+    return '<tr><td>'+flagTd(x.country)+'</td><td>'+esc(sc==='*ALL*'?'Entire delegation':sc)+'</td><td>'+esc(x.submitted_at||'')+'</td><td><span class="tag g">submitted</span></td><td style="font-size:11px">OC-F-'+esc(x.country)+'-'+esc(String(x.submitted_at||'').replace(/-/g,''))+'</td><td><button class="btn" style="padding:4px 9px;font-size:11px;background:#2E6B5B" onclick="photoF('+i+')">🖼 사진</button> '+(x.reg_no?'':'<button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editFrm('+i+')">편집</button> ')+(x.reg_no?'<span class="tag g">발행 #'+esc(x.reg_no)+'</span>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="issueF('+i+')">발행</button>')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docF('+i+')">문서</button> <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="detF('+i+')">Detail</button></td></tr>';}).join('');
   var vRows=(s.invoices||[]).map(function(V){
     return '<tr><td>'+flagTd(V.country)+'</td><td>'+esc(V.title)+'</td><td>'+(V.member_ids||[]).length+'</td><td>'+(V.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending</span>')+'</td><td>'+(V.no?esc(V.no):'—')+'</td><td>'+esc(V.account||'—')+'</td><td>'+(V.status==='approved'?'<button class="btn r" style="padding:4px 9px;font-size:11px" onclick="revokeV('+V.id+')">Revoke</button>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="approveV('+V.id+')">Approve</button>')+' <button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editInv('+V.id+')">편집</button> <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docV('+V.id+')">문서</button></td></tr>';}).join('');
   var aRows=s.npc_accounts.map(function(a){return '<tr><td>'+flagTd(a.country)+'</td><td>'+esc(a.email||'')+'</td><td>'+(a.active?'<span class="tag g">active</span>':'<span class="tag y">inactive</span>')+'</td><td><button class="btn y" style="padding:4px 9px;font-size:11px" onclick="sendResetMail(\''+a.country+'\')">Send reset link</button> <button class="btn r" style="padding:4px 9px;font-size:11px" onclick="resetCountry(\''+a.country+'\')">계정 리셋</button></td></tr>';}).join('');
@@ -374,6 +374,70 @@ function manualDocHTML(m){var p=m.payload||{};var body;
  else if(p.slots){body=mdBody(m);}
  else{body=mdBodyLegacy(m);}
  return '<div class="doc" id="adm_doc">'+docHeadA()+body+docFootA({sign:true,no:m.reg_no,date:m.issued_at})+'</div>';}
+/* ===== 수동 문서: 문서 위 인라인 편집 (재설계) ===== */
+var _mdSlots={};
+function mdSlotsDefaults(type){var tpl=MD_TPL[type]||MD_TPL.custom;var o={};(tpl.slots||[]).forEach(function(sl){o[sl[0]]=sl[2];});return o;}
+function es(k,ph){var raw=(_mdSlots[k]==null?'':String(_mdSlots[k]));return '<span class="eslot" contenteditable="true" data-k="'+esc(k)+'" data-ph="'+esc(ph||'')+'" oninput="mdSlotEdit(this)">'+esc(raw)+'</span>';}
+function mdSlotEdit(el){var k=el.getAttribute('data-k');_mdSlots[k]=el.textContent;}
+function etb(headers,type){var isC=(type==='custom');
+  var head='<tr>'+headers.map(function(h,ci){return '<th style="text-align:left">'+esc(h)+(isC&&headers.length>1?' <button type="button" class="exbtn" style="font-size:11px" onclick="mdColDel('+ci+')" title="열 삭제">×</button>':'')+'</th>';}).join('')+'<th style="width:26px;border:none;background:none"></th></tr>';
+  var body=_mdRows.map(function(r,ri){return '<tr>'+headers.map(function(h,ci){var dl=(h==='Position')?' list="dl_pos"':((h==='Type'&&type==='firearms')?' list="dl_ftype"':'');return '<td style="padding:1px 2px"><input class="ecell" value="'+esc((r&&r[ci])||'')+'" oninput="mdCell('+ri+','+ci+',this.value)"'+dl+'></td>';}).join('')+'<td style="text-align:center;padding:0;border:none"><button type="button" class="exbtn" onclick="mdRowDel('+ri+')" title="행 삭제">×</button></td></tr>';}).join('');
+  if(!_mdRows.length)body='<tr><td colspan="'+(headers.length+1)+'" style="color:#999;font-size:12px;padding:6px;border:none">행이 없습니다 — 아래 “+ 행 추가”를 누르세요.</td></tr>';
+  return '<table style="width:100%;margin:14px 0"><thead>'+head+'</thead><tbody>'+body+'</tbody></table><div style="margin:-8px 0 10px"><button type="button" class="btn sec" style="padding:4px 10px;font-size:12px" onclick="mdRowAdd()">+ 행 추가</button>'+(isC?' <button type="button" class="btn sec" style="padding:4px 10px;font-size:12px" onclick="mdColAdd()">+ 열 추가</button>':'')+'</div>';}
+function mdEditBody(type,code){var cn=cnameA(code)||code||'';var date=($('#md_date')&&$('#md_date').value)||'';
+  if(type==='invitation'){
+    return '<p style="font-size:13px;margin:10px 0 2px"><b>TO:</b> '+es('to','To Whom It May Concern')+'</p><p style="font-size:13px;margin:2px 0 12px"><b>TITLE:</b> '+es('title')+'</p><hr class="docrule">'+
+     '<p>This letter is to request your cooperation in the visa issuance procedure for the participants of the '+es('event')+' (the &quot;Competition&quot;), which will be held on '+es('period')+' in '+es('venue')+', and is hosted by '+es('host')+'. The KSFD and LOC kindly request your cooperation for the following members of the <b>'+es('cname',cn)+(code?' ('+esc(code)+')':'')+'</b> delegation — <b>'+es('scope','(범위·선택)')+'</b>. Below are the details:</p>'+
+     etb(MD_TPL.invitation.tbl,'invitation')+'<p>'+es('closing')+'</p>';}
+  if(type==='invoice'){var b=bankS(dataS());
+    return '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">'+es('event')+'</p>'+
+     '<table style="width:100%;font-size:12.5px;margin:0 0 8px;border-collapse:collapse"><tr><td style="border:none;padding:2px 4px;width:13%"><b>To:</b></td><td style="border:none;padding:2px 4px;font-weight:bold">'+es('to','(수신처)')+'</td><td style="border:none;padding:2px 4px;text-align:right;width:10%"><b>NPC:</b></td><td style="border:none;padding:2px 4px;width:14%;text-align:center;font-weight:bold;font-size:16px;color:#16456B">'+esc(code||'—')+'</td></tr><tr><td style="border:none;padding:2px 4px"><b>Address:</b></td><td style="border:none;padding:2px 4px" colspan="3">'+es('addr','(주소)')+'</td></tr><tr><td style="border:none;padding:2px 4px"><b>DATE</b></td><td style="border:none;padding:2px 4px" colspan="3">'+esc(date)+'</td></tr></table><hr class="docrule">'+
+     '<p>'+es('intro','(도입문·선택)')+'</p>'+etb(MD_TPL.invoice.tbl,'invoice')+
+     '<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+es('account',b.account)+'<br>Address: '+esc(b.addr)+'</div>'+
+     '<p>'+es('closing','(마무리문·선택)')+'</p>';}
+  if(type==='firearms'){
+    return '<h2 style="font-size:19px">CONFIRMATION OF FIREARM SUBMISSION</h2><p style="text-align:center;font-weight:bold">'+es('event')+'</p><hr class="docrule">'+
+     '<p>This is to confirm that the <b>'+es('cname',cn)+(code?' ('+esc(code)+')':'')+'</b> delegation — group <b>'+es('scope','(전체면 비움)')+'</b> has submitted the following firearm import/export information on <b>'+es('refdate',date)+'</b> for customs clearance:</p>'+
+     etb(MD_TPL.firearms.tbl,'firearms')+'<p>'+es('closing')+'</p>';}
+  return '<h2 style="font-size:19px;text-align:center;margin:8px 0">'+es('title2','(제목)')+'</h2><hr class="docrule"><p>'+es('intro','(본문 도입)')+'</p>'+etb(mdGridCols('custom'),'custom')+'<p>'+es('closing','(본문 마무리)')+'</p>';}
+function mdFullEditHTML(type,code,date){var m=manualCollect();m.payload.fullEdit=false;var body=mdBody(m);return '<div class="doc">'+docHeadA()+'<div id="md_fullbody" contenteditable="true" style="outline:1px dashed #C9A400;background:#FFFDF5;padding:6px;min-height:220px">'+body+'</div>'+docFootA({sign:true,no:null,date:date})+'</div>';}
+function mdEditRender(){var host=document.getElementById('md_doc');if(!host)return;var type=($('#md_type')&&$('#md_type').value)||'custom';var code=(($('#md_ctry')&&$('#md_ctry').value)||'').trim().toUpperCase();var date=($('#md_date')&&$('#md_date').value)||'';
+  if($('#md_full')&&$('#md_full').checked){host.innerHTML=mdFullEditHTML(type,code,date);return;}
+  host.innerHTML='<div class="doc" id="md_doc_inner">'+docHeadA()+mdEditBody(type,code)+docFootA({sign:true,no:null,date:date})+'</div>';}
+function mdTypeChange(v){_mdSlots=mdSlotsDefaults(v);_mdRows=[];_mdCustCols=2;var f=$('#md_full');if(f)f.checked=false;mdEditRender();}
+function mdFullToggle(){mdEditRender();}
+function mdCell(ri,ci,v){if(!_mdRows[ri])_mdRows[ri]=[];_mdRows[ri][ci]=v;}
+function mdRowAdd(){var type=($('#md_type')&&$('#md_type').value)||'custom';var n=mdGridCols(type).length;var row=[];for(var i=0;i<n;i++)row.push('');_mdRows.push(row);mdEditRender();}
+function mdRowDel(ri){_mdRows.splice(ri,1);mdEditRender();}
+function mdColAdd(){_mdCustCols++;_mdRows.forEach(function(r){r.push('');});mdEditRender();}
+function mdColDel(ci){if(_mdCustCols<=1)return;_mdCustCols--;_mdRows.forEach(function(r){r.splice(ci,1);});mdEditRender();}
+function manualCollect(){var type=($('#md_type')&&$('#md_type').value)||'custom';var tpl=MD_TPL[type]||MD_TPL.custom;
+  var rows=(_mdRows||[]).map(function(r){return (r||[]).map(function(c){return (c==null?'':String(c)).trim();});}).filter(function(r){return r.some(function(c){return c.length;});});
+  var viewers=(($('#md_view')&&$('#md_view').value)||'').split(',').map(function(x){return x.trim().toUpperCase();}).filter(function(x){return x;});
+  var country=(($('#md_ctry')&&$('#md_ctry').value)||'').trim().toUpperCase();
+  var full=!!($('#md_full')&&$('#md_full').checked);var fb=document.getElementById('md_fullbody');var fullhtml=(full&&fb)?fb.innerHTML:'';
+  var slots={};(tpl.slots||[]).forEach(function(sl){slots[sl[0]]=(_mdSlots[sl[0]]!=null?_mdSlots[sl[0]]:sl[2]);});
+  var title=(type==='invitation'?(slots.title||''):type==='invoice'?(slots.to||''):type==='firearms'?('Firearm confirmation'+(slots.scope?' — '+slots.scope:'')):(slots.title2||''))||'(수동문서)';
+  return {doc_type:type,country:country,title:title,issued_at:($('#md_date')&&$('#md_date').value)||today(),viewers:viewers,reg_no:null,payload:{slots:slots,rows:rows,fullEdit:full,fullhtml:fullhtml}};}
+function scrManualNew(){if(!CUR_ADMIN){scrLogin();return;}
+  _mdSlots=mdSlotsDefaults('invitation');_mdRows=[];_mdCustCols=2;
+  var opt=function(v,l){return '<option value="'+v+'">'+l+'</option>';};
+  var style='<style id="md_estyle">.eslot{background:#FFF7D6;border-bottom:1px dashed #C9A400;padding:0 3px;border-radius:2px;cursor:text;min-width:16px;display:inline-block}.eslot:focus{outline:none;background:#FFEFA6}.eslot:empty:before{content:attr(data-ph);color:#b3a25a}.ecell{width:100%;border:1px solid #dcdcdc;border-radius:3px;padding:3px 5px;font:inherit;box-sizing:border-box;background:#FFFDF5}.ecell:focus{outline:none;border-color:#C9A400;background:#FFF7D6}.exbtn{border:none;background:none;color:#c33;cursor:pointer;font-size:15px;padding:0 2px}#md_doc .doc{margin:0 auto;box-shadow:0 1px 8px rgba(0,0,0,.14)}</style>';
+  var dl='<datalist id="dl_pos"><option>Athlete</option><option>Coach</option><option>Team Leader</option><option>Official</option><option>Guide</option><option>Shooter</option><option>Technical Official</option><option>Physiotherapist</option><option>Doctor</option></datalist><datalist id="dl_ftype"><option>Air Rifle</option><option>Air Pistol</option><option>Rifle</option><option>Pistol</option><option>Shotgun</option></datalist>';
+  var bar='<div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-end">'+
+    '<div class="f" style="margin:0;min-width:160px"><label>문서 유형</label><select id="md_type" onchange="mdTypeChange(this.value)">'+opt('invitation','초청장 (Invitation)')+opt('invoice','인보이스 (Invoice)')+opt('firearms','총기확인서 (Firearm)')+opt('custom','기타 (자유서식)')+'</select></div>'+
+    '<div class="f" style="margin:0;width:90px"><label>국가</label><input id="md_ctry" placeholder="KOR" oninput="mdEditRender()"></div>'+
+    '<div class="f" style="margin:0;width:150px"><label>발행일</label><input id="md_date" type="date" value="'+today()+'" oninput="mdEditRender()"></div>'+
+    '<div class="f" style="margin:0;flex:1;min-width:150px"><label>열람 허용 국가 (쉼표·비우면 마스터 전용)</label><input id="md_view" placeholder="KOR, JPN"></div>'+
+    '<label style="display:flex;align-items:center;gap:5px;font-size:12px;padding:9px 10px;background:#F3EEFA;border-radius:6px;cursor:pointer;white-space:nowrap"><input type="checkbox" id="md_full" onchange="mdFullToggle()"> ✏️ 전체 편집</label>'+
+    '<button class="btn g" style="padding:9px 20px" onclick="manualSave()">저장 & 발급</button>'+
+    '</div>';
+  stage('<div class="card"><div class="row" style="align-items:center"><button class="btn sec" onclick="scrMain()">&larr; 뒤로</button><b style="margin-left:8px">✍️ 수동 문서 작성</b><span class="muted" style="margin-left:auto;font-size:12px">문서 위 <b>노란 칸</b>을 클릭해 바로 편집 · 표는 칸 클릭 · Position/Type은 드롭다운</span></div></div>'+
+   style+dl+
+   '<div class="card">'+bar+'</div>'+
+   '<div class="card"><div id="md_doc" style="overflow:auto;background:#eef1f4;border-radius:8px;padding:14px"></div></div>');
+  mdEditRender();}
+
 function manualPreview(){var m=manualCollect();docShow('미리보기 · '+esc(TNMANUAL(m.doc_type)),manualDocHTML(m));}
 async function manualSave(){var m=manualCollect();if(!confirm('이 문서를 저장하고 문서장부에 번호를 발급할까요?'))return;
   if(LIVE){var ins=await sbc.from('manual_docs').insert({doc_type:m.doc_type,country:m.country,title:m.title,payload:m.payload,viewer_countries:m.viewers,issued_at:m.issued_at}).select('id').single();
@@ -418,6 +482,45 @@ async function photoF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)retu
   var issueBtn=x.reg_no?'<span class="tag g" style="margin-left:auto">발행됨 · #'+esc(x.reg_no)+'</span>':'<button class="btn g" style="margin-left:auto;padding:8px 20px" onclick="var d=document.getElementById(\'dm\');if(d)d.remove();issueF('+i+')">사진 확인 완료 · 발행</button>';
   var foot='<div class="row" style="margin-top:4px;padding-top:10px;border-top:1px solid var(--line);align-items:center"><span class="muted" style="font-size:11px">업로드된 사진을 확인한 뒤 발행하세요.</span>'+issueBtn+'</div>';
   infoModal(title,cells+foot);}
+/* ===== 총기 확인서 편집기 (발행 전 수정) ===== */
+var _frm=null,_frmI=0,_frmX=null,_frmList=[];
+function editFrm(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;_frmI=i;_frmX=x;
+  _frmList=JSON.parse(JSON.stringify(fscopeList(s,x)));
+  frmRender();}
+function frmPrevHTML(){var x=_frmX,list=_frmList,sub=x.submitted_at;var sc=(x.grp||'*ALL*');var ref='OC-F-'+x.country+'-'+String(sub||'').replace(/-/g,'');
+  return '<div class="doc" id="frm_doc">'+docHeadA()+
+   '<p style="display:flex;justify-content:space-between;font-size:12px"><span>No. Changwon 2026 WSPS WCH '+esc(ref)+'</span><span>Date: '+esc(sub||'')+'</span></p>'+
+   '<h2 style="font-size:19px">CONFIRMATION OF FIREARM SUBMISSION</h2><p style="text-align:center;font-weight:bold">Changwon 2026 WSPS World Championships</p><hr class="docrule">'+
+   '<p>This is to confirm that the <b>'+esc(cnameA(x.country))+' ('+esc(x.country)+')</b> delegation'+(sc==='*ALL*'?'':' — group <b>'+esc(sc)+'</b>')+' has submitted the following firearm import/export information on <b>'+esc(sub||'')+'</b> for customs clearance:</p>'+
+   '<table style="width:100%;margin:14px 0"><thead><tr><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial No.</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+
+   (list.length?list.map(function(g){return '<tr><td>'+esc(g.owner)+'</td><td>'+esc(g.manufacturer)+'</td><td>'+esc(g.model)+'</td><td>'+esc(g.serial)+'</td><td>'+esc(g.type)+'</td><td>'+esc(g.caliber)+'</td><td>'+((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2')+'</td></tr>'}).join(''):'<tr><td colspan="7" style="color:#888">No firearms in this scope.</td></tr>')+'</tbody></table>'+
+   '<p>This confirmation is issued for customs and administrative reference. The listed firearms are declared for temporary import/export for the duration of the Competition.</p>'+docFootA({no:x.reg_no,date:x.issued_at})+'</div>';}
+function frmRowsHtml(){
+  return _frmList.map(function(g,i){
+    return '<div class="edrow"><div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap">'+
+     '<div class="f" style="margin:0;flex:1;min-width:120px"><label>Owner</label><input value="'+esc(g.owner||'')+'" oninput="frmSet('+i+',\'owner\',this.value)"></div>'+
+     '<div class="f" style="margin:0;flex:1;min-width:110px"><label>Manufacturer</label><input value="'+esc(g.manufacturer||'')+'" oninput="frmSet('+i+',\'manufacturer\',this.value)"></div>'+
+     '<div class="f" style="margin:0;flex:1;min-width:100px"><label>Model</label><input value="'+esc(g.model||'')+'" oninput="frmSet('+i+',\'model\',this.value)"></div>'+
+    '</div><div class="row" style="gap:8px;align-items:flex-end;margin-top:8px;flex-wrap:wrap">'+
+     '<div class="f" style="margin:0;flex:1;min-width:110px"><label>Serial No.</label><input value="'+esc(g.serial||'')+'" oninput="frmSet('+i+',\'serial\',this.value)"></div>'+
+     '<div class="f" style="margin:0;width:130px"><label>Type</label><input value="'+esc(g.type||'')+'" oninput="frmSet('+i+',\'type\',this.value)"></div>'+
+     '<div class="f" style="margin:0;width:110px"><label>Caliber</label><input value="'+esc(g.caliber||'')+'" oninput="frmSet('+i+',\'caliber\',this.value)"></div>'+
+    '</div></div>';}).join('')||'<p class="muted" style="font-size:12.5px">이 범위에 총기가 없습니다.</p>';}
+function frmRender(){var old=document.getElementById('dm');if(old)old.remove();var sc=(_frmX.grp||'*ALL*');
+  document.body.insertAdjacentHTML('beforeend','<div class="mback z2" id="dm" onclick="if(event.target===this)this.remove()"><div class="amodal" style="max-width:1500px;width:96vw">'+
+   '<div class="row" style="margin-bottom:10px"><b style="font-size:15px;color:var(--navy)">총기 확인서 편집 — '+esc(_frmX.country)+' · '+esc(sc==='*ALL*'?'Entire delegation':sc)+'</b><span class="muted" style="margin-left:12px;font-size:11px">발행 전 총기 정보 수정</span><button class="btn" style="margin-left:auto;background:#7A2E1F;padding:6px 14px;min-height:0;font-size:12px" onclick="printEl(\'frm_doc\')">Print / PDF</button><button class="mclose" style="margin-left:8px" onclick="document.getElementById(\'dm\').remove()">×</button></div>'+
+   '<div class="edsplit"><div class="edleft">'+
+    '<div class="edsec" style="margin:2px 0 6px">총기별 정보 편집 — 세관 통관에 쓰이는 항목</div><div id="frmrows">'+frmRowsHtml()+'</div>'+
+    '<div class="row" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line);align-items:center"><span class="muted" style="font-size:11px">※ 수정 내용은 총기 명단(firearms)에 함께 반영됩니다. 사진은 “🖼 사진”에서 확인.</span><button class="btn g" style="margin-left:auto;padding:10px 22px" onclick="frmSave()">저장</button></div></div>'+
+    '<div class="edright"><div class="edsec" style="margin-bottom:6px">LIVE PREVIEW — 저장 전 미리보기</div><div id="frmprev">'+frmPrevHTML()+'</div></div>'+
+   '</div></div></div>');}
+function frmPrev(){var el=document.getElementById('frmprev');if(el)el.innerHTML=frmPrevHTML();}
+function frmSet(i,k,v){if(_frmList[i]){_frmList[i][k]=v;frmPrev();}}
+async function frmSave(){
+  if(LIVE){for(var i=0;i<_frmList.length;i++){var g=_frmList[i];var u=await sbc.from('firearms').update({owner:g.owner,manufacturer:g.manufacturer,model:g.model,serial:g.serial,type:g.type,caliber:g.caliber}).eq('id',g.id);if(u.error){alert('총기 정보 저장 실패: '+u.error.message);return;}}}
+  else{var s=mL();_frmList.forEach(function(g){var gg=(s.firearms||[]).find(function(x){return x.id===g.id});if(gg){['owner','manufacturer','model','serial','type','caliber'].forEach(function(k){gg[k]=g[k];});}});mS(s);}
+  var dm=document.getElementById('dm');if(dm)dm.remove();alert('총기 확인서 내용이 저장되었습니다.');scrMain();}
+
 
 async function findUserByEmail(email){try{var r=await sbAdmin.auth.admin.listUsers({page:1,perPage:200});var us=(r.data&&r.data.users)||[];var f=us.find(function(u){return (u.email||'').toLowerCase()===String(email).toLowerCase();});return f?f.id:null;}catch(e){return null;}}
 async function setPw(id){
@@ -604,7 +707,7 @@ function fitDoc(doc){if(!doc||!doc.parentNode)return;var fit=doc.parentNode;
   var host=fit.parentNode,avail=(host&&host.clientWidth)||fit.clientWidth||A4W,scale=Math.min(1,(avail-2)/A4W);
   doc.style.transform='scale('+scale+')';fit.style.height=(doc.offsetHeight*scale)+'px';}
 function fitDocsIn(root){root=root||document;if(!root.querySelectorAll)return;var ds=root.querySelectorAll('.doc');
-  for(var i=0;i<ds.length;i++){var d=ds[i];if(d.closest&&(d.closest('#pa')||d.closest('.docmback')))continue;fitDoc(d);}}
+  for(var i=0;i<ds.length;i++){var d=ds[i];if(d.closest&&(d.closest('#pa')||d.closest('.docmback')||d.closest('#md_doc')))continue;fitDoc(d);}}
 function scheduleFit(){clearTimeout(_fitT);_fitT=setTimeout(function(){fitDocsIn(document);},50);}
 function _fitSetup(){if(window.MutationObserver&&document.body){try{new MutationObserver(scheduleFit).observe(document.body,{childList:true,subtree:true});}catch(e){}}scheduleFit();}
 if(document.body)_fitSetup();else window.addEventListener('DOMContentLoaded',_fitSetup);
