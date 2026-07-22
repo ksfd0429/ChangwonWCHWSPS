@@ -102,12 +102,12 @@ var SVC_KEY='';var sbAdmin=null; // service_role (런타임 입력, 메모리 �
 var _S=null;
 async function fetchAll(){
   if(!LIVE){_S=mL();return _S;}
-  var out={};var ts=['activation_requests','npc_directory','members','invitations','firearms','firearm_submissions','invoices','oc_settings','doc_register','manual_docs'];
+  var out={};var ts=['activation_requests','npc_directory','members','invitations','firearms','firearm_submissions','invoices','oc_settings','doc_register','manual_docs','invoice_addresses'];
   pbStart(ts.length);
   for(var i=0;i<ts.length;i++){var r=await sbc.from(ts[i]).select('*');out[ts[i]]=r.data||[];pbStep();}
   out.npc_accounts=out.npc_directory;out.invoices=out.invoices||[];out.manual_docs=out.manual_docs||[];
   _S=out;return out;}
-function dataS(){return LIVE?(_S||{npc_accounts:[],activation_requests:[],members:[],invitations:[],firearms:[],firearm_submissions:[],invoices:[],oc_settings:[],manual_docs:[]}):mL();}
+function dataS(){return LIVE?(_S||{npc_accounts:[],activation_requests:[],members:[],invitations:[],firearms:[],firearm_submissions:[],invoices:[],oc_settings:[],manual_docs:[],invoice_addresses:[]}):mL();}
 /* 관리자 인증 = service key 단독. ID/비밀번호 없음 — 키 자체가 자격증명이며 sessionStorage에만 보관. */
 var CUR_ADMIN=null;
 var PORTAL_BASE=(location.origin+location.pathname.replace(/[^/]*$/,'')); // 초대·리셋 링크가 되돌아올 포털 주소(하위 경로 포함)
@@ -749,6 +749,11 @@ function invoiceDocA(V,itemsOverride,idOpt){var s=dataS();var isA=V.status==='ap
   (isA?'':'<p>This is a <b>draft invoice request</b>. Amounts and Banking Information are entered by the OC upon approval.</p>')+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(V.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'')})+'</div>';}
 function docV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var isA=V.status==='approved';
   _DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),invoiceDocA(V,null,'adm_doc'));}
+function ammoOfA(s,c){try{var r=(s.invoice_addresses||[]).find(function(a){return a.country===c&&a.grp==='*AMMO*'});if(r&&r.addr)return JSON.parse(r.addr);}catch(e){}return null;}
+function ammoRowsA(a){var has=a&&(((+a.p)||0)>0||((+a.b)||0)>0);
+ if(!has)return '<tr><td colspan="2" style="color:#888">No ammunition declared.</td></tr>';
+ var h='';if(((+a.p)||0)>0)h+='<tr><td>Air pellets (4.5mm)</td><td style="text-align:right">'+((+a.p)||0)+' pcs</td></tr>';
+ if(((+a.b)||0)>0)h+='<tr><td>Cartridges (.22 LR)</td><td style="text-align:right">'+((+a.b)||0)+' pcs</td></tr>';return h;}
 function docF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');var sub=x.submitted_at;
   var list=s.firearms.filter(function(g){if(g.country!==x.country)return false;if(sc==='*ALL*')return true;var m=s.members.find(function(mm){return mm.country===g.country&&(memName(mm)===g.owner||mm.name===g.owner)});return m&&(((m.sub_group||'').trim())||'(Ungrouped)')===sc;});
   var ref='OC-F-'+x.country+'-'+String(sub||'').replace(/-/g,'');
@@ -758,6 +763,7 @@ function docF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var s
   '<p>This is to confirm that the <b>'+esc(cnameA(x.country))+' ('+esc(x.country)+')</b> delegation'+(sc==='*ALL*'?'':' — group <b>'+esc(sc)+'</b>')+' has submitted the following firearm import/export information on <b>'+esc(sub||'')+'</b> for customs clearance:</p>'+
   '<table style="width:100%;margin:14px 0"><thead><tr><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial No.</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+
   (list.length?list.map(function(g2){return '<tr><td>'+esc(g2.owner)+'</td><td>'+esc(g2.manufacturer)+'</td><td>'+esc(g2.model)+'</td><td>'+esc(g2.serial)+'</td><td>'+esc(g2.type)+'</td><td>'+esc(g2.caliber)+'</td><td>'+((g2.photo_full&&g2.photo_num)?'2/2':((g2.photo_full?1:0)+(g2.photo_num?1:0))+'/2')+'</td></tr>'}).join(''):'<tr><td colspan="7" style="color:#888">No firearms in this scope.</td></tr>')+'</tbody></table>'+
+  '<p style="margin:12px 0 2px;font-weight:bold">Ammunition</p><table style="width:100%;margin:4px 0 14px"><thead><tr><th>Type</th><th>Total Quantity</th></tr></thead><tbody>'+ammoRowsA(ammoOfA(s,x.country))+'</tbody></table>'+
   '<p>This confirmation is issued for customs and administrative reference. The listed firearms are declared for temporary import/export for the duration of the Competition.</p>'+docFootA({no:x.reg_no,date:x.issued_at})+'</div>';
   _DRAFTSRC={kind:'firearms',i:i};docShow('총기 확인서 — '+esc(x.country)+' · '+esc(sc==='*ALL*'?'Entire delegation':sc),h);}
 async function resetCountry(c){
