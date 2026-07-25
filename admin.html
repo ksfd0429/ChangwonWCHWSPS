@@ -206,7 +206,7 @@ async function scrMain(){
   s.firearm_submissions.forEach(function(x){cc(x.country).fr++});
   (s.invoices||[]).forEach(function(V){var o=cc(V.country);o.v++;if(V.status==='approved')o.vA++;});
   var boardRows=Object.keys(cs).sort().map(function(c){var o=cs[c];
-    return '<tr><td><b>'+esc(c)+'</b> <span class="muted" style="font-size:10.5px">'+esc(cnameA(c))+'</span></td><td>'+(o.act===null?'<span class="muted">—</span>':(o.act?'<span class="tag g">active</span>':'<span class="tag y">inactive</span>'))+'</td><td>'+o.mem+'</td><td>'+(o.inv?o.invA+' / '+o.inv:'—')+'</td><td>'+(o.fr||'—')+'</td><td>'+(o.v?o.vA+' / '+o.v:'—')+'</td><td><button class="btn r" style="padding:3px 9px;font-size:10.5px" onclick="resetCountry(\''+c+'\')">리셋</button></td></tr>';}).join('');
+    return '<tr><td><b>'+esc(c)+'</b> <span class="muted" style="font-size:10.5px">'+esc(cnameA(c))+'</span></td><td>'+(o.act===null?'<span class="muted">—</span>':(o.act?'<span class="tag g">active</span>':'<span class="tag y">inactive</span>'))+'</td><td>'+o.mem+'</td><td>'+(o.inv?o.invA+' / '+o.inv:'—')+'</td><td>'+(o.fr||'—')+'</td><td>'+(o.v?o.vA+' / '+o.v:'—')+'</td><td style="white-space:nowrap"><button class="btn" style="padding:3px 9px;font-size:10.5px;background:#2E6B5B" onclick="loginAsNpc(\''+c+'\')">🔓 접속</button> <button class="btn r" style="padding:3px 9px;font-size:10.5px" onclick="resetCountry(\''+c+'\')">리셋</button></td></tr>';}).join('');
   /* ===== 통계 섹션 ===== */
   var mAth=s.members.filter(function(m){return m.position==='Athlete'}).length;
   var mOff=s.members.length-mAth;
@@ -766,6 +766,19 @@ function docF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var s
   '<p style="margin:12px 0 2px;font-weight:bold">Ammunition</p><table style="width:100%;margin:4px 0 14px"><thead><tr><th>Type</th><th>Total Quantity</th></tr></thead><tbody>'+ammoRowsA(ammoOfA(s,x.country))+'</tbody></table>'+
   '<p>This confirmation is issued for customs and administrative reference. The listed firearms are declared for temporary import/export for the duration of the Competition.</p>'+docFootA({no:x.reg_no,date:x.issued_at})+'</div>';
   _DRAFTSRC={kind:'firearms',i:i};docShow('총기 확인서 — '+esc(x.country)+' · '+esc(sc==='*ALL*'?'Entire delegation':sc),h);}
+async function loginAsNpc(c){
+ if(!LIVE){alert('이 기능은 LIVE 모드 전용입니다.');return;}
+ if(!sbAdmin){alert('로그인 화면에서 service key를 입력해야 사용할 수 있습니다.');return;}
+ var d=(dataS().npc_directory||[]).find(function(x){return x.country===c});
+ if(!d||!d.email){alert(c+' — 등록된 계정 이메일이 없습니다.\n(활성화 요청 승인/비밀번호 설정이 먼저 필요합니다)');return;}
+ if(!confirm(c+' ('+d.email+') 계정으로 포털에 원클릭 접속합니다.\n\n· 새 탭이 해당 국가 계정으로 자동 로그인됩니다.\n· 같은 브라우저에서는 한 번에 한 국가 세션만 유지됩니다.\n· 작업 후 해당 탭에서 로그아웃을 권장합니다.'))return;
+ try{
+  var r=await sbAdmin.auth.admin.generateLink({type:'magiclink',email:d.email,options:{redirectTo:PORTAL_BASE}});
+  if(r.error){alert('접속 링크 생성 실패: '+r.error.message);return;}
+  var link=(r.data&&((r.data.properties&&r.data.properties.action_link)||r.data.action_link))||null;
+  if(!link){alert('접속 링크를 받지 못했습니다.');return;}
+  window.open(link,'_blank');
+ }catch(e){alert('접속 오류: '+((e&&e.message)||e));}}
 async function resetCountry(c){
   if(!confirm('['+c+'] 국가의 계정과 모든 귀속 데이터(명단·초청장·총기·인보이스·활성화 요청·항공일정·주소)를 삭제합니다.\n디버깅용 기능입니다. 계속할까요?'))return;
   if(!confirm('정말로 삭제합니까? 이 작업은 되돌릴 수 없습니다.'))return;
