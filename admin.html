@@ -404,8 +404,63 @@ function mdEditBody(type,code){var cn=cnameA(code)||code||'';var date=($('#md_da
      etb(MD_TPL.firearms.tbl,'firearms')+'<p>'+es('closing')+'</p>';}
   return '<h2 style="font-size:19px;text-align:center;margin:8px 0">'+es('title2','(제목)')+'</h2><hr class="docrule"><p>'+es('intro','(본문 도입)')+'</p>'+etb(mdGridCols('custom'),'custom')+'<p>'+es('closing','(본문 마무리)')+'</p>';}
 function mdFullEditHTML(type,code,date){if(_mdFullHtml==null){var m=manualCollect();m.payload.fullEdit=false;_mdFullHtml=mdBody(m);}return '<div class="doc">'+docHeadA()+'<div id="md_fullbody" contenteditable="true" oninput="_mdFullHtml=this.innerHTML" style="outline:1px dashed #C9A400;background:#FFFDF5;padding:6px;min-height:220px">'+_mdFullHtml+'</div>'+docFootA({sign:true,no:null,date:date})+'</div>';}
+
+/* ===== 직접 편집 툴바: 서식 · 표 편집 · 열 너비 드래그 ===== */
+function mdFullSync(){var b=document.getElementById('md_fullbody');if(b)_mdFullHtml=b.innerHTML;}
+function mdFocusBody(){var b=document.getElementById('md_fullbody');if(!b)return null;var s=window.getSelection();if(!s.rangeCount||!b.contains(s.anchorNode)){b.focus();}return b;}
+function tbBtn(label,fn,title){return '<button type="button" title="'+title+'" onmousedown="event.preventDefault()" onclick="'+fn+'" style="border:1px solid #d8d8d8;background:#fff;border-radius:5px;min-width:30px;height:26px;padding:0 7px;font-size:12px;cursor:pointer;line-height:1">'+label+'</button>';}
+function tbSep(){return '<span style="width:1px;height:18px;background:#e0e0e0;margin:0 3px"></span>';}
+function mdToolbarHTML(){return '<div id="md_tb" style="position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'+
+ tbBtn('A−','mdFont(-1)','글자 작게')+tbBtn('A+','mdFont(1)','글자 크게')+tbSep()+
+ tbBtn('<b>B</b>','mdCmd(\'bold\')','굵게')+tbBtn('<i>I</i>','mdCmd(\'italic\')','기울임')+tbBtn('<u>U</u>','mdCmd(\'underline\')','밑줄')+tbSep()+
+ tbBtn('◧','mdCmd(\'justifyLeft\')','왼쪽 정렬')+tbBtn('≡','mdCmd(\'justifyCenter\')','가운데 정렬')+tbBtn('◨','mdCmd(\'justifyRight\')','오른쪽 정렬')+tbSep()+
+ tbBtn('+행','mdRowIns()','아래에 행 추가')+tbBtn('−행','mdRowDelC()','행 삭제')+tbBtn('+열','mdColIns()','오른쪽에 열 추가')+tbBtn('−열','mdColDelC()','열 삭제')+tbSep()+
+ tbBtn('↺','mdCmd(\'undo\')','실행취소')+tbBtn('↻','mdCmd(\'redo\')','다시실행')+
+ '<span class="muted" style="font-size:11px;margin-left:auto">표 셀 오른쪽 경계를 드래그하면 열 너비가 조절됩니다</span></div>';}
+function mdCmd(c){mdFocusBody();try{document.execCommand('styleWithCSS',false,true);}catch(e){}document.execCommand(c,false,null);mdFullSync();}
+function mdFont(d){var b=mdFocusBody();if(!b)return;var s=window.getSelection();
+ if(!s||!s.rangeCount||s.isCollapsed){alert('크기를 바꿀 텍스트를 먼저 드래그해 선택하세요.');return;}
+ var n=s.anchorNode;n=(n&&n.nodeType===3)?n.parentElement:n;
+ var cur=n?parseFloat(window.getComputedStyle(n).fontSize)||13:13;
+ var next=Math.max(7,Math.min(48,Math.round(cur)+d));
+ try{document.execCommand('styleWithCSS',false,true);}catch(e){}
+ document.execCommand('fontSize',false,'7');
+ var fs=b.querySelectorAll('font[size="7"]');
+ for(var i=0;i<fs.length;i++){var f=fs[i];var sp=document.createElement('span');sp.style.fontSize=next+'px';sp.innerHTML=f.innerHTML;f.parentNode.replaceChild(sp,f);}
+ mdFullSync();}
+function mdCellCtx(){var s=window.getSelection();var n=s&&s.anchorNode;n=(n&&n.nodeType===3)?n.parentElement:n;
+ if(!n||!n.closest)return null;var b=document.getElementById('md_fullbody');if(b&&!b.contains(n))return null;return n.closest('td,th');}
+function mdRowIns(){var td=mdCellCtx();if(!td){alert('표 안에 커서를 두고 눌러주세요.');return;}
+ var tr=td.parentNode;var nr=tr.cloneNode(true);for(var i=0;i<nr.children.length;i++){nr.children[i].innerHTML='&nbsp;';}
+ tr.parentNode.insertBefore(nr,tr.nextSibling);mdFullSync();}
+function mdRowDelC(){var td=mdCellCtx();if(!td){alert('표 안에 커서를 두고 눌러주세요.');return;}
+ var tr=td.parentNode;if(!confirm('이 행을 삭제할까요?'))return;tr.parentNode.removeChild(tr);mdFullSync();}
+function mdColIns(){var td=mdCellCtx();if(!td){alert('표 안에 커서를 두고 눌러주세요.');return;}
+ var idx=Array.prototype.indexOf.call(td.parentNode.children,td);var t=td.closest('table');var rows=t.rows;
+ for(var r=0;r<rows.length;r++){var c=rows[r].children[idx];var el=document.createElement(c&&c.tagName==='TH'?'th':'td');el.innerHTML='&nbsp;';
+  if(c&&c.nextSibling)rows[r].insertBefore(el,c.nextSibling);else rows[r].appendChild(el);}
+ mdFullSync();}
+function mdColDelC(){var td=mdCellCtx();if(!td){alert('표 안에 커서를 두고 눌러주세요.');return;}
+ if(!confirm('이 열을 삭제할까요?'))return;
+ var idx=Array.prototype.indexOf.call(td.parentNode.children,td);var t=td.closest('table');var rows=t.rows;
+ for(var r=0;r<rows.length;r++){var c=rows[r].children[idx];if(c)rows[r].removeChild(c);}
+ mdFullSync();}
+var _mdRz=null;
+function mdRzMove(e){if(!_mdRz)return;var w=Math.max(24,_mdRz.w+(e.clientX-_mdRz.x));var rows=_mdRz.table.rows;
+ for(var r=0;r<rows.length;r++){var c=rows[r].children[_mdRz.idx];if(c)c.style.width=w+'px';}}
+function mdRzUp(){if(!_mdRz)return;_mdRz=null;document.body.style.userSelect='';mdFullSync();}
+function mdTableResizeInit(){var host=document.getElementById('md_fullbody');if(!host||host._rzOn)return;host._rzOn=1;
+ host.addEventListener('mousemove',function(e){if(_mdRz)return;var t=e.target;var td=(t&&t.closest)?t.closest('td,th'):null;
+  host.style.cursor=(td&&(td.getBoundingClientRect().right-e.clientX)<6)?'col-resize':'';});
+ host.addEventListener('mousedown',function(e){var t=e.target;var td=(t&&t.closest)?t.closest('td,th'):null;if(!td)return;
+  var r=td.getBoundingClientRect();if(r.right-e.clientX>6)return;e.preventDefault();
+  var table=td.closest('table');if(!table)return;table.style.tableLayout='fixed';if(!table.style.width)table.style.width='100%';
+  _mdRz={table:table,idx:Array.prototype.indexOf.call(td.parentNode.children,td),x:e.clientX,w:r.width};
+  document.body.style.userSelect='none';});
+ document.addEventListener('mousemove',mdRzMove);document.addEventListener('mouseup',mdRzUp);}
+
 function mdEditRender(){var host=document.getElementById('md_doc');if(!host)return;var type=($('#md_type')&&$('#md_type').value)||'custom';var code=(($('#md_ctry')&&$('#md_ctry').value)||'').trim().toUpperCase();var date=($('#md_date')&&$('#md_date').value)||'';
-  if($('#md_full')&&$('#md_full').checked){host.innerHTML=mdFullEditHTML(type,code,date);return;}
+  if($('#md_full')&&$('#md_full').checked){host.innerHTML=mdToolbarHTML()+mdFullEditHTML(type,code,date);mdTableResizeInit();return;}
   host.innerHTML='<div class="doc" id="md_doc_inner">'+docHeadA()+mdEditBody(type,code)+docFootA({sign:true,no:null,date:date})+'</div>';}
 function mdTypeChange(v){_mdSlots=mdSlotsDefaults(v);_mdRows=[];_mdCustCols=2;_mdFullHtml=null;var f=$('#md_full');if(f)f.checked=false;mdEditRender();}
 function mdFullToggle(){if(!($('#md_full')&&$('#md_full').checked)){_mdFullHtml=null;}mdEditRender();}
