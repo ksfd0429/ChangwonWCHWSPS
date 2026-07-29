@@ -406,7 +406,7 @@ function mdEditBody(type,code){var cn=cnameA(code)||code||'';var date=($('#md_da
 function mdFullEditHTML(type,code,date){if(_mdFullHtml==null){var m=manualCollect();m.payload.fullEdit=false;_mdFullHtml=mdBody(m);}return '<div class="doc">'+docHeadA()+'<div id="md_fullbody" contenteditable="true" oninput="_mdFullHtml=this.innerHTML" style="outline:1px dashed #C9A400;background:#FFFDF5;padding:6px;min-height:220px">'+_mdFullHtml+'</div>'+docFootA({sign:true,no:null,date:date})+'</div>';}
 
 /* ===== 직접 편집 툴바: 서식 · 표 편집 · 열 너비 드래그 ===== */
-function mdFullSync(){var b=document.getElementById('md_fullbody');if(b)_mdFullHtml=b.innerHTML;}
+function mdFullSync(){var b=document.getElementById('md_fullbody');if(b){_mdFullHtml=b.innerHTML;if(typeof _DE!=='undefined'&&_DE)_DE.html=b.innerHTML;}}
 function mdFocusBody(){var b=document.getElementById('md_fullbody');if(!b)return null;var s=window.getSelection();if(!s.rangeCount||!b.contains(s.anchorNode)){b.focus();}return b;}
 function tbBtn(label,fn,title){return '<button type="button" title="'+title+'" onmousedown="event.preventDefault()" onclick="'+fn+'" style="border:1px solid #d8d8d8;background:#fff;border-radius:5px;min-width:30px;height:26px;padding:0 7px;font-size:12px;cursor:pointer;line-height:1">'+label+'</button>';}
 function tbSep(){return '<span style="width:1px;height:18px;background:#e0e0e0;margin:0 3px"></span>';}
@@ -782,20 +782,78 @@ function buildDraftSeed(src){var s=dataS();if(!src)return null;
  if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];if(!x)return null;var list=fscopeList(s,x);return {doc_type:'firearms',country:x.country,slots:{scope:(x.grp&&x.grp!=='*ALL*'?x.grp:''),refdate:x.submitted_at||''},rows:list.map(function(g){return [g.owner||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||''];})};}
  if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(x){return x.id===src.id});if(!m)return null;var p=m.payload||{};return {doc_type:m.doc_type,country:m.country||'',slots:Object.assign({},p.slots||{}),rows:(p.rows||[]).map(function(r){return (r||[]).slice();}),fullEdit:!!p.fullEdit,fullhtml:p.fullhtml||''};}
  return null;}
+
+/* ===== 원본 문서 직접 편집 (저장 / 저장+발급 분리) ===== */
+var _DE=null;
+function deLabel(src){var s=dataS();
+ if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});return '초청장 — '+(L?esc(L.country)+' · '+esc(L.title||''):'');}
+ if(src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});return '인보이스 — '+(V?esc(V.country)+' · '+esc(V.title||''):'');}
+ if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];return '총기 확인서 — '+(x?esc(x.country)+' · '+esc((x.grp&&x.grp!=='*ALL*')?x.grp:'Entire delegation'):'');}
+ if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(x){return x.id===src.id});return '수동 문서 — '+(m?esc(TNMANUAL(m.doc_type))+' · '+esc(m.title||''):'');}
+ return '문서';}
+function deIssued(src){var s=dataS();
+ if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});return !!(L&&L.status==='approved');}
+ if(src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});return !!(V&&V.status==='approved');}
+ if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];return !!(x&&x.reg_no);}
+ return true;}
+function deIssueLabel(src){return src.kind==='firearms'?'저장 & 발행':'저장 & 승인';}
+function scrDocEdit(){if(!_DE){scrMain();return;}
+ var src=_DE.src;var issued=deIssued(src);
+ var style='<style id="md_estyle">.ecell{}#md_doc .doc{margin:0 auto;box-shadow:0 1px 8px rgba(0,0,0,.14)}#md_fullbody{outline:1px dashed #C9A400;background:#FFFDF5;padding:6px;min-height:220px}</style>';
+ var btns='<button class="btn g" style="padding:9px 20px" onclick="deSave(false)">💾 저장</button>'+
+   (issued?'':' <button class="btn" style="padding:9px 20px;background:#B4550E" onclick="deSave(true)">✅ '+deIssueLabel(src)+'</button>');
+ stage('<div class="card"><div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">'+
+  '<button class="btn sec" onclick="deCancel()">&larr; 취소</button>'+
+  '<b style="margin-left:4px">✏️ 문서 직접 편집 — '+deLabel(src)+'</b>'+
+  (issued?'<span class="tag g" style="margin-left:6px">발행됨</span>':'<span class="tag y" style="margin-left:6px">미발행</span>')+
+  '<span style="margin-left:auto"></span>'+btns+'</div>'+
+  '<p class="muted" style="font-size:11.5px;margin:8px 0 0">각국이 제출한 <b>원본 문서</b>를 직접 수정합니다. 저장하면 이 문서의 본문이 교체되며, 머리말·꼬리말·서명·문서번호는 자동으로 유지됩니다.</p></div>'+
+  style+
+  '<div class="card"><div id="md_doc" style="overflow:auto;background:#eef1f4;border-radius:8px;padding:14px"></div></div>');
+ var host=document.getElementById('md_doc');
+ host.innerHTML=mdToolbarHTML()+'<div class="doc" id="de_doc">'+docHeadA()+'<div id="md_fullbody" contenteditable="true" oninput="mdFullSync()">'+_DE.html+'</div>'+docFootA({sign:true,no:null,date:''})+'</div>';
+ mdTableResizeInit();}
+function deCancel(){if(!confirm('편집을 취소하고 나갈까요? 저장하지 않은 변경은 사라집니다.'))return;_DE=null;scrMain();}
+async function deSave(alsoIssue){if(!_DE)return;mdFullSync();
+ var src=_DE.src,html=_DE.html,s=dataS();
+ if(LIVE){var r=null;
+  if(src.kind==='invitation'){r=await sbc.from('invitations').update({doc_html:html}).eq('id',src.id);}
+  else if(src.kind==='invoice'){r=await sbc.from('invoices').update({doc_html:html}).eq('id',src.id);}
+  else if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];if(!x){alert('문서를 찾을 수 없습니다.');return;}r=await sbc.from('firearm_submissions').update({doc_html:html}).eq('country',x.country).eq('grp',x.grp);}
+  else if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(y){return y.id===src.id});var p=Object.assign({},(m&&m.payload)||{},{fullEdit:true,fullhtml:html});r=await sbc.from('manual_docs').update({payload:p}).eq('id',src.id);}
+  if(r&&r.error){alert('저장 실패: '+r.error.message+'\n\n(컬럼이 없다면 doc_html_migration.sql 을 Supabase에서 먼저 실행하세요)');return;}
+  try{await fetchAll();}catch(e){}
+ }else{var st=mL();
+  if(src.kind==='invitation'){var L=(st.invitations||[]).find(function(y){return y.id===src.id});if(L)L.doc_html=html;}
+  else if(src.kind==='invoice'){var V=(st.invoices||[]).find(function(y){return y.id===src.id});if(V)V.doc_html=html;}
+  else if(src.kind==='firearms'){var f=st.firearm_submissions[src.i];if(f)f.doc_html=html;}
+  else if(src.kind==='manual'){var mm=(st.manual_docs||[]).find(function(y){return y.id===src.id});if(mm){mm.payload=Object.assign({},mm.payload||{},{fullEdit:true,fullhtml:html});}}
+  mS(st);}
+ var k=src.kind,id=src.id,idx=src.i;_DE=null;
+ if(!alsoIssue){alert('문서가 저장되었습니다. ✔');scrMain();return;}
+ if(k==='invitation'){await approveInv(id);return;}
+ if(k==='invoice'){await approveV(id);return;}
+ if(k==='firearms'){await issueF(idx);return;}
+ alert('문서가 저장되었습니다. ✔');scrMain();}
+function deBody(src){var s=dataS();
+ if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});return (L&&L.doc_html)||null;}
+ if(src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});return (V&&V.doc_html)||null;}
+ if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];return (x&&x.doc_html)||null;}
+ return null;}
+
 function directEdit(){
  var doc=document.getElementById('adm_doc');if(!doc){alert('문서를 찾을 수 없습니다.');return;}
+ if(!_DRAFTSRC){alert('이 문서는 직접 편집을 지원하지 않습니다.');return;}
  var body=doc.querySelector('.dbody');var html=body?body.innerHTML:doc.innerHTML;
- if(!confirm('이 문서를 직접 편집 모드로 엽니다.' + String.fromCharCode(10) +  + String.fromCharCode(10) + '· 현재 보이는 내용 그대로 불러와 문서 위에서 바로 수정합니다.' + String.fromCharCode(10) + '· 저장하면 새 문서로 발급되며 원본 문서는 그대로 유지됩니다.'))return;
- var seed=buildDraftSeed(_DRAFTSRC)||{doc_type:'custom',country:'',slots:{},rows:[]};
- seed.fullEdit=true;seed.fullhtml=html;
  var dm=document.getElementById('dm');if(dm)dm.remove();
  var am=document.getElementById('am');if(am)am.remove();
- scrManualNew(seed);}
+ _DE={src:_DRAFTSRC,html:html};scrDocEdit();}
 function draftDoc(){var seed=buildDraftSeed(_DRAFTSRC);if(!seed){alert('이 문서는 기안(복사) 대상이 아닙니다.');return;}var dm=document.getElementById('dm');if(dm)dm.remove();var am=document.getElementById('am');if(am)am.remove();scrManualNew(seed);}
 
 function docHeadA(){return '<div class="dhead"><div class="lh"><img src="assets/logo.png" style="height:68px"><div style="flex:1;text-align:center;font-weight:bold;font-size:16px;line-height:1.4;color:#16456B">Korea Shooting Federation for Disabled<br>Changwon 2026 WSPS World Championships Organising Committee</div><img src="assets/ksfd.png" onerror="this.remove()" style="height:68px"></div></div><div class="dbody">';}
 function docFootA(opt){opt=opt||{};var num=(opt.no!=null)?'Changwon 2026 WSPS World Championships-'+('000'+String(opt.no||'').replace(/\D/g,'')).slice(-3)+' ('+esc(opt.date||'')+')':'';var sig=opt.sign?'<div class="sigwrap"><p class="signame"><b>Korea Shooting Federation for Disabled</b></p><div class="sigcluster"><span class="sigrole">President</span><span class="sigbar"></span><img class="sigimg" src="assets/Signature.png" alt="" onerror="this.style.display=\'none\'"><img class="sealimg" src="assets/Stamp.png" alt="" onerror="this.style.display=\'none\'"></div></div>':'<p style="margin-top:14px"><b>President</b><br>Korea Shooting Federation for Disabled</p>';var body=('mid' in opt)?opt.mid:sig;return '</div><div class="dfoot"><div class="dsign"><p style="margin-top:44px">With best regards,</p>'+body+'</div><div class="dft"><div class="dftrow1"><span class="docno">'+num+'</span><span class="dftaddr">ZIP 61998&nbsp;&nbsp;&nbsp;&nbsp;8F, Mareukbokgar-ro 154, Seo-gu, Gwangju, Republic of Korea</span></div><div class="dftrow2">PHONE +82 62 710 5391 / FAX +82 62 710 9851 / Email(ksfd0427@hanmail.net) / http://www.ksfd.kosad.kr</div></div></div>';}
-function docInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.id===id});if(!L)return;var isA=L.status==='approved';var mem=s.members.filter(function(m){return m.country===L.country&&(L.member_ids||[]).indexOf(m.id)>=0});
+function docInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.id===id});if(!L)return;var isA=L.status==='approved';
+  if(L.doc_html){_DRAFTSRC={kind:'invitation',id:id};docShow('초청장 — '+esc(L.country)+' · '+esc(L.title)+(isA?'':' <span class="tag y">pending</span>'),'<div class="doc" id="adm_doc">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+L.doc_html+docFootA(isA?{sign:true,no:L.reg_no,date:L.approved_at}:{})+'</div>');return;}var mem=s.members.filter(function(m){return m.country===L.country&&(L.member_ids||[]).indexOf(m.id)>=0});
   var h='<div class="doc" id="adm_doc">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+
   '<p style="font-size:13px;margin:10px 0 2px"><b>TO:</b> To Whom It May Concern</p><p style="font-size:13px;margin:2px 0 12px"><b>TITLE:</b> Request Letter for Visa Issuance (Letter of Invitation)</p><hr class="docrule">'+
   '<p>This letter is to request your cooperation in the visa issuance procedure for the participants of the Changwon 2026 WSPS World Championships (the &quot;Competition&quot;), which will be held on 7&ndash;16 September 2026 in Changwon, Republic of Korea, and is hosted by the <b>Korea Shooting Federation for the Disabled</b> (&quot;KSFD&quot;) and the Changwon 2026 WSPS WCH Organizing Committee (&quot;LOC&quot;). The KSFD and LOC kindly request your cooperation for the following members of the <b>'+esc(cnameA(L.country))+' ('+esc(L.country)+')</b> delegation'+(L.title&&L.title!=='Entire delegation'?' — <b>'+esc(L.title)+'</b>':'')+'. Below are the details:</p>'+
@@ -814,6 +872,7 @@ function invoiceDocA(V,itemsOverride,idOpt){var s=dataS();var isA=V.status==='ap
   itemsToTableA(items)+
   (isA?'':'<p>This is a <b>draft invoice request</b>. Amounts and Banking Information are entered by the OC upon approval.</p>')+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(V.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'')})+'</div>';}
 function docV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var isA=V.status==='approved';
+  if(V.doc_html){var b0=bankS(s);_DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),'<div class="doc" id="adm_doc">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+V.doc_html+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b0.bank)+'<br>SWIFT Code: '+esc(b0.swift)+'<br>Account Holder: '+esc(b0.holder)+'<br>Account No.: '+esc(V.account||b0.account)+'<br>Address: '+esc(b0.addr)+'</div>':'')})+'</div>');return;}
   _DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),invoiceDocA(V,null,'adm_doc'));}
 function ammoOfA(s,c){try{var r=(s.invoice_addresses||[]).find(function(a){return a.country===c&&a.grp==='*AMMO*'});if(r&&r.addr)return JSON.parse(r.addr);}catch(e){}return null;}
 function ammoRowsA(a){var has=a&&(((+a.p)||0)>0||((+a.b)||0)>0);
@@ -821,6 +880,7 @@ function ammoRowsA(a){var has=a&&(((+a.p)||0)>0||((+a.b)||0)>0);
  var h='';if(((+a.p)||0)>0)h+='<tr><td>Air pellets (4.5mm)</td><td style="text-align:right">'+((+a.p)||0)+' pcs</td></tr>';
  if(((+a.b)||0)>0)h+='<tr><td>Cartridges (.22 LR)</td><td style="text-align:right">'+((+a.b)||0)+' pcs</td></tr>';return h;}
 function docF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');var sub=x.submitted_at;
+  if(x.doc_html){_DRAFTSRC={kind:'firearms',i:i};docShow('총기 확인서 — '+esc(x.country)+' · '+esc(sc==='*ALL*'?'Entire delegation':sc),'<div class="doc" id="adm_doc">'+docHeadA()+x.doc_html+docFootA({no:x.reg_no,date:x.issued_at})+'</div>');return;}
   var list=s.firearms.filter(function(g){if(g.country!==x.country)return false;if(sc==='*ALL*')return true;var m=s.members.find(function(mm){return mm.country===g.country&&(memName(mm)===g.owner||mm.name===g.owner)});return m&&(((m.sub_group||'').trim())||'(Ungrouped)')===sc;});
   var ref='OC-F-'+x.country+'-'+String(sub||'').replace(/-/g,'');
   var h='<div class="doc" id="adm_doc">'+docHeadA()+
