@@ -10871,7 +10871,7 @@ function buildAutoItems(mem){var P=pricingOf();var items=[];
   var fa=mem.filter(function(m){return (_fg||[]).some(function(g2){return g2.owner===mName(m)||g2.owner===m.name})}).length;
   if(fa)items.push({sec:'Miscellaneous',d:'Firearms Import/Export Fee',s:'(per athlete)',q:fa+' Athlete(s)',m:'',p:'* '+P.firearm+' USD =',t:fa*P.firearm});
   var ts2=Number(_trSlots)||0;
-  if(ts2>0)items.push({sec:'Miscellaneous',d:'Unofficial Training Fee (Para Trap only)',s:'(per training slot)',q:ts2+' Slot(s)',m:'',p:'* '+P.training+' EUR =',t:ts2*P.training,cur:'EUR'});
+  if(ts2>0)items.push({sec:'Miscellaneous',d:'Unofficial Training Fee (Para Trap only)',s:'(1 slot = 1 round · payable on site)',q:ts2+' Slot(s)',m:'',p:'* '+P.training+' EUR =',t:ts2*P.training,cur:'EUR'});
   return items;}
 function itemsToTable(items){
   function fmt(r){var v=Math.round(+r.t||0).toLocaleString('en-US');return v+(r.cur==='EUR'?' EUR':' USD');}
@@ -10889,7 +10889,8 @@ function billingOpts(){var P=pricingOf();
   return '<div class="msec" style="margin-top:14px">'+L('BILLING OPTIONS — Transport · Training')+'</div>'+
   '<div class="row" style="gap:8px;margin-top:6px;align-items:flex-end;flex-wrap:wrap">'+
   '<div class="f" style="margin:0;flex:1;min-width:250px"><label>'+L('Transportation option (default for everyone)')+'</label><select id="tropt" onchange="trOptChg(this.value)"><option value="1"'+(_trOpt==='1'?' selected':'')+'>'+tl('Option 1 — ICN/PUS → ground vehicle direct')+' · USD '+P.tr1+'/person</option><option value="2"'+(_trOpt==='2'?' selected':'')+'>'+tl('Option 2 — ICN → domestic flight → PUS')+' · USD '+P.tr2+'/person</option></select></div>'+
-  '<div class="f" style="margin:0;width:160px"><label>'+L('Unofficial training (slots)')+'</label><input id="trslots" type="number" min="0" value="'+(Number(_trSlots)||0)+'" oninput="trSlotsChg(this.value)"><p class="muted" style="font-size:10.5px;margin:3px 0 0">Para Trap only · 10 EUR/slot</p></div></div>'+
+  '<div class="f" style="margin:0;width:160px"><label>'+L('Unofficial training (slots)')+'</label><input id="trslots" type="number" min="0" value="'+(Number(_trSlots)||0)+'" oninput="trSlotsChg(this.value)"></div></div>'+
+  '<p class="muted" style="font-size:11.5px;margin:6px 0 0;line-height:1.55"><b>Unofficial training is for Para Trap only.</b> 10 EUR per slot — 1 slot = 1 round. <b>Payable on site</b> at the range office (not in advance).</p>'+
   '<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12px;color:var(--acc);font-weight:700">'+L('Per-member transport option (optional)')+'</summary><div class="tbl" style="margin-top:6px;max-height:220px;overflow:auto"><table><thead><tr><th>'+L('Name')+'</th><th>'+L('Group')+'</th><th>'+L('Transport')+'</th></tr></thead><tbody>'+(per||'<tr><td colspan="3" class="muted">'+tl('No members.')+'</td></tr>')+'</tbody></table></div></details>'+
   '<p class="muted" style="font-size:11px;margin:6px 0 0">'+L('The Firearms Import/Export Fee is calculated automatically from registered firearms — review the live preview below, then submit your draft.')+' (USD '+P.firearm+'/athlete)</p>';}
 function trOptChg(v){_trOpt=v;invcPreviewDraft();}
