@@ -719,7 +719,7 @@ function _fitSetup(){if(window.MutationObserver&&document.body){try{new Mutation
 if(document.body)_fitSetup();else window.addEventListener('DOMContentLoaded',_fitSetup);
 window.addEventListener('resize',scheduleFit);
 function printEl(id){var n=document.getElementById(id);if(!n){alert('No document');return;}var pa=document.getElementById('pa');pa.innerHTML='<div class="doc">'+n.innerHTML+'</div>';pa.classList.remove('hide');var _dc=pa.querySelector('.doc');pa.classList.toggle('multi',!!(_dc&&_dc.scrollHeight>1125));window.print();setTimeout(function(){pa.classList.add('hide');pa.classList.remove('multi')},400);}
-function docShow(title,html){infoModal(title+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn" style="background:#2E6B5B;padding:5px 12px;min-height:0;font-size:12px" onclick="draftDoc()">📝 기안(복사)</button>',html);}
+function docShow(title,html){infoModal(title+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn" style="background:#2E6B5B;padding:5px 12px;min-height:0;font-size:12px" onclick="draftDoc()">📝 기안(복사)</button> <button class="btn" style="background:#B4550E;padding:5px 12px;min-height:0;font-size:12px" onclick="directEdit()">✏️ 직접 편집</button>',html);}
 var _DRAFTSRC=null;
 function buildDraftSeed(src){var s=dataS();if(!src)return null;
  if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});if(!L)return null;var mem=s.members.filter(function(m){return m.country===L.country&&(L.member_ids||[]).indexOf(m.id)>=0});return {doc_type:'invitation',country:L.country,slots:{cname:cnameA(L.country),scope:(L.title&&L.title!=='Entire delegation'?L.title:'')},rows:mem.map(function(m){return [memName(m),m.position||'',m.dob||'',((m.arrive||'')+' ~ '+(m.depart||'')),m.passport||'',m.passport_expiry||''];})};}
@@ -727,6 +727,15 @@ function buildDraftSeed(src){var s=dataS();if(!src)return null;
  if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];if(!x)return null;var list=fscopeList(s,x);return {doc_type:'firearms',country:x.country,slots:{scope:(x.grp&&x.grp!=='*ALL*'?x.grp:''),refdate:x.submitted_at||''},rows:list.map(function(g){return [g.owner||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||''];})};}
  if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(x){return x.id===src.id});if(!m)return null;var p=m.payload||{};return {doc_type:m.doc_type,country:m.country||'',slots:Object.assign({},p.slots||{}),rows:(p.rows||[]).map(function(r){return (r||[]).slice();}),fullEdit:!!p.fullEdit,fullhtml:p.fullhtml||''};}
  return null;}
+function directEdit(){
+ var doc=document.getElementById('adm_doc');if(!doc){alert('문서를 찾을 수 없습니다.');return;}
+ var body=doc.querySelector('.dbody');var html=body?body.innerHTML:doc.innerHTML;
+ if(!confirm('이 문서를 직접 편집 모드로 엽니다.' + String.fromCharCode(10) +  + String.fromCharCode(10) + '· 현재 보이는 내용 그대로 불러와 문서 위에서 바로 수정합니다.' + String.fromCharCode(10) + '· 저장하면 새 문서로 발급되며 원본 문서는 그대로 유지됩니다.'))return;
+ var seed=buildDraftSeed(_DRAFTSRC)||{doc_type:'custom',country:'',slots:{},rows:[]};
+ seed.fullEdit=true;seed.fullhtml=html;
+ var dm=document.getElementById('dm');if(dm)dm.remove();
+ var am=document.getElementById('am');if(am)am.remove();
+ scrManualNew(seed);}
 function draftDoc(){var seed=buildDraftSeed(_DRAFTSRC);if(!seed){alert('이 문서는 기안(복사) 대상이 아닙니다.');return;}var dm=document.getElementById('dm');if(dm)dm.remove();var am=document.getElementById('am');if(am)am.remove();scrManualNew(seed);}
 
 function docHeadA(){return '<div class="dhead"><div class="lh"><img src="assets/logo.png" style="height:68px"><div style="flex:1;text-align:center;font-weight:bold;font-size:16px;line-height:1.4;color:#16456B">Korea Shooting Federation for Disabled<br>Changwon 2026 WSPS World Championships Organising Committee</div><img src="assets/ksfd.png" onerror="this.remove()" style="height:68px"></div></div><div class="dbody">';}
