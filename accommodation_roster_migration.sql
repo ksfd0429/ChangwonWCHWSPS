@@ -80,14 +80,15 @@ begin
         '(이름 미입력)'
       )                                                    as full_name,
       upper(nullif(btrim(coalesce(md.gender,'')), ''))     as gender,
-      -- Age is bounded on purpose. A typo'd birth year (e.g. 1016 instead of
-      -- 2016) otherwise reaches partners as "1010세" and drags the average
-      -- with it. Out-of-range values become null and show as "—", which reads
-      -- as missing data rather than as a fact. Fix the source row in members;
-      -- this guard only stops the nonsense from being published.
+      -- The bound is deliberately ASYMMETRIC. An upper limit catches a typo'd
+      -- birth year (1016 instead of 2016 reads as "1010세" and drags the
+      -- average with it). There is no meaningful lower limit: small
+      -- delegations do travel with an accompanying child, and a floor would
+      -- silently drop that person from the hotel's rooming list — the exact
+      -- guest who most needs to appear on it.
       case
         when btrim(coalesce(md.dob,'')) ~ '^\d{4}-\d{1,2}-\d{1,2}$'
-         and date_part('year', age(current_date, btrim(md.dob)::date))::int between 5 and 100
+         and date_part('year', age(current_date, btrim(md.dob)::date))::int between 0 and 100
           then date_part('year', age(current_date, btrim(md.dob)::date))::int
         else null
       end                                                  as age,

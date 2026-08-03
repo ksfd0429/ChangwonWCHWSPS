@@ -446,11 +446,13 @@ function exportXlsx(opts){
 
   /* 7. 선수단 명단 */
   if (opts.roster && opts.roster.length){
-    S('선수단명단', [['국가','이름','구분','성별','나이','휠체어']]
+    S('선수단명단', [['국가','이름','구분','성별','나이','미성년','휠체어']]
       .concat(opts.roster.map(r => [r.country||'', r.full_name||'',
         r.position === 'Athlete' ? '선수' : (r.position||''),
         r.gender === 'M' ? '남' : r.gender === 'F' ? '여' : '',
-        r.age != null ? r.age : '', r.wheelchair ? 'Y' : ''])));
+        r.age != null ? r.age : '',
+        (typeof r.age === 'number' && r.age < 18) ? 'Y' : '',
+        r.wheelchair ? 'Y' : ''])));
   }
 
   /* 8. 변경 이력 */
@@ -472,7 +474,8 @@ function rosterStats(roster){
   const ages = roster.map(r => r.age).filter(a => typeof a === 'number');
   const avg = ages.length ? Math.round(ages.reduce((s,a)=>s+a,0)/ages.length) : null;
   const noGender = roster.filter(r => !r.gender).length;
-  return { n, wc, ath, off:n-ath, avg,
+  const minors = roster.filter(r => typeof r.age === 'number' && r.age < 18).length;
+  return { n, wc, ath, off:n-ath, avg, minors,
            min: ages.length?Math.min(...ages):null, max: ages.length?Math.max(...ages):null,
            noGender, noAge: n - ages.length,
            countries: new Set(roster.map(r=>r.country)).size };
@@ -484,6 +487,7 @@ function drawRoster(host, statHost, roster, q, countryFilter){
     `<span>선수 <b>${st.ath}</b> · 임원 <b>${st.off}</b></span>` +
     `<span>휠체어 <b style="color:var(--acc)">${st.wc}</b>명</span>` +
     (st.avg != null ? `<span>평균 ${st.avg}세 (${st.min}–${st.max})</span>` : '') +
+    (st.minors ? `<span style="color:var(--y)">미성년 <b>${st.minors}</b>명 · 단독 배정 불가</span>` : '') +
     (st.noGender ? `<span style="color:var(--y)">성별 미기재 ${st.noGender}</span>` : '') +
     (st.noAge ? `<span style="color:var(--y)">생년 미기재 ${st.noAge}</span>` : '');
 
@@ -503,7 +507,9 @@ function drawRoster(host, statHost, roster, q, countryFilter){
              : r.position ? '<span class="chip">'+esc(r.position)+'</span>' : '—'}</td>` +
       `<td>${r.gender === 'M' ? '남' : r.gender === 'F' ? '여'
              : '<span style="color:var(--muted)">—</span>'}</td>` +
-      `<td class="n">${r.age != null ? r.age : '<span style="color:var(--muted)">—</span>'}</td>` +
+      `<td class="n">${r.age != null
+             ? (r.age < 18 ? '<b style="color:var(--y)">'+r.age+'</b>' : r.age)
+             : '<span style="color:var(--muted)">—</span>'}</td>` +
       `<td>${r.wheelchair ? '<span class="chip u">휠체어</span>'
              : '<span style="color:var(--muted)">—</span>'}</td></tr>`).join('')
       : '<tr><td colspan="6" class="empty">조건에 맞는 인원이 없습니다.</td></tr>') +
