@@ -104,6 +104,21 @@
     </section>
   </div>
 
+
+  <section class="panel">
+    <h2>선수단 명단</h2>
+    <p class="sub">국가별 개인 명단입니다. 여권번호와 생년월일은 포함되지 않으며, 나이는 생년월일에서
+      계산된 값만 전달됩니다.</p>
+    <div class="legend" id="rosterStat" style="border-top:0;padding-top:0;margin-top:0;margin-bottom:12px"></div>
+    <div class="filters" style="margin:0 0 12px">
+      <span><label for="rCountry">국가</label><select id="rCountry"><option value="">전체</option></select></span>
+      <span><label for="rq">이름 검색</label><input id="rq" type="search" placeholder="이름 · 국가"></span>
+      <span class="spacer"></span>
+      <span id="rCount" style="font-size:12.5px;color:var(--muted)"></span>
+    </div>
+    <div class="scroll" style="max-height:520px"><table id="rosterTbl"></table></div>
+  </section>
+
   <section class="panel">
     <h2>신청 목록</h2>
     <p class="sub">열 제목을 누르면 정렬됩니다.
@@ -139,8 +154,9 @@ const SUPABASE_URL = "https://tkdvyxouknhjhaqjrotb.supabase.co";
 const POLL_MS = 45000;
 const $ = s => document.querySelector(s);
 const A = window.ACC;
-let sbAdmin = null, ROWS = [], LOG = [], FLAGS = {}, SHARES = [],
+let sbAdmin = null, ROWS = [], LOG = [], FLAGS = {}, SHARES = [], DATA = { roster:[] },
     sortKey = 'country', sortAsc = true, timer = null, STAMP = '';
+const DEMO = new URLSearchParams(location.search).get('demo') === '1';
 
 /* ------------------------------------------------------------- auth ------ */
 function arm(k){
@@ -149,6 +165,20 @@ function arm(k){
   catch(e){ return 'Supabase 클라이언트 생성 실패'; }
 }
 async function load(){
+  if(DEMO){
+    const d = A.demoData();
+    DATA.roster = d.roster || [];
+    ROWS = d.rows.map((r,i) => ({ ...r,
+      edit_code: 'demo' + String(1000+i),
+      contact_name: 'Manager ' + r.country,
+      contact_email: r.country.toLowerCase() + (i%5===0 ? '' : i) + '@npc.example' }));
+    // seed one deliberate duplicate so the cross-check flags are visible
+    if(ROWS[6]) ROWS[6].contact_email = ROWS[1].contact_email;
+    FLAGS = A.crossCheck(ROWS);
+    LOG = d.log; SHARES = [];
+    STAMP = d.generated_at;
+    return true;
+  }
   if(!sbAdmin) return false;
   const r = await sbAdmin.from('accommodation').select('*').order('country');
   if(r.error) return false;
@@ -158,6 +188,9 @@ async function load(){
   LOG = l.error ? [] : (l.data || []);
   const s = await sbAdmin.from('acc_share').select('*').order('label');
   SHARES = s.error ? [] : (s.data || []);
+  // roster comes from the same function partners call, so the two never diverge
+  const rm = await sbAdmin.rpc('acc_mirror', {});
+  DATA.roster = (!rm.error && rm.data) ? (rm.data.roster || []) : [];
   STAMP = new Date().toLocaleString('ko-KR', { hour12:false });
   return true;
 }
@@ -173,11 +206,12 @@ $('#svc').addEventListener('keydown', e => { if(e.key==='Enter') $('#btnOpen').c
 $('#btnOut').onclick = () => { sessionStorage.removeItem('cw_svc'); location.reload(); };
 function show(){
   $('#gate').style.display='none'; $('#app').hidden=false;
-  $('#who').textContent = '조직위 전용 · 기준 시각 ' + STAMP;
+  $('#who').textContent = (DEMO?'데모 데이터':'조직위 전용') + ' · 기준 시각 ' + STAMP;
   initControls(); render();
   if(!timer) timer = setInterval(refresh, POLL_MS);
 }
 async function refresh(){
+  if(DEMO) return;
   const before = LOG.length;
   if(!await load()) return;
   $('#who').textContent = '조직위 전용 · 기준 시각 ' + STAMP;
@@ -198,6 +232,11 @@ function initControls(){
     $('#'+id).addEventListener('input', render);
     $('#'+id).addEventListener('change', render);
   });
+  ['rq','rCountry'].forEach(id=>{
+    $('#'+id).addEventListener('input', renderRoster);
+    $('#'+id).addEventListener('change', renderRoster);
+  });
+  initRoster();
   $('#freset').onclick = () => {
     ['fHotel','fStatus','fDate','fFlag','q'].forEach(i=>$('#'+i).value=''); render(); };
 }
@@ -293,8 +332,23 @@ function render(){
   A.drawArrivals($('#arr'), $('#arrLeg'), $('#arrTbl'), rows);
   A.drawMatrix($('#mx'), rows);
   drawRows(rows, fresh);
+  renderRoster();
   paintBadge();
 }
+/* ------------------------------------------------------------ roster ----- */
+function initRoster(){
+  const cs = [...new Set((DATA.roster||[]).map(r=>r.country))].sort();
+  const sel = $('#rCountry'), keep = sel.value;
+  sel.innerHTML = '<option value="">전체</option>' +
+    cs.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = keep;
+}
+function renderRoster(){
+  const list = A.drawRoster($('#rosterTbl'), $('#rosterStat'),
+    DATA.roster || [], $('#rq').value, $('#rCountry').value);
+  $('#rCount').textContent = list.length + ' / ' + (DATA.roster||[]).length + '명 표시';
+}
+
 const COLS = [
   ['country','국가',0],['team_name','팀 / 담당자',0],['pax','총원',1],['gender','남/여',0],
   ['check_in','체크인 → 아웃',0],['nights','박',1],['rooms','객실 (싱글/트윈)',1],
@@ -340,7 +394,8 @@ function drawRows(rows, fresh){
 }
 
 $('#btnXlsx').onclick = () => A.exportXlsx({
-  rows: filtered(), log: LOG, scopeKey: $('#scope').value,
+  rows: filtered(), log: LOG, roster: DATA.roster || [],
+  scopeKey: $('#scope').value,
   showContact: true, stamp: STAMP, filterNote: filterNote()
 });
 $('#btnTheme').onclick = () => {
@@ -351,6 +406,7 @@ $('#btnTheme').onclick = () => {
 };
 
 (async () => {
+  if(DEMO){ A.demoBanner(); await load(); show(); return; }
   const k = sessionStorage.getItem('cw_svc');
   if(k && !arm(k) && await load()) show();
 })();

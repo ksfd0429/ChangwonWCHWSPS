@@ -93,6 +93,21 @@
     </section>
   </div>
 
+
+  <section class="panel">
+    <h2>선수단 명단</h2>
+    <p class="sub">국가별 개인 명단입니다. 여권번호와 생년월일은 포함되지 않으며, 나이는 생년월일에서
+      계산된 값만 전달됩니다.</p>
+    <div class="legend" id="rosterStat" style="border-top:0;padding-top:0;margin-top:0;margin-bottom:12px"></div>
+    <div class="filters" style="margin:0 0 12px">
+      <span><label for="rCountry">국가</label><select id="rCountry"><option value="">전체</option></select></span>
+      <span><label for="rq">이름 검색</label><input id="rq" type="search" placeholder="이름 · 국가"></span>
+      <span class="spacer"></span>
+      <span id="rCount" style="font-size:12.5px;color:var(--muted)"></span>
+    </div>
+    <div class="scroll" style="max-height:520px"><table id="rosterTbl"></table></div>
+  </section>
+
   <section class="panel">
     <h2>신청 목록</h2>
     <p class="sub">열 제목을 누르면 정렬됩니다.
@@ -131,14 +146,25 @@ const POLL_MS = 60000;                       // near-real-time without hammering
 
 const $ = s => document.querySelector(s);
 const A = window.ACC;
-let sb = null, TOKEN = '', DATA = { rows:[], log:[], label:'', show_contact:false },
+let sb = null, TOKEN = '', DATA = { rows:[], roster:[], log:[], label:'', show_contact:false },
     sortKey = 'country', sortAsc = true, timer = null;
 
 try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON); } catch(e){ console.error(e); }
 
 /* ------------------------------------------------------------ open ------- */
 const qp = new URLSearchParams(location.search);
+const DEMO = qp.get('demo') === '1';
 async function open_(tok, quiet){
+  if(DEMO){
+    DATA = A.demoData(); TOKEN = '';
+    A.demoBanner();
+    $('#gate').style.display = 'none';
+    $('#app').hidden = false;
+    $('#who').textContent = DATA.label + ' · 기준 시각 ' + DATA.generated_at;
+    $('#foot').textContent = '데모 데이터 · 실제 신청 내역이 아닙니다.';
+    initControls(); render();
+    return true;
+  }
   if(!sb){ fail('서버에 연결할 수 없습니다.'); return false; }
   const { data, error } = await sb.rpc('acc_mirror', tok ? { p_token: tok } : {});
   if(error || !data){
@@ -157,6 +183,7 @@ async function open_(tok, quiet){
   return true;
 }
 async function refresh(){
+  if(DEMO) return;
   const before = DATA.log.length;
   const { data, error } = await sb.rpc('acc_mirror', TOKEN ? { p_token: TOKEN } : {});
   if(error || !data) return;
@@ -189,6 +216,11 @@ function initControls(){
     $('#'+id).addEventListener('input', render);
     $('#'+id).addEventListener('change', render);
   });
+  ['rq','rCountry'].forEach(id => {
+    $('#'+id).addEventListener('input', renderRoster);
+    $('#'+id).addEventListener('change', renderRoster);
+  });
+  initRoster();
   $('#freset').onclick = () => {
     ['fHotel','fStatus','fDate','q'].forEach(i => $('#'+i).value = '');
     render();
@@ -218,7 +250,7 @@ function filterNote(){
 }
 
 /* ------------------------------------------------------------ tracker ---- */
-const NS = () => 'mirror_' + (TOKEN || 'public');
+const NS = () => 'mirror_' + (DEMO ? 'demo' : (TOKEN || 'public'));
 function changedIds(){
   const ls = A.lastSeen(NS());
   // no baseline yet -> the badge counts every entry, so highlight them all too
@@ -263,8 +295,23 @@ function render(){
   A.drawArrivals($('#arr'), $('#arrLeg'), $('#arrTbl'), rows);
   A.drawMatrix($('#mx'), rows);
   drawRows(rows, fresh);
+  renderRoster();
   paintBadge();
 }
+/* ------------------------------------------------------------ roster ----- */
+function initRoster(){
+  const cs = [...new Set((DATA.roster||[]).map(r=>r.country))].sort();
+  const sel = $('#rCountry'), keep = sel.value;
+  sel.innerHTML = '<option value="">전체</option>' +
+    cs.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = keep;
+}
+function renderRoster(){
+  const list = A.drawRoster($('#rosterTbl'), $('#rosterStat'),
+    DATA.roster || [], $('#rq').value, $('#rCountry').value);
+  $('#rCount').textContent = list.length + ' / ' + (DATA.roster||[]).length + '명 표시';
+}
+
 
 const COLS = [
   ['country','국가',0], ['team_name','팀',0], ['pax','총원',1], ['gender','남/여',0],
@@ -314,7 +361,8 @@ function drawRows(rows, fresh){
 
 /* ------------------------------------------------------------ export ----- */
 $('#btnXlsx').onclick = () => A.exportXlsx({
-  rows: filtered(), log: DATA.log, scopeKey: $('#scope').value,
+  rows: filtered(), log: DATA.log, roster: DATA.roster || [],
+  scopeKey: $('#scope').value,
   showContact: !!DATA.show_contact, stamp: DATA.generated_at, filterNote: filterNote()
 });
 

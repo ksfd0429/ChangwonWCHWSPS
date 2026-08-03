@@ -444,13 +444,165 @@ function exportXlsx(opts){
     const i = HOTELS.findIndex(h=>h.code===c); if(i>=0) m[i][r]++; }));
   S('선호순위', [['호텔','1지망','2지망','3지망']].concat(HOTELS.map((h,i)=>[h.ko].concat(m[i]))));
 
-  /* 7. 변경 이력 */
+  /* 7. 선수단 명단 */
+  if (opts.roster && opts.roster.length){
+    S('선수단명단', [['국가','이름','구분','성별','나이','휠체어']]
+      .concat(opts.roster.map(r => [r.country||'', r.full_name||'',
+        r.position === 'Athlete' ? '선수' : (r.position||''),
+        r.gender === 'M' ? '남' : r.gender === 'F' ? '여' : '',
+        r.age != null ? r.age : '', r.wheelchair ? 'Y' : ''])));
+  }
+
+  /* 8. 변경 이력 */
   S('변경이력', [['시각','국가','팀','구분','내용','작성자']]
     .concat((log||[]).map(e => [
       new Date(e.at).toLocaleString('ko-KR'), e.country||'', e.team_name||'',
       ACTION_KO[e.action]||e.action, describe(e), e.actor||''])));
 
   XLSX.writeFile(wb, 'changwon2026_숙박집계_' + stamp.replace(/[^0-9]/g,'').slice(0,12) + '.xlsx');
+}
+
+/* ---------------------------------------------------------------- roster -- */
+/* Per-person list for partners. The payload already excludes passport and
+   date of birth — this only decides how it is shown. */
+function rosterStats(roster){
+  const n = roster.length;
+  const wc = roster.filter(r => r.wheelchair).length;
+  const ath = roster.filter(r => (r.position||'').toLowerCase() === 'athlete').length;
+  const ages = roster.map(r => r.age).filter(a => typeof a === 'number');
+  const avg = ages.length ? Math.round(ages.reduce((s,a)=>s+a,0)/ages.length) : null;
+  const noGender = roster.filter(r => !r.gender).length;
+  return { n, wc, ath, off:n-ath, avg,
+           min: ages.length?Math.min(...ages):null, max: ages.length?Math.max(...ages):null,
+           noGender, noAge: n - ages.length,
+           countries: new Set(roster.map(r=>r.country)).size };
+}
+function drawRoster(host, statHost, roster, q, countryFilter){
+  const st = rosterStats(roster);
+  if (statHost) statHost.innerHTML =
+    `<span><b>${st.n}</b>명 · ${st.countries}개국</span>` +
+    `<span>선수 <b>${st.ath}</b> · 임원 <b>${st.off}</b></span>` +
+    `<span>휠체어 <b style="color:var(--acc)">${st.wc}</b>명</span>` +
+    (st.avg != null ? `<span>평균 ${st.avg}세 (${st.min}–${st.max})</span>` : '') +
+    (st.noGender ? `<span style="color:var(--y)">성별 미기재 ${st.noGender}</span>` : '') +
+    (st.noAge ? `<span style="color:var(--y)">생년 미기재 ${st.noAge}</span>` : '');
+
+  const term = (q||'').trim().toLowerCase();
+  const list = roster.filter(r => {
+    if (countryFilter && r.country !== countryFilter) return false;
+    if (!term) return true;
+    return ((r.full_name||'') + ' ' + (r.country||'')).toLowerCase().includes(term);
+  });
+  host.innerHTML =
+    '<thead><tr><th>이름</th><th>국가</th><th>구분</th><th>성별</th>' +
+    '<th class="n">나이</th><th>휠체어</th></tr></thead><tbody>' +
+    (list.length ? list.map(r =>
+      `<tr><td><b>${esc(r.full_name)}</b></td>` +
+      `<td>${esc(r.country||'')}</td>` +
+      `<td>${r.position === 'Athlete' ? '<span class="chip">선수</span>'
+             : r.position ? '<span class="chip">'+esc(r.position)+'</span>' : '—'}</td>` +
+      `<td>${r.gender === 'M' ? '남' : r.gender === 'F' ? '여'
+             : '<span style="color:var(--muted)">—</span>'}</td>` +
+      `<td class="n">${r.age != null ? r.age : '<span style="color:var(--muted)">—</span>'}</td>` +
+      `<td>${r.wheelchair ? '<span class="chip u">휠체어</span>'
+             : '<span style="color:var(--muted)">—</span>'}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">조건에 맞는 인원이 없습니다.</td></tr>') +
+    '</tbody>';
+  return list;
+}
+
+/* ------------------------------------------------------------- demo data -- */
+/* Sample payload for ?demo=1. Deterministic — no Math.random — so the same
+   link always shows the same numbers and two people comparing screens agree.
+   Both dashboards render this through exactly the same code path as live
+   data, so the demo is a faithful preview, not a mock-up of a mock-up. */
+function demoData(){
+  const NP = [['KOR','Korea'],['GER','Germany'],['USA','United States'],['JPN','Japan'],
+    ['FRA','France'],['CHN','China'],['IND','India'],['BRA','Brazil'],['POL','Poland'],
+    ['UKR','Ukraine'],['SVK','Slovakia'],['NED','Netherlands'],['ITA','Italy'],
+    ['ESP','Spain'],['AUS','Australia'],['CAN','Canada'],['TUR','Turkey'],['THA','Thailand']];
+  const H = ['GMA','GCC','ISQ'];
+  const rows = []; let id = 1;
+  NP.forEach((c,i) => {
+    const teams = (i % 5 === 0) ? 2 : 1;
+    for (let t = 0; t < teams; t++){
+      const ath = 3 + ((i*7 + t*11) % 16);
+      const off = 2 + ((i*3 + t) % 7);
+      const male = Math.round((ath+off) * (0.45 + ((i%5)*0.06)));
+      const inD  = 3 + ((i + t*2) % 5);
+      const outD = 18 + ((i + t) % 4);
+      const alloc = (i % 3 === 0);
+      rows.push({
+        id: id++, country: c[0], country_name: c[1],
+        team_name: c[0] + (teams > 1 ? ' Team ' + (t+1) : ' National Team'),
+        verified: (i % 4 !== 1),
+        contact_name: null, contact_email: null,
+        n_athletes: ath, n_officials: off, n_male: male, n_female: (ath+off) - male,
+        check_in : '2026-09-' + String(inD).padStart(2,'0'),
+        check_out: '2026-09-' + String(outD).padStart(2,'0'),
+        choice_1: H[(i+t) % 3], choice_2: H[(i+t+1) % 3], choice_3: H[(i+t+2) % 3],
+        rooms_single: 1 + (i % 5), rooms_twin: 2 + ((i*2 + t*3) % 9),
+        dietary: (i % 6 === 0) ? '할랄 4' : (i % 7 === 0 ? '채식 2, 글루텐프리 1' : ''),
+        status: alloc ? 'approved' : 'pending',
+        allocated_hotel: alloc ? H[(i+t) % 3] : '',
+        submitted_at: '2026-08-' + String(1 + (i % 9)).padStart(2,'0') + ' 10:00:00',
+        updated_at: ''
+      });
+    }
+  });
+  const now = Date.now(), ago = m => new Date(now - m*60000).toISOString();
+  const log = [
+    { id:5, accommodation_id:rows[2].id, country:rows[2].country, team_name:rows[2].team_name,
+      action:'update', changed:{ rooms_twin:[6,9], n_athletes:[10,13] }, actor:'npc', at:ago(7) },
+    { id:4, accommodation_id:rows[5].id, country:rows[5].country, team_name:rows[5].team_name,
+      action:'update', changed:{ check_out:['2026-09-18','2026-09-20'] }, actor:'npc', at:ago(52) },
+    { id:3, accommodation_id:rows[9].id, country:rows[9].country, team_name:rows[9].team_name,
+      action:'insert', changed:{ total_pax:14, rooms:9, choice_1:'GCC' }, actor:'npc', at:ago(215) },
+    { id:2, accommodation_id:rows[0].id, country:rows[0].country, team_name:rows[0].team_name,
+      action:'update', changed:{ allocated_hotel:['','GMA'], status:['pending','approved'] },
+      actor:'loc', at:ago(600) },
+    { id:1, accommodation_id:rows[13].id, country:rows[13].country, team_name:rows[13].team_name,
+      action:'update', changed:{ choice_1:['ISQ','GMA'], choice_3:['GMA','ISQ'] }, actor:'npc', at:ago(1500) }
+  ];
+  const d = new Date(now);
+  const stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' +
+    String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+  // demo roster, derived from the demo teams so the totals line up
+  const FN = ['Minjun','Lukas','Emily','Haruto','Camille','Wei','Arjun','Lucas','Jakub',
+              'Olena','Marek','Daan','Marco','Carmen','Jack','Owen','Emre','Somchai'];
+  const LN = ['Kim','Schmidt','Brown','Sato','Dubois','Chen','Patel','Silva','Nowak',
+              'Kovalenko','Varga','de Vries','Rossi','Garcia','Wilson','Taylor','Yilmaz','Chai'];
+  const roster = [];
+  rows.forEach((t, ti) => {
+    const total = t.n_athletes + t.n_officials;
+    for (let k = 0; k < total; k++){
+      const isAth = k < t.n_athletes;
+      const idx = (ti*5 + k) % FN.length;
+      roster.push({
+        country: t.country,
+        full_name: FN[idx] + ' ' + LN[(idx + ti) % LN.length],
+        gender: (k % 10 === 7) ? '' : (k < t.n_male ? 'M' : 'F'),
+        age: (k % 12 === 5) ? null : 19 + ((ti*7 + k*3) % 34),
+        wheelchair: isAth && ((ti + k) % 3 === 0),
+        position: isAth ? 'Athlete' : 'Official'
+      });
+    }
+  });
+  return { label:'데모 데이터', show_contact:false, generated_at:stamp,
+           rows, roster, log, hotels:[], demo:true };
+}
+
+/* Shows an unmissable banner so demo figures are never mistaken for real ones. */
+function demoBanner(){
+  if (document.getElementById('demoBar')) return;
+  const b = document.createElement('div');
+  b.id = 'demoBar';
+  b.style.cssText = 'background:#E87722;color:#fff;font-weight:700;font-size:13.5px;' +
+    'padding:9px 20px;text-align:center;letter-spacing:.01em';
+  b.textContent = '데모 데이터입니다 — 실제 신청 내역이 아닙니다. 화면 구성과 기능 확인용입니다.';
+  document.body.insertBefore(b, document.body.firstChild);
+  document.title = '[데모] ' + document.title;
 }
 
 /* ------------------------------------------------------------------ api --- */
@@ -460,6 +612,7 @@ root.ACC = {
   aggregate, scopeBy, occupancy, crossCheck,
   lastSeen, markSeen, unseen, describe, ACTION_KO, FIELD_KO,
   drawOccupancy, drawScope, drawMatrix, drawArrivals, drawKpis, drawHistory,
-  tipShow, tipHide, exportXlsx, sheetRows
+  drawRoster, rosterStats,
+  tipShow, tipHide, exportXlsx, sheetRows, demoData, demoBanner
 };
 })(window);
