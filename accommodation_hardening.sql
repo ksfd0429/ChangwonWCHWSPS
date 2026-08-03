@@ -56,10 +56,13 @@ revoke execute on function acc_log_recent(timestamptz,int) from public;
 revoke execute on function acc_log_recent(timestamptz,int) from anon, authenticated;
 grant  execute on function acc_log_recent(timestamptz,int) to service_role;
 
---  Same class: acc_mine() was granted to authenticated but reachable by anon
---  through PUBLIC. It returns [] for anon today only because my_country() is
---  null — that is luck, not a control.
+--  Same class: acc_mine() was reachable by anon. Note it turned out to hold a
+--  DIRECT anon grant as well as the PUBLIC one, so revoking PUBLIC alone left
+--  it callable — verified against the live database. Both are revoked here.
+--  It returns [] for anon today only because my_country() is null, which is
+--  luck, not a control.
 revoke execute on function acc_mine() from public;
+revoke execute on function acc_mine() from anon;
 grant  execute on function acc_mine() to authenticated, service_role;
 
 -- ==================================================== 3. FRAGILE DOB ========
