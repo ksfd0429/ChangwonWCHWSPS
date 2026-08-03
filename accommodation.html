@@ -121,6 +121,20 @@ textarea{min-height:88px;resize:vertical}
   border-radius:0 6px 6px 0;font-size:13.5px;color:var(--muted);margin-top:14px}
 .note.info{border-left-color:var(--acc)} .note.good{border-left-color:var(--g)}
 .note strong{color:var(--txt)}
+/* deadline strip + closing notice ---------------------------------------- */
+.dlbar{display:flex;gap:10px 18px;align-items:baseline;flex-wrap:wrap;
+  background:#FFF4E8;border:1px solid #F0C79A;border-left:4px solid var(--y);
+  border-radius:0 8px 8px 0;padding:12px 16px;margin:0 0 18px;font-size:14px}
+.dlbar b{font-weight:700;color:var(--txt)}
+.dlbar .ko{color:var(--muted);font-size:13px;margin-top:2px}
+.dlbar .cd{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;color:#8A5011}
+.dlbar.closed{background:#FBECEA;border-color:#EBB6AF;border-left-color:var(--r)}
+.dlbar.closed .cd{color:#9B3227}
+.notice{border:1px solid var(--line);border-left:4px solid var(--navy);background:#fff;
+  border-radius:0 8px 8px 0;padding:16px 18px;margin:22px 0 0;font-size:13.5px;color:var(--txt)}
+.notice h3{margin:0 0 8px;font-size:14.5px;color:var(--navy);font-weight:650}
+.notice p{margin:0 0 9px} .notice p:last-child{margin:0}
+.notice .ko{color:var(--muted);font-size:13px;line-height:1.65}
 .banner{padding:12px 16px;border-radius:8px;font-size:14px;font-weight:600;margin-bottom:16px;display:none}
 .banner.show{display:block}
 .banner.s{background:#E8F5EE;color:#1D6B42;border:1px solid #A9D9BF}
@@ -147,6 +161,16 @@ pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:
 <main id="app" class="wrap">
 
 <div class="banner" id="banner" role="status" aria-live="polite"></div>
+
+<!-- Deadline strip. Repeated at the foot of the form as a formal notice; this
+     one exists so a delegation that never scrolls past the map still sees it. -->
+<div class="dlbar" id="dlbar">
+  <div>
+    <b>Applications close 23:59 KST (UTC+9), Friday 7 August 2026.</b>
+    <div class="ko">숙박 신청 마감 — 2026년 8월 7일 24:00 (한국시간)</div>
+  </div>
+  <span class="cd" id="dlcount"></span>
+</div>
 
 <!-- MAP -->
 <section>
@@ -274,8 +298,8 @@ pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:
       <div class="rankrow"><span>2nd <span class="req">*</span></span><select id="c2" required></select></div>
       <div class="rankrow"><span>3rd <span class="req">*</span></span><select id="c3" required></select></div>
       <p class="err" id="eRank" role="status" aria-live="polite"></p>
-      <div class="note">Please note that if your preferred hotel is over capacity, your
-        delegation may be reassigned to your next-choice hotel.</div>
+      <div class="note">If your preferred hotel is over capacity, your delegation may be
+        reassigned to another official hotel — see the notice at the end of this form.</div>
     </fieldset>
 
     <fieldset>
@@ -298,6 +322,24 @@ pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:
       <div class="field"><label class="lbl" for="notes">Other requests</label>
         <textarea id="notes"></textarea></div>
     </fieldset>
+
+    <!-- NOTICE.
+         This is a statement of how allocation will be handled — not a consent
+         request. There is deliberately no checkbox and nothing to agree to:
+         adding one would imply the delegation could withhold agreement and
+         thereby change the outcome, which is not the case. -->
+    <section class="notice" aria-labelledby="noticeH">
+      <h3 id="noticeH">Notice — deadline and allocation</h3>
+      <p>Applications close at <b>23:59 KST (UTC+9) on Friday, 7 August 2026</b>.</p>
+      <p>Applications received after that time, and applications for a hotel whose
+        capacity has been exceeded, will be allocated by the Organising Committee at
+        its discretion among the official tournament hotels. Ranked choices are
+        followed wherever capacity allows.</p>
+      <p class="ko">본 안내는 통보 사항입니다. 숙박 신청 마감은 <b>2026년 8월 7일 24:00(한국시간)</b>이며,
+        마감 이후 접수된 신청 또는 지망 호텔의 수용 인원이 초과된 경우에는 조직위원회가
+        공식 지정 호텔 내에서 임의로 재배정할 수 있습니다. 수용 여력이 있는 범위에서는
+        지망 순위를 우선 반영합니다.</p>
+    </section>
 
     <div class="actions">
       <button class="btn" type="submit" id="submitBtn">Submit application</button>
@@ -337,6 +379,32 @@ const DISTANCES_VERIFIED = false;
 
 /* LOC-only map tooling. Open accommodation.html?admin=1 to reveal it. */
 const LOC_MODE = qp.get('admin') === '1';
+
+/* ===================== deadline ==========================================
+   The last moment of 7 August 2026 in Korea. Written with an explicit +09:00
+   offset so the instant is fixed: a delegation reading this in Brazil and one
+   reading it in Seoul are counting down to the same moment.
+
+   The form deliberately keeps accepting submissions afterwards. The notice
+   says late applications may be reassigned at the LOC's discretion — it does
+   not say they are refused, and a hard block would leave a delegation with no
+   way to declare its rooms at all. `submitted_at` in the database is the
+   record of who was late. */
+const DEADLINE = new Date('2026-08-07T23:59:59+09:00');
+const isLate = () => Date.now() > DEADLINE.getTime();
+
+function tickDeadline(){
+  const el = $('#dlcount'), bar = $('#dlbar');
+  if(!el || !bar) return;
+  const ms = DEADLINE.getTime() - Date.now();
+  if(ms <= 0){
+    bar.classList.add('closed');
+    el.textContent = 'Closed — late applications still accepted, subject to reassignment';
+    return;
+  }
+  const d = Math.floor(ms/864e5), h = Math.floor(ms/36e5)%24, m = Math.floor(ms/6e4)%60;
+  el.textContent = (d > 0 ? d+'d '+h+'h' : h > 0 ? h+'h '+m+'m' : m+'m') + ' left';
+}
 
 /* ===================== hotels / places =================================== */
 const PLACES = {
@@ -426,6 +494,8 @@ const cvar = v => getComputedStyle(document.documentElement).getPropertyValue(v)
 
 /* ===================== boot — no login required ========================== */
 async function boot(){
+  tickDeadline(); setInterval(tickDeadline, 30000);
+
   // map failures must never take the application form down
   try { initMap(); }
   catch(err){
@@ -610,7 +680,9 @@ $('#f').addEventListener('submit', async e=>{
   btn.textContent='Update application';
   $('#savedAt').textContent='Last saved just now.';
   showLink(S.code);
-  banner('s','Application saved. Keep the link below — it is how you come back to edit it.');
+  banner('s','Application saved. Keep the link below — it is how you come back to edit it.'+
+    (isLate() ? '  •  Received after the 7 August deadline: your hotel will be allocated by the'+
+                ' Organising Committee among the official hotels.' : ''));
   $('#codeBox').scrollIntoView({behavior:'smooth',block:'center'});
 });
 
