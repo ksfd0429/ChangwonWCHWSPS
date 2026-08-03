@@ -33,14 +33,35 @@
 
 <main id="app" class="wrap" hidden>
 
-  <div class="newsflash" id="flash" hidden>
+  <div class="views" role="tablist">
+    <button class="viewbtn" id="vAcc" role="tab" aria-selected="true" aria-controls="viewAcc">
+      숙박 신청 현황<span class="sub">서베이로 접수된 신청</span></button>
+    <button class="viewbtn" id="vRoster" role="tab" aria-selected="false" aria-controls="viewRoster">
+      참가 등록 명단<span class="sub">Accreditation 등록 인원</span></button>
+  </div>
+
+  <div class="scopenote" data-view="acc">
+    <b>이 화면은 숙박 신청 서베이 결과입니다.</b>
+    각국이 제출한 숙박 신청 건만 집계하며, 아직 신청하지 않은 국가는 포함되지 않습니다.
+    옆 탭의 <b>참가 등록 명단</b>과는 현재 연결되어 있지 않으므로 인원 수가 서로 다를 수 있습니다.
+  </div>
+
+  <div class="scopenote" data-view="roster" hidden>
+    <b>이 화면은 Accreditation 등록 명단입니다.</b>
+    숙박 신청 여부와 무관하게 등록된 전체 인원입니다.
+    <b>어느 인원이 어느 호텔에 묵는지는 아직 확정·연결되지 않았습니다</b> —
+    개인별 호텔 배정은 추후 별도로 안내됩니다.
+  </div>
+
+
+  <div class="newsflash" id="flash" hidden data-view="acc">
     <span class="dot" id="flashN">0</span>
     <span id="flashTxt"></span>
     <button class="btn sec sm" id="flashOpen" type="button">이력 보기</button>
     <button class="btn sec sm" id="flashSeen" type="button">확인함</button>
   </div>
 
-  <div class="filters">
+  <div class="filters" data-view="acc">
     <span><label for="scope">분석 기준</label><select id="scope"></select></span>
     <span><label for="fHotel">호텔</label><select id="fHotel"><option value="">전체</option></select></span>
     <span><label for="fStatus">상태</label>
@@ -55,9 +76,9 @@
     <button class="btn sec sm" id="freset" type="button">초기화</button>
   </div>
 
-  <dl class="kpis" id="kpis"></dl>
+  <dl class="kpis" id="kpis" data-view="acc"></dl>
 
-  <section class="panel">
+  <section class="panel" data-view="acc">
     <h2>날짜별 객실 점유</h2>
     <p class="sub">각 날짜에 실제로 사용 중인 객실 수입니다. 배정이 확정된 팀은 배정 호텔로,
       미배정 팀은 1지망 기준으로 집계합니다. 체크아웃 당일은 제외됩니다.</p>
@@ -67,7 +88,7 @@
       <div class="scroll" style="max-height:340px"><table id="occTbl"></table></div></details>
   </section>
 
-  <section class="panel">
+  <section class="panel" data-view="acc">
     <h2 id="scopeTitle">분석</h2>
     <p class="sub">위 <b>분석 기준</b>을 바꾸면 이 차트와 표, 그리고 엑셀 내려받기가 함께 바뀝니다.</p>
     <div id="scopeChart"></div>
@@ -75,7 +96,7 @@
       <div class="scroll" style="max-height:420px"><table id="scopeTbl"></table></div></details>
   </section>
 
-  <div class="two">
+  <div class="two" data-view="acc">
     <section class="panel">
       <h2>도착 · 출발 분포</h2>
       <p class="sub">날짜별 팀 수입니다. 체크인 데스크와 차량 배차에 사용합니다.</p>
@@ -94,10 +115,10 @@
   </div>
 
 
-  <section class="panel">
-    <h2>선수단 명단</h2>
-    <p class="sub">국가별 개인 명단입니다. 여권번호와 생년월일은 포함되지 않으며, 나이는 생년월일에서
-      계산된 값만 전달됩니다.</p>
+  <section class="panel" data-view="roster" hidden>
+    <h2>참가 등록 명단</h2>
+    <p class="sub">Accreditation에 등록된 전체 인원입니다. 여권번호와 생년월일은 포함되지 않으며,
+      나이는 생년월일에서 계산된 값만 전달됩니다. 숙박 배정 정보는 이 표에 없습니다.</p>
     <div class="legend" id="rosterStat" style="border-top:0;padding-top:0;margin-top:0;margin-bottom:12px"></div>
     <div class="filters" style="margin:0 0 12px">
       <span><label for="rCountry">국가</label><select id="rCountry"><option value="">전체</option></select></span>
@@ -108,7 +129,7 @@
     <div class="scroll" style="max-height:520px"><table id="rosterTbl"></table></div>
   </section>
 
-  <section class="panel">
+  <section class="panel" data-view="acc">
     <h2>신청 목록</h2>
     <p class="sub">열 제목을 누르면 정렬됩니다.
       <span style="color:var(--y);font-weight:650">노란 배경</span>은 마지막 확인 이후 변경된 팀입니다.</p>
@@ -221,6 +242,7 @@ function initControls(){
     $('#'+id).addEventListener('change', renderRoster);
   });
   initRoster();
+  try{ setView(localStorage.getItem('acc_view')==='roster' ? 'roster' : 'acc'); }catch(e){}
   $('#freset').onclick = () => {
     ['fHotel','fStatus','fDate','q'].forEach(i => $('#'+i).value = '');
     render();
@@ -298,6 +320,23 @@ function render(){
   renderRoster();
   paintBadge();
 }
+
+/* ------------------------------------------------------- view switching -- */
+/* Two datasets, two views. They are deliberately never on screen together:
+   the survey counts only teams that applied, the roster counts everyone
+   accredited, and no row in one maps to a row in the other yet. */
+function setView(v){
+  document.querySelectorAll('[data-view]').forEach(el=>{
+    el.hidden = (el.getAttribute('data-view') !== v);
+  });
+  $('#vAcc').setAttribute('aria-selected', String(v==='acc'));
+  $('#vRoster').setAttribute('aria-selected', String(v==='roster'));
+  try{ localStorage.setItem('acc_view', v); }catch(e){}
+  if(v==='roster') renderRoster();
+}
+$('#vAcc').onclick    = ()=>setView('acc');
+$('#vRoster').onclick = ()=>setView('roster');
+
 /* ------------------------------------------------------------ roster ----- */
 function initRoster(){
   const cs = [...new Set((DATA.roster||[]).map(r=>r.country))].sort();

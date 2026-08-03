@@ -145,3 +145,19 @@ details summary{cursor:pointer;font-size:12.5px;font-weight:650;color:var(--mute
 :root[data-theme="dark"] .modal h2{color:#9DC4E8}
 .modal .x{float:right;background:transparent;border:0;font-size:22px;cursor:pointer;
   color:var(--muted);line-height:1;padding:2px 6px}
+
+/* view switcher -----------------------------------------------------------
+   The accommodation survey and the accreditation roster are two separate
+   datasets that are NOT linked to each other yet. They are kept on separate
+   views on purpose: side by side, their totals (e.g. 89 vs 241 people) read
+   as a contradiction rather than as two different questions. */
+.views{display:flex;gap:8px;margin:18px 0 0;flex-wrap:wrap}
+.viewbtn{background:var(--card);color:var(--muted);border:1px solid var(--line);
+  border-radius:8px;padding:11px 20px;font-size:14px;font-weight:650;cursor:pointer;min-height:46px}
+.viewbtn:hover{color:var(--txt)}
+.viewbtn[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+.viewbtn .sub{display:block;font-size:11.5px;font-weight:500;opacity:.75;margin-top:2px}
+[data-view][hidden]{display:none}
+.scopenote{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--acc);
+  border-radius:0 10px 10px 0;padding:13px 16px;margin:18px 0 0;font-size:13px;color:var(--muted)}
+.scopenote b{color:var(--txt)}

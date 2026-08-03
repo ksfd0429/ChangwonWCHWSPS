@@ -401,6 +401,8 @@ function exportXlsx(opts){
   /* 1. 요약 — the point-in-time snapshot header */
   S('요약', [
     ['Changwon 2026 WSPS 세계선수권 · 숙박 신청 집계'],
+    ['※ 아래 수치는 숙박 서베이에 접수된 신청 건만 집계한 것입니다.'],
+    ['※ 참가등록명단 시트와는 연결되어 있지 않아 인원 수가 다를 수 있습니다.'],
     ['생성 시각', stamp], ['적용 필터', filterNote || '전체'],
     ['분석 기준(scope)', scopeBy(scopeKey).label], [],
     ['항목','값'],
@@ -446,9 +448,12 @@ function exportXlsx(opts){
 
   /* 7. 선수단 명단 */
   if (opts.roster && opts.roster.length){
-    S('선수단명단', [['국가','이름','구분','성별','나이','미성년','휠체어']]
+    S('참가등록명단', [
+      ['※ Accreditation 등록 전체 인원. 숙박 신청 여부와 무관하며, 개인별 호텔 배정은 미확정입니다.'],
+      [],
+      ['국가','이름','구분','성별','나이','미성년','휠체어']]
       .concat(opts.roster.map(r => [r.country||'', r.full_name||'',
-        r.position === 'Athlete' ? '선수' : (r.position||''),
+        POS_KO[String(r.position||'').trim().toLowerCase()] || (r.position||''),
         r.gender === 'M' ? '남' : r.gender === 'F' ? '여' : '',
         r.age != null ? r.age : '',
         (typeof r.age === 'number' && r.age < 18) ? 'Y' : '',
@@ -480,6 +485,14 @@ function rosterStats(roster){
            noGender, noAge: n - ages.length,
            countries: new Set(roster.map(r=>r.country)).size };
 }
+/* Accreditation stores position in English; the roster is a Korean surface. */
+const POS_KO = { athlete:'선수', official:'임원', coach:'지도자', assistant:'지원',
+                 guide:'가이드', family:'동반가족' };
+function posKo(p){
+  if (!p) return '<span style="color:var(--muted)">—</span>';
+  const k = POS_KO[String(p).trim().toLowerCase()];
+  return '<span class="chip">' + esc(k || p) + '</span>';
+}
 function drawRoster(host, statHost, roster, q, countryFilter){
   const st = rosterStats(roster);
   if (statHost) statHost.innerHTML =
@@ -503,8 +516,7 @@ function drawRoster(host, statHost, roster, q, countryFilter){
     (list.length ? list.map(r =>
       `<tr><td><b>${esc(r.full_name)}</b></td>` +
       `<td>${esc(r.country||'')}</td>` +
-      `<td>${r.position === 'Athlete' ? '<span class="chip">선수</span>'
-             : r.position ? '<span class="chip">'+esc(r.position)+'</span>' : '—'}</td>` +
+      `<td>${posKo(r.position)}</td>` +
       `<td>${r.gender === 'M' ? '남' : r.gender === 'F' ? '여'
              : '<span style="color:var(--muted)">—</span>'}</td>` +
       `<td class="n">${r.age != null
