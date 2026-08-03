@@ -27,7 +27,7 @@ const rooms  = a => (a.rooms_single|0) + (a.rooms_twin|0);
 const nights = a => (a.check_in && a.check_out)
   ? Math.max(0, Math.round((new Date(a.check_out) - new Date(a.check_in)) / 864e5)) : 0;
 /* once the LOC allocates, that wins over the team's preference */
-const bucket = a => a.allocated_hotel || a.choice_1;
+const bucket = a => codeOf(a.allocated_hotel) || codeOf(a.choice_1);
 const hotelOf = c => HOTELS.find(h => h.code === c);
 const hname   = c => { const h = hotelOf(c); return h ? h.ko : (c || '—'); };
 const esc = s => String(s ?? '').replace(/[&<>"]/g,
@@ -35,11 +35,31 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g,
 const cvar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = n => (n || 0).toLocaleString('ko-KR');
 
-function dateRange(){
-  const out = [], d = new Date(WINDOW_OPEN), end = new Date(WINDOW_CLOSE);
-  while (d <= end) { out.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+/* The grid used to be hardcoded to 3–21 September while the form accepted
+   1–25 September. Anything outside the grid was silently dropped: a team
+   staying 1–3 Sep contributed rooms and room-nights to the KPIs but ZERO to
+   every day column, zero arrivals and zero departures — invisible on the one
+   chart the hotels block rooms from. The range now always covers the data. */
+function dateRange(rows){
+  const iso = d => d.toISOString().slice(0,10);
+  let lo = WINDOW_OPEN, hi = WINDOW_CLOSE;
+  (rows||[]).forEach(a => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(a.check_in||'')  && a.check_in  < lo) lo = a.check_in;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(a.check_out||'') && a.check_out > hi) hi = a.check_out;
+  });
+  const out = [], d = new Date(lo), end = new Date(hi);
+  // guard against a wild date turning this into a million-cell loop
+  let guard = 0;
+  while (d <= end && guard++ < 400) { out.push(iso(d)); d.setDate(d.getDate()+1); }
   return out;
 }
+
+/* Hotel code as stored, normalised. allocated_hotel is set by hand and
+   choice_* used to be unconstrained, so 'gma', ' GMA' and typos existed.
+   An unrecognised code used to make the row vanish from occupancy and the
+   PEAK while still counting in "rooms requested" — the hotels' blocking
+   figure came out LOW with nothing on screen to say so. */
+const codeOf = v => String(v ?? '').trim().toUpperCase();
 
 /* ----------------------------------------------------------------- scope -- */
 /* "Scope" = how the data is grouped. Every chart and table below honours the
@@ -66,7 +86,7 @@ function aggregate(rows, scopeKey){
     g.male += a.n_male|0; g.female += a.n_female|0;
     g.single += a.rooms_single|0; g.twin += a.rooms_twin|0;
     g.rooms += rooms(a); g.roomNights += nights(a) * rooms(a);
-    g.countries.add(a.country);
+    if (String(a.country||'').trim()) g.countries.add(a.country);
   });
   return [...map.values()]
     .map(g => ({ ...g, countries: g.countries.size }))
@@ -75,15 +95,19 @@ function aggregate(rows, scopeKey){
 
 /* ------------------------------------------------------------- occupancy -- */
 function occupancy(rows){
-  const days = dateRange();
+  const days = dateRange(rows);
   const series = HOTELS.map(h => ({ ...h, vals: days.map(() => 0) }));
+  const orphans = [];   // rows that could not be placed in any hotel column
   rows.forEach(a => {
-    const s = series.find(x => x.code === bucket(a)); if (!s) return;
+    const s = series.find(x => x.code === bucket(a));
+    if (!s) { if (rooms(a)) orphans.push(a); return; }
     days.forEach((d,i) => { if (a.check_in <= d && d < a.check_out) s.vals[i] += rooms(a); });
   });
   const totals = days.map((_,i) => series.reduce((s,x) => s + x.vals[i], 0));
   const peak = Math.max(0, ...totals);
-  return { days, series, totals, peak, peakDay: days[totals.indexOf(peak)] || '—' };
+  return { days, series, totals, peak,
+           peakDay: peak > 0 ? (days[totals.indexOf(peak)] || '—') : '—',
+           orphans, orphanRooms: orphans.reduce((n,a)=>n+rooms(a),0) };
 }
 
 /* ----------------------------------------------------------- check flags -- */
@@ -123,11 +147,28 @@ const FIELD_KO = {
 const ACTION_KO = { insert:'신규 신청', update:'수정', delete:'삭제' };
 
 function seenKey(ns){ return 'acc_seen_' + (ns || 'default'); }
-function lastSeen(ns){ return localStorage.getItem(seenKey(ns)) || ''; }
-function markSeen(ns, iso){ localStorage.setItem(seenKey(ns), iso || new Date().toISOString()); }
+/* localStorage throws, not returns null, when the browser blocks storage
+   ("block all cookies", third-party iframe). It used to throw straight out of
+   render() and leave the partner staring at a blank page. */
+function lastSeen(ns){
+  try { return localStorage.getItem(seenKey(ns)) || ''; } catch(e){ return ''; }
+}
+function markSeen(ns, iso){
+  try { localStorage.setItem(seenKey(ns), iso || new Date().toISOString()); } catch(e){}
+}
+/* newest timestamp in a log, so "seen" can be pinned to what was actually
+   rendered rather than to the client clock at the moment the modal closed —
+   otherwise a change arriving while the modal is open is marked seen without
+   ever having been shown. */
+function newestAt(log){
+  return (log||[]).reduce((m,e)=> (e && e.at && e.at > m) ? e.at : m, '');
+}
 function unseen(log, ns){
   const ls = lastSeen(ns);
-  if (!ls) return log.length;              // first visit: everything is new
+  // First visit is a BASELINE, not a flood. The trigger writes an 'insert'
+  // row for every application ever made, so the old behaviour greeted a
+  // first-time partner with a 99+ badge and every row painted "changed".
+  if (!ls) { markSeen(ns, newestAt(log) || new Date().toISOString()); return 0; }
   return log.filter(e => new Date(e.at) > new Date(ls)).length;
 }
 function describe(entry){
@@ -226,8 +267,11 @@ function drawOccupancy(host, legendHost, tableHost, rows){
 }
 
 /* horizontal bars for the current scope */
+const SCOPE_CHART_MAX = 14;
 function drawScope(host, tableHost, rows, scopeKey){
-  const groups = aggregate(rows, scopeKey).slice(0, 14);
+  const all = aggregate(rows, scopeKey);
+  const groups = all.slice(0, SCOPE_CHART_MAX);
+  const hidden = all.length - groups.length;   // never truncate silently
   const max = Math.max(1, ...groups.map(g => g.rooms));
   const rowH = 46, W = 720, L = 170, R = 70;
   const H = Math.max(60, groups.length*rowH + 8);
@@ -258,12 +302,18 @@ function drawScope(host, tableHost, rows, scopeKey){
     s.appendChild(hit);
   });
   host.innerHTML = ''; host.appendChild(s);
+  // The chart shows at most SCOPE_CHART_MAX bars; with scope=국가 that hides
+  // most of the field. Say what was left out instead of letting the chart and
+  // the table below it quietly disagree.
+  if (hidden > 0) host.insertAdjacentHTML('beforeend',
+    `<p class="scopenote" style="margin-top:10px">상위 ${SCOPE_CHART_MAX}개만 그래프에 표시했습니다 · ` +
+    `나머지 ${hidden}개 항목은 아래 표에 모두 있습니다.</p>`);
   if (tableHost) tableHost.innerHTML =
     '<thead><tr><th>' + esc(scopeBy(scopeKey).label) + '</th><th class="n">팀</th>' +
     '<th class="n">국가</th><th class="n">인원</th><th class="n">선수</th><th class="n">임원</th>' +
     '<th class="n">남</th><th class="n">여</th><th class="n">싱글</th><th class="n">트윈</th>' +
     '<th class="n">객실</th><th class="n">room-nights</th></tr></thead><tbody>' +
-    aggregate(rows, scopeKey).map(g => `<tr><td>${esc(g.key)}</td><td class="n">${g.teams}</td>` +
+    all.map(g => `<tr><td>${esc(g.key)}</td><td class="n">${g.teams}</td>` +
       `<td class="n">${g.countries}</td><td class="n">${g.pax}</td><td class="n">${g.ath}</td>` +
       `<td class="n">${g.off}</td><td class="n">${g.male}</td><td class="n">${g.female}</td>` +
       `<td class="n">${g.single}</td><td class="n">${g.twin}</td><td class="n"><b>${g.rooms}</b></td>` +
@@ -291,7 +341,7 @@ function drawMatrix(host, rows){
 
 /* arrivals / departures */
 function drawArrivals(host, legendHost, tableHost, rows){
-  const days = dateRange();
+  const days = dateRange(rows);
   const inn = days.map(()=>0), out = days.map(()=>0);
   rows.forEach(a => {
     const i = days.indexOf(a.check_in);  if (i>=0) inn[i]++;
@@ -325,7 +375,7 @@ function drawArrivals(host, legendHost, tableHost, rows){
   if (legendHost) legendHost.innerHTML =
     `<span><i class="sw" style="background:var(--acc)"></i>도착</span>` +
     `<span><i class="sw" style="background:var(--muted)"></i>출발</span>` +
-    `<span style="margin-left:auto"><b>최다 도착 ${Math.max(0,...inn)}팀</b> · ${days[inn.indexOf(Math.max(0,...inn))]||'—'}</span>`;
+    `<span style="margin-left:auto"><b>최다 도착 ${Math.max(0,...inn)}팀</b>${Math.max(0,...inn) ? ' · ' + (days[inn.indexOf(Math.max(0,...inn))]||'—') : ''}</span>`;
   if (tableHost) tableHost.innerHTML =
     '<thead><tr><th>날짜</th><th class="n">도착</th><th class="n">출발</th></tr></thead><tbody>' +
     days.map((d,i) => (inn[i]||out[i]) ? `<tr><td>${d}</td><td class="n">${inn[i]||''}</td><td class="n">${out[i]||''}</td></tr>` : '').join('') +
@@ -339,11 +389,12 @@ function drawKpis(host, rows, flags){
   const p  = rows.reduce((s,a)=>s+pax(a),0);
   const rm = rows.reduce((s,a)=>s+rooms(a),0);
   const rn = rows.reduce((s,a)=>s+nights(a)*rooms(a),0);
-  const pk = occupancy(rows).peak;
+  const occ = occupancy(rows);
+  const pk = occ.peak;
   const pend = rows.filter(a=>(a.status||'pending')!=='approved').length;
   const unv  = rows.filter(a=>!a.verified).length;
   const flg  = flags ? rows.filter(a=>flags[a.id]).length : 0;
-  const ctry = new Set(rows.map(a=>a.country)).size;
+  const ctry = new Set(rows.map(a=>a.country).filter(c=>String(c||'').trim())).size;
   const tiles = [
     ['신청 팀', teams, '', '팀'], ['국가', ctry, '', '개국'],
     ['총 인원', p, '', '명'], ['요청 객실', rm, '', '실'],
@@ -354,6 +405,16 @@ function drawKpis(host, rows, flags){
   else       tiles.push(['자가 신고', unv, unv?'warn':'good', '건']);
   host.innerHTML = tiles.map(t =>
     `<div class="kpi ${t[2]}"><dt>${t[0]}</dt><dd>${fmt(t[1])}<small>${t[3]}</small></dd></div>`).join('');
+  // "요청 객실" counts every row; "피크 점유" can only count rows whose hotel
+  // code is one of GMA/GCC/ISQ. When they disagree, say so — a peak that is
+  // quietly short is how a hotel ends up blocking too few rooms.
+  if (occ.orphanRooms){
+    const codes = [...new Set(occ.orphans.map(a=>bucket(a)||'(빈값)'))].join(', ');
+    host.insertAdjacentHTML('afterend',
+      `<div class="newsflash" style="margin-top:0"><span class="dot">!</span>` +
+      `<span>호텔 코드가 확인되지 않는 신청 ${occ.orphans.length}건 · ${fmt(occ.orphanRooms)}실이 ` +
+      `일자별 점유·피크 계산에서 제외되었습니다 (코드: ${esc(codes)}). 배정 호텔을 확인해 주세요.</span></div>`);
+  }
 }
 
 /* change history list */
@@ -407,11 +468,12 @@ function exportXlsx(opts){
     ['분석 기준(scope)', scopeBy(scopeKey).label], [],
     ['항목','값'],
     ['신청 팀', rows.length],
-    ['국가', new Set(rows.map(a=>a.country)).size],
+    ['국가', new Set(rows.map(a=>a.country).filter(c=>String(c||'').trim())).size],
     ['총 인원', rows.reduce((s,a)=>s+pax(a),0)],
     ['선수', rows.reduce((s,a)=>s+(a.n_athletes|0),0)],
     ['임원', rows.reduce((s,a)=>s+(a.n_officials|0),0)],
-    ['남 / 여', rows.reduce((s,a)=>s+(a.n_male|0),0) + ' / ' + rows.reduce((s,a)=>s+(a.n_female|0),0)],
+    ['남', rows.reduce((s,a)=>s+(a.n_male|0),0)],
+    ['여', rows.reduce((s,a)=>s+(a.n_female|0),0)],
     ['싱글룸', rows.reduce((s,a)=>s+(a.rooms_single|0),0)],
     ['트윈룸', rows.reduce((s,a)=>s+(a.rooms_twin|0),0)],
     ['총 객실', rows.reduce((s,a)=>s+rooms(a),0)],
@@ -431,14 +493,27 @@ function exportXlsx(opts){
   S('신청목록', sheetRows(rows, showContact));
 
   /* 4. 날짜별 점유 */
-  S('날짜별점유', [['날짜'].concat(HOTELS.map(h=>h.ko)).concat(['합계'])]
+  // A recipient who only ever sees this file needs the conventions spelled
+  // out here — on screen they are in the panel text, in the file they were
+  // nowhere.
+  S('날짜별점유', [
+    ['※ 각 날짜의 "그날 밤" 사용 객실 수입니다. 체크아웃 당일은 포함되지 않습니다 (9/7~9/12 숙박 = 9/7~9/11 5박).'],
+    ['※ 호텔 블로킹은 총합이 아니라 피크(최대 동시 사용) 기준으로 잡으셔야 합니다. 피크 ' +
+      occ.peak + '실 · ' + occ.peakDay],
+    (occ.orphanRooms ? ['※ 호텔 코드 미확인 ' + occ.orphans.length + '건 · ' + occ.orphanRooms +
+      '실은 아래 표에서 제외되어 있습니다.'] : ['']),
+    [],
+    ['날짜'].concat(HOTELS.map(h=>h.ko)).concat(['합계'])]
     .concat(occ.days.map((d,i) => [d].concat(occ.series.map(s=>s.vals[i])).concat([occ.totals[i]]))));
 
   /* 5. 도착/출발 */
-  const days = dateRange(), inn = days.map(()=>0), outv = days.map(()=>0);
+  const days = dateRange(rows), inn = days.map(()=>0), outv = days.map(()=>0);
   rows.forEach(a => { const i=days.indexOf(a.check_in); if(i>=0) inn[i]++;
                       const o=days.indexOf(a.check_out); if(o>=0) outv[o]++; });
-  S('도착출발', [['날짜','도착팀','출발팀']].concat(days.map((d,i)=>[d,inn[i],outv[i]])));
+  S('도착출발', [
+    ['※ 팀 단위 집계입니다 (인원수 아님). 셔틀·체크인 데스크 인력 산정용.'],
+    [],
+    ['날짜','도착팀','출발팀']].concat(days.map((d,i)=>[d,inn[i],outv[i]])));
 
   /* 6. 선호 순위 */
   const m = HOTELS.map(()=>[0,0,0]);
@@ -449,7 +524,8 @@ function exportXlsx(opts){
   /* 7. 선수단 명단 */
   if (opts.roster && opts.roster.length){
     S('참가등록명단', [
-      ['※ Accreditation 등록 전체 인원. 숙박 신청 여부와 무관하며, 개인별 호텔 배정은 미확정입니다.'],
+      ['※ Accreditation 등록 인원. 숙박 신청 여부와 무관하며, 개인별 호텔 배정은 미확정입니다.'],
+      [opts.rosterFilter ? ('※ 적용 필터: ' + opts.rosterFilter) : '※ 필터 없음 (전체)'],
       [],
       ['국가','이름','구분','성별','나이','미성년','휠체어']]
       .concat(opts.roster.map(r => [r.country||'', r.full_name||'',
@@ -466,7 +542,10 @@ function exportXlsx(opts){
       new Date(e.at).toLocaleString('ko-KR'), e.country||'', e.team_name||'',
       ACTION_KO[e.action]||e.action, describe(e), e.actor||''])));
 
-  XLSX.writeFile(wb, 'changwon2026_숙박집계_' + stamp.replace(/[^0-9]/g,'').slice(0,12) + '.xlsx');
+  const t = new Date(), z = n => String(n).padStart(2,'0');
+  const fname = 'changwon2026_숙박집계_' + t.getFullYear() + z(t.getMonth()+1) + z(t.getDate()) +
+                '_' + z(t.getHours()) + z(t.getMinutes()) + z(t.getSeconds()) + '.xlsx';
+  XLSX.writeFile(wb, fname);
 }
 
 /* ---------------------------------------------------------------- roster -- */
@@ -476,14 +555,19 @@ function rosterStats(roster){
   const n = roster.length;
   const wc = roster.filter(r => r.wheelchair).length;
   const ath = roster.filter(r => (r.position||'').toLowerCase() === 'athlete').length;
+  // everything that is not an athlete: officials, coaches, assistants,
+  // guides, accompanying family. It was labelled "임원", which the table
+  // below then contradicted by showing 지도자 / 지원 / 가이드 / 동반가족.
   const ages = roster.map(r => r.age).filter(a => typeof a === 'number');
   const avg = ages.length ? Math.round(ages.reduce((s,a)=>s+a,0)/ages.length) : null;
-  const noGender = roster.filter(r => !r.gender).length;
+  // anything that is not exactly M or F renders as "—" in the table, so it
+  // has to count as missing here too, or the two disagree
+  const noGender = roster.filter(r => r.gender !== 'M' && r.gender !== 'F').length;
   const minors = roster.filter(r => typeof r.age === 'number' && r.age < 18).length;
   return { n, wc, ath, off:n-ath, avg, minors,
            min: ages.length?Math.min(...ages):null, max: ages.length?Math.max(...ages):null,
            noGender, noAge: n - ages.length,
-           countries: new Set(roster.map(r=>r.country)).size };
+           countries: new Set(roster.map(r=>r.country).filter(c=>String(c||'').trim())).size };
 }
 /* Accreditation stores position in English; the roster is a Korean surface. */
 const POS_KO = { athlete:'선수', official:'임원', coach:'지도자', assistant:'지원',
@@ -494,22 +578,28 @@ function posKo(p){
   return '<span class="chip">' + esc(k || p) + '</span>';
 }
 function drawRoster(host, statHost, roster, q, countryFilter){
-  const st = rosterStats(roster);
+  // Stats are computed on the FILTERED list. They used to be computed on the
+  // whole roster while the table below showed the filter — so a hotel that
+  // filtered to the one delegation it hosts read "휠체어 72명" directly above
+  // a 22-row table whose real answer was 5. Accessible-room blocking is the
+  // number on this tab that gets acted on most literally.
+  const term0 = (q||'').trim().toLowerCase();
+  const shown = roster.filter(r => {
+    if (countryFilter && r.country !== countryFilter) return false;
+    if (!term0) return true;
+    return ((r.full_name||'') + ' ' + (r.country||'')).toLowerCase().includes(term0);
+  });
+  const st = rosterStats(shown);
   if (statHost) statHost.innerHTML =
     `<span><b>${st.n}</b>명 · ${st.countries}개국</span>` +
-    `<span>선수 <b>${st.ath}</b> · 임원 <b>${st.off}</b></span>` +
+    `<span>선수 <b>${st.ath}</b> · 그 외 <b>${st.off}</b></span>` +
     `<span>휠체어 <b style="color:var(--acc)">${st.wc}</b>명</span>` +
     (st.avg != null ? `<span>평균 ${st.avg}세 (${st.min}–${st.max})</span>` : '') +
     (st.minors ? `<span style="color:var(--y)">미성년 <b>${st.minors}</b>명 · 단독 배정 불가</span>` : '') +
     (st.noGender ? `<span style="color:var(--y)">성별 미기재 ${st.noGender}</span>` : '') +
     (st.noAge ? `<span style="color:var(--y)">생년 미기재 ${st.noAge}</span>` : '');
 
-  const term = (q||'').trim().toLowerCase();
-  const list = roster.filter(r => {
-    if (countryFilter && r.country !== countryFilter) return false;
-    if (!term) return true;
-    return ((r.full_name||'') + ' ' + (r.country||'')).toLowerCase().includes(term);
-  });
+  const list = shown;
   host.innerHTML =
     '<thead><tr><th>이름</th><th>국가</th><th>구분</th><th>성별</th>' +
     '<th class="n">나이</th><th>휠체어</th></tr></thead><tbody>' +
@@ -628,7 +718,7 @@ root.ACC = {
   HOTELS, SCOPES, WINDOW_OPEN, WINDOW_CLOSE,
   pax, rooms, nights, bucket, hname, esc, cvar, fmt, dateRange,
   aggregate, scopeBy, occupancy, crossCheck,
-  lastSeen, markSeen, unseen, describe, ACTION_KO, FIELD_KO,
+  lastSeen, markSeen, unseen, newestAt, describe, ACTION_KO, FIELD_KO,
   drawOccupancy, drawScope, drawMatrix, drawArrivals, drawKpis, drawHistory,
   drawRoster, rosterStats,
   tipShow, tipHide, exportXlsx, sheetRows, demoData, demoBanner

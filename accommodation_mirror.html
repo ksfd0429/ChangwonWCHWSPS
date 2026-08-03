@@ -167,6 +167,17 @@ const POLL_MS = 60000;                       // near-real-time without hammering
 
 const $ = s => document.querySelector(s);
 const A = window.ACC;
+/* Any payload from the RPC is coerced to the shape this page renders. The
+   page used to assign the response directly, so a single missing key (a future
+   change to acc_mirror, a partial response) threw inside render() and left the
+   partner looking at an empty page with no error at all. */
+const shape = d => ({
+  label:'', show_contact:false, generated_at:'', hotels:[],
+  ...(d||{}),
+  rows:   Array.isArray(d && d.rows)   ? d.rows   : [],
+  roster: Array.isArray(d && d.roster) ? d.roster : [],
+  log:    Array.isArray(d && d.log)    ? d.log    : []
+});
 let sb = null, TOKEN = '', DATA = { rows:[], roster:[], log:[], label:'', show_contact:false },
     sortKey = 'country', sortAsc = true, timer = null;
 
@@ -192,7 +203,7 @@ async function open_(tok, quiet){
     fail('현황을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
     return false;
   }
-  TOKEN = tok || ''; DATA = data;
+  TOKEN = tok || ''; DATA = shape(data);
   $('#gate').style.display = 'none';
   $('#app').hidden = false;
   $('#who').textContent = (data.label ? data.label + ' · ' : '') + '기준 시각 ' + data.generated_at;
@@ -232,7 +243,7 @@ function initControls(){
   $('#fHotel').innerHTML = '<option value="">전체</option>' +
     A.HOTELS.map(h => `<option value="${h.code}">${h.ko}</option>`).join('');
   $('#fDate').innerHTML = '<option value="">전체</option>' +
-    A.dateRange().map(d => `<option value="${d}">${d}</option>`).join('');
+    A.dateRange(DATA.rows).map(d => `<option value="${d}">${d}</option>`).join('');
   ['scope','fHotel','fStatus','fDate','q'].forEach(id => {
     $('#'+id).addEventListener('input', render);
     $('#'+id).addEventListener('change', render);
@@ -275,8 +286,11 @@ function filterNote(){
 const NS = () => 'mirror_' + (DEMO ? 'demo' : (TOKEN || 'public'));
 function changedIds(){
   const ls = A.lastSeen(NS());
-  // no baseline yet -> the badge counts every entry, so highlight them all too
-  if(!ls) return new Set(DATA.log.map(e => e.accommodation_id));
+  // No baseline: unseen() has just set one and reports 0, so nothing is
+  // highlighted either. A first-time partner should not be met with every row
+  // painted "changed" — the log contains an insert row for every application
+  // ever made.
+  if(!ls) return new Set();
   return new Set(DATA.log.filter(e => new Date(e.at) > new Date(ls))
                          .map(e => e.accommodation_id));
 }
@@ -285,18 +299,33 @@ function paintBadge(){
   const b = $('#badge');
   b.hidden = !n; b.textContent = n > 99 ? '99+' : n;
   const f = $('#flash');
-  if(n){ f.hidden = false; $('#flashN').textContent = n > 99 ? '99+' : n;
-    $('#flashTxt').textContent = '마지막 확인 이후 ' + n + '건의 변동이 있습니다.'; }
+  // The badge counts LOG ENTRIES; the yellow highlight is per application row.
+  // Three edits to one team, or a deleted team, legitimately produce a badge
+  // of 3 or 1 with fewer (or zero) highlighted rows. Say how many teams are
+  // affected so the two numbers stop looking like a bug.
+  const teams = changedIds().size;
+  // #flash belongs to the accommodation view. render() runs on every 60s poll,
+  // so unconditionally un-hiding it made the red banner reappear in the middle
+  // of the roster tab, referring to data that is not on screen.
+  if(n && VIEW === 'acc'){ f.hidden = false;
+    $('#flashN').textContent = n > 99 ? '99+' : n;
+    $('#flashTxt').textContent = '마지막 확인 이후 ' + n + '건의 변동이 있습니다.' +
+      (teams ? ' (' + teams + '개 팀)' : ' (해당 팀이 목록에 없습니다)'); }
   else f.hidden = true;
 }
 function flash(){ paintBadge(); }
 function openHist(){
+  histShown = A.newestAt(DATA.log);
   A.drawHistory($('#histTbl'), DATA.log);
   $('#hist').hidden = false;
 }
+let histShown = '';           // newest `at` that was actually on screen
 function closeHist(){
   $('#hist').hidden = true;
-  A.markSeen(NS());
+  // Marking "seen" with the clock at close time swallowed anything that
+  // arrived while the modal was open — it was never displayed and never
+  // badged again. Mark seen at the newest entry the user actually saw.
+  A.markSeen(NS(), histShown || undefined);
   paintBadge(); render();
 }
 $('#btnHist').onclick = openHist;
@@ -304,7 +333,7 @@ $('#histX').onclick = closeHist;
 $('#hist').addEventListener('click', e => { if(e.target === $('#hist')) closeHist(); });
 document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('#hist').hidden) closeHist(); });
 $('#flashOpen').onclick = openHist;
-$('#flashSeen').onclick = () => { A.markSeen(NS()); paintBadge(); render(); };
+$('#flashSeen').onclick = () => { A.markSeen(NS(), A.newestAt(DATA.log)); paintBadge(); render(); };
 
 /* ------------------------------------------------------------ render ----- */
 function render(){
@@ -325,7 +354,9 @@ function render(){
 /* Two datasets, two views. They are deliberately never on screen together:
    the survey counts only teams that applied, the roster counts everyone
    accredited, and no row in one maps to a row in the other yet. */
+let VIEW = 'acc';
 function setView(v){
+  VIEW = v;
   document.querySelectorAll('[data-view]').forEach(el=>{
     el.hidden = (el.getAttribute('data-view') !== v);
   });
@@ -333,22 +364,41 @@ function setView(v){
   $('#vRoster').setAttribute('aria-selected', String(v==='roster'));
   try{ localStorage.setItem('acc_view', v); }catch(e){}
   if(v==='roster') renderRoster();
+  paintBadge();
 }
 $('#vAcc').onclick    = ()=>setView('acc');
 $('#vRoster').onclick = ()=>setView('roster');
 
 /* ------------------------------------------------------------ roster ----- */
 function initRoster(){
-  const cs = [...new Set((DATA.roster||[]).map(r=>r.country))].sort();
+  const cs = [...new Set((DATA.roster||[]).map(r=>r.country).filter(Boolean))].sort();
   const sel = $('#rCountry'), keep = sel.value;
   sel.innerHTML = '<option value="">전체</option>' +
-    cs.map(c=>`<option value="${c}">${c}</option>`).join('');
+    cs.map(c=>`<option value="${A.esc(c)}">${A.esc(c)}</option>`).join('');
   sel.value = keep;
 }
 function renderRoster(){
   const list = A.drawRoster($('#rosterTbl'), $('#rosterStat'),
     DATA.roster || [], $('#rq').value, $('#rCountry').value);
   $('#rCount').textContent = list.length + ' / ' + (DATA.roster||[]).length + '명 표시';
+}
+/* The roster tab has its own filters. The Excel sheet used to ignore them and
+   export all 241 people while the 요약 sheet printed the ACCOMMODATION filter
+   as "적용 필터" — the only label the recipient had was the wrong one. */
+function filteredRoster(){
+  const term = ($('#rq').value||'').trim().toLowerCase();
+  const c = $('#rCountry').value;
+  return (DATA.roster||[]).filter(r => {
+    if(c && r.country !== c) return false;
+    if(!term) return true;
+    return ((r.full_name||'') + ' ' + (r.country||'')).toLowerCase().includes(term);
+  });
+}
+function rosterFilterNote(){
+  const p = [];
+  if($('#rCountry').value) p.push('국가=' + $('#rCountry').value);
+  if(($('#rq').value||'').trim()) p.push('검색="' + $('#rq').value.trim() + '"');
+  return p.join(' · ');
 }
 
 
@@ -400,7 +450,8 @@ function drawRows(rows, fresh){
 
 /* ------------------------------------------------------------ export ----- */
 $('#btnXlsx').onclick = () => A.exportXlsx({
-  rows: filtered(), log: DATA.log, roster: DATA.roster || [],
+  rows: filtered(), log: DATA.log,
+  roster: filteredRoster(), rosterFilter: rosterFilterNote(),
   scopeKey: $('#scope').value,
   showContact: !!DATA.show_contact, stamp: DATA.generated_at, filterNote: filterNote()
 });

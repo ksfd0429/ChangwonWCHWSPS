@@ -248,7 +248,7 @@ function initControls(){
   $('#fHotel').innerHTML = '<option value="">전체</option>' +
     A.HOTELS.map(h=>`<option value="${h.code}">${h.ko}</option>`).join('');
   $('#fDate').innerHTML = '<option value="">전체</option>' +
-    A.dateRange().map(d=>`<option value="${d}">${d}</option>`).join('');
+    A.dateRange(ROWS).map(d=>`<option value="${d}">${d}</option>`).join('');
   ['scope','fHotel','fStatus','fDate','fFlag','q'].forEach(id=>{
     $('#'+id).addEventListener('input', render);
     $('#'+id).addEventListener('change', render);
@@ -291,25 +291,32 @@ function filterNote(){
 const NS = 'loc';
 function changedIds(){
   const ls = A.lastSeen(NS);
-  // no baseline yet -> the badge counts every entry, so highlight them all too
-  if(!ls) return new Set(LOG.map(e=>e.accommodation_id));
+  // No baseline: unseen() has just set one and reports 0, so highlight nothing.
+  if(!ls) return new Set();
   return new Set(LOG.filter(e=>new Date(e.at)>new Date(ls)).map(e=>e.accommodation_id));
 }
 function paintBadge(){
   const n = A.unseen(LOG, NS), b = $('#badge');
   b.hidden = !n; b.textContent = n>99?'99+':n;
   const f = $('#flash');
-  if(n){ f.hidden=false; $('#flashN').textContent = n>99?'99+':n;
-    $('#flashTxt').textContent = '마지막 확인 이후 '+n+'건의 변동이 있습니다.'; }
+  // badge = log entries, highlight = application rows. Three edits to one team
+  // is legitimately "3건 · 1개 팀"; a deleted team highlights nothing at all.
+  const teams = changedIds().size;
+  if(n && VIEW==='acc'){ f.hidden=false; $('#flashN').textContent = n>99?'99+':n;
+    $('#flashTxt').textContent = '마지막 확인 이후 '+n+'건의 변동이 있습니다.' +
+      (teams ? ' ('+teams+'개 팀)' : ' (해당 팀이 목록에 없습니다)'); }
   else f.hidden = true;
 }
-function openHist(){ A.drawHistory($('#histTbl'), LOG); $('#hist').hidden=false; }
-function closeHist(){ $('#hist').hidden=true; A.markSeen(NS); paintBadge(); render(); }
+let histShown = '';
+function openHist(){ histShown = A.newestAt(LOG); A.drawHistory($('#histTbl'), LOG); $('#hist').hidden=false; }
+// mark seen at the newest entry actually rendered, not at the client clock —
+// otherwise anything arriving while the modal is open is silently swallowed
+function closeHist(){ $('#hist').hidden=true; A.markSeen(NS, histShown||undefined); paintBadge(); render(); }
 $('#btnHist').onclick = openHist;
 $('#histX').onclick = closeHist;
 $('#hist').addEventListener('click', e=>{ if(e.target===$('#hist')) closeHist(); });
 $('#flashOpen').onclick = openHist;
-$('#flashSeen').onclick = () => { A.markSeen(NS); paintBadge(); render(); };
+$('#flashSeen').onclick = () => { A.markSeen(NS, A.newestAt(LOG)); paintBadge(); render(); };
 document.addEventListener('keydown', e=>{
   if(e.key!=='Escape') return;
   if(!$('#hist').hidden) closeHist();
@@ -362,7 +369,9 @@ function render(){
 /* Two datasets, two views. They are deliberately never on screen together:
    the survey counts only teams that applied, the roster counts everyone
    accredited, and no row in one maps to a row in the other yet. */
+let VIEW = 'acc';
 function setView(v){
+  VIEW = v;
   document.querySelectorAll('[data-view]').forEach(el=>{
     el.hidden = (el.getAttribute('data-view') !== v);
   });
@@ -370,22 +379,37 @@ function setView(v){
   $('#vRoster').setAttribute('aria-selected', String(v==='roster'));
   try{ localStorage.setItem('acc_view', v); }catch(e){}
   if(v==='roster') renderRoster();
+  paintBadge();   // #flash is an acc-view element; setView must not force it on
 }
 $('#vAcc').onclick    = ()=>setView('acc');
 $('#vRoster').onclick = ()=>setView('roster');
 
 /* ------------------------------------------------------------ roster ----- */
 function initRoster(){
-  const cs = [...new Set((DATA.roster||[]).map(r=>r.country))].sort();
+  const cs = [...new Set((DATA.roster||[]).map(r=>r.country).filter(Boolean))].sort();
   const sel = $('#rCountry'), keep = sel.value;
   sel.innerHTML = '<option value="">전체</option>' +
-    cs.map(c=>`<option value="${c}">${c}</option>`).join('');
+    cs.map(c=>`<option value="${A.esc(c)}">${A.esc(c)}</option>`).join('');
   sel.value = keep;
 }
 function renderRoster(){
   const list = A.drawRoster($('#rosterTbl'), $('#rosterStat'),
     DATA.roster || [], $('#rq').value, $('#rCountry').value);
   $('#rCount').textContent = list.length + ' / ' + (DATA.roster||[]).length + '명 표시';
+}
+function filteredRoster(){
+  const term = ($('#rq').value||'').trim().toLowerCase(), c = $('#rCountry').value;
+  return (DATA.roster||[]).filter(r=>{
+    if(c && r.country !== c) return false;
+    if(!term) return true;
+    return ((r.full_name||'')+' '+(r.country||'')).toLowerCase().includes(term);
+  });
+}
+function rosterFilterNote(){
+  const p=[];
+  if($('#rCountry').value) p.push('국가='+$('#rCountry').value);
+  if(($('#rq').value||'').trim()) p.push('검색="'+$('#rq').value.trim()+'"');
+  return p.join(' · ');
 }
 
 const COLS = [
@@ -433,7 +457,8 @@ function drawRows(rows, fresh){
 }
 
 $('#btnXlsx').onclick = () => A.exportXlsx({
-  rows: filtered(), log: LOG, roster: DATA.roster || [],
+  rows: filtered(), log: LOG,
+  roster: filteredRoster(), rosterFilter: rosterFilterNote(),
   scopeKey: $('#scope').value,
   showContact: true, stamp: STAMP, filterNote: filterNote()
 });
