@@ -166,8 +166,8 @@ pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:
      one exists so a delegation that never scrolls past the map still sees it. -->
 <div class="dlbar" id="dlbar">
   <div>
-    <b>Applications close 23:59 KST (UTC+9), Friday 7 August 2026.</b>
-    <div class="ko">숙박 신청 마감 — 2026년 8월 7일 24:00 (한국시간)</div>
+    <b id="dlEn">Applications close 23:59 KST (UTC+9), Friday 7 August 2026.</b>
+    <div class="ko" id="dlKo">숙박 신청 마감 — 2026년 8월 7일 24:00 (한국시간)</div>
   </div>
   <span class="cd" id="dlcount"></span>
 </div>
@@ -398,8 +398,16 @@ function tickDeadline(){
   if(!el || !bar) return;
   const ms = DEADLINE.getTime() - Date.now();
   if(ms <= 0){
+    // Past the deadline the strip stops counting and states the consequence.
+    // It deliberately does not say "closed" — the form still accepts entries,
+    // and a delegation that reads "closed" may simply not submit at all, which
+    // leaves the LOC with no figure for them.
     bar.classList.add('closed');
-    el.textContent = 'Closed — late applications still accepted, subject to reassignment';
+    $('#dlEn').textContent = 'The deadline has passed. Applications are still accepted, '+
+      'but your preferred hotel may no longer be available.';
+    $('#dlKo').textContent = '데드라인이 지났습니다. 숙박 수요 제출은 가능하나, '+
+      '원하시는 호텔 확보에 불이익이 있을 수 있으니 명심해주시길 바랍니다.';
+    el.textContent = '';
     return;
   }
   const d = Math.floor(ms/864e5), h = Math.floor(ms/36e5)%24, m = Math.floor(ms/6e4)%60;
@@ -681,8 +689,9 @@ $('#f').addEventListener('submit', async e=>{
   $('#savedAt').textContent='Last saved just now.';
   showLink(S.code);
   banner('s','Application saved. Keep the link below — it is how you come back to edit it.'+
-    (isLate() ? '  •  Received after the 7 August deadline: your hotel will be allocated by the'+
-                ' Organising Committee among the official hotels.' : ''));
+    (isLate() ? '  •  Received after the 7 August deadline — your preferred hotel may no longer'+
+                ' be available, and allocation will be made by the Organising Committee among'+
+                ' the official hotels.' : ''));
   $('#codeBox').scrollIntoView({behavior:'smooth',block:'center'});
 });
 
