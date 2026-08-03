@@ -403,8 +403,8 @@ function tickDeadline(){
     // and a delegation that reads "closed" may simply not submit at all, which
     // leaves the LOC with no figure for them.
     bar.classList.add('closed');
-    $('#dlEn').textContent = 'The deadline has passed. Applications are still accepted, '+
-      'but your preferred hotel may no longer be available.';
+    $('#dlEn').textContent = 'The deadline has passed, but applications are still accepted. '+
+      'However, your preferred hotel may no longer be available.';
     $('#dlKo').textContent = '데드라인이 지났습니다. 숙박 수요 제출은 가능하나, '+
       '원하시는 호텔 확보에 불이익이 있을 수 있으니 명심해주시길 바랍니다.';
     el.textContent = '';
