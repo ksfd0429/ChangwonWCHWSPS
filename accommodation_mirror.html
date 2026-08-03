@@ -79,9 +79,10 @@
   <dl class="kpis" id="kpis" data-view="acc"></dl>
 
   <section class="panel" data-view="acc">
-    <h2>날짜별 객실 점유</h2>
-    <p class="sub">각 날짜에 실제로 사용 중인 객실 수입니다. 배정이 확정된 팀은 배정 호텔로,
-      미배정 팀은 1지망 기준으로 집계합니다. 체크아웃 당일은 제외됩니다.</p>
+    <h2>날짜별 객실 지망 현황</h2>
+    <p class="sub"><b>수요조사 단계의 지망 집계입니다 — 확정 배정이 아닙니다.</b>
+      날짜마다 호텔별로 막대 세 개가 서고, 각 팀은 1지망 호텔(배정이 확정된 팀은 배정 호텔)로
+      집계됩니다. 체크아웃 당일은 제외됩니다.</p>
     <div id="occ"></div>
     <div class="legend" id="occLeg"></div>
     <details><summary>표로 보기</summary>
@@ -109,8 +110,8 @@
       <h2>선호 순위 분포</h2>
       <p class="sub">각 호텔이 몇 번째 지망으로 선택됐는지입니다. 진할수록 팀 수가 많습니다.</p>
       <table class="mx" id="mx"></table>
-      <p class="sub" style="margin-top:14px">배정이 확정되면 위 <b>날짜별 객실 점유</b>가
-        실제 배정 기준으로 바뀝니다.</p>
+      <p class="sub" style="margin-top:14px">배정이 확정되면 위 <b>날짜별 객실 지망 현황</b>이
+        실제 배정 기준으로 자동 전환됩니다.</p>
     </section>
   </div>
 

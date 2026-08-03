@@ -220,32 +220,69 @@ function tipHide(){ if (TIP) TIP.style.display = 'none'; }
 document.addEventListener('scroll', tipHide, true);
 
 /* stacked occupancy bars */
+/* Grouped bars: one thin bar PER HOTEL per date, side by side.
+
+   This was a stacked bar (one bar per date split into three). Stacking answers
+   "how many rooms that night in total" but makes the individual hotels almost
+   unreadable — only the bottom segment starts from a common baseline, so the
+   other two cannot be compared across dates by eye. At this stage the question
+   is per-hotel demand, so each hotel gets its own bar from the same baseline.
+
+   The trade-off is that the nightly TOTAL is no longer a bar height. That is
+   why the total is printed above each group — the peak has to stay readable.
+
+   Accessibility note: the three bars keep a FIXED left-to-right order on every
+   date (Grand Mercure, Grand City, I-Square). That position is a second
+   encoding alongside colour, which the brand palette needs — its three hues sit
+   close enough for protan/deutan viewers that colour alone would not separate
+   them. The table view below carries the same numbers. */
 function drawOccupancy(host, legendHost, tableHost, rows){
   const { days, series, totals, peak, peakDay } = occupancy(rows);
-  const max = Math.max(1, peak);
-  const W = 880, H = 280, L = 44, R = 10, T = 16, B = 34;
-  const iw = W-L-R, ih = H-T-B, cw = iw/days.length, bw = Math.max(6, cw-6);
-  const x = i => L + cw*i + (cw-bw)/2, y = v => T + ih - (v/max)*ih;
+  // The axis has to describe what the BARS encode, which is now one hotel —
+  // not the daily total. Scaling to the total (three times any single bar)
+  // left every bar squashed into the bottom third and wasted the change.
+  const max = Math.max(1, ...series.flatMap(ser => ser.vals));
+  const W = 880, H = 300, L = 44, R = 10, T = 26, B = 34;
+  const iw = W-L-R, ih = H-T-B;
+  const cw = iw/days.length;                 // width allotted to one date
+  const gw = Math.max(6, cw - Math.max(4, cw*0.22));   // the group of 3 bars
+  const bw = Math.max(2, (gw - 2*2) / 3);    // one bar, 2px gaps between them
+  const gx = i => L + cw*i + (cw-gw)/2;      // left edge of the group
+  const bx = (i,k) => gx(i) + k*(bw+2);
+  const y  = v => T + ih - (v/max)*ih;
+
   const s = svgEl('svg', { viewBox:`0 0 ${W} ${H}`, role:'img' });
-  s.appendChild(svgEl('title', {}, '날짜별 객실 점유'));
+  s.appendChild(svgEl('title', {}, '날짜별 · 호텔별 객실 지망 현황'));
   for (let g=0; g<=4; g++){
     const v = max*g/4, yy = y(v);
     s.appendChild(svgEl('line', { x1:L, x2:W-R, y1:yy, y2:yy, class:'gl' }));
     s.appendChild(svgEl('text', { x:L-7, y:yy+4, 'text-anchor':'end', class:'ax' }, Math.round(v)));
   }
   days.forEach((d,i) => {
-    let acc = 0;
-    series.forEach(ser => {
-      const v = ser.vals[i]; if (!v) return;
-      s.appendChild(svgEl('rect', { x:x(i), y:y(acc+v), width:bw,
-        height:Math.max(1,(v/max)*ih-2), rx:2, fill:cvar(ser.cv), class:'seg' }));
-      acc += v;
+    series.forEach((ser,k) => {
+      const v = ser.vals[i];
+      if (v > 0){
+        s.appendChild(svgEl('rect', { x:bx(i,k), y:y(v), width:bw,
+          height:Math.max(1,(v/max)*ih), rx:1, fill:cvar(ser.cv) }));
+      } else {
+        // a faint stub keeps the slot visible, so "this hotel is empty that
+        // night" reads differently from "this hotel is missing from the chart"
+        s.appendChild(svgEl('rect', { x:bx(i,k), y:T+ih-2, width:bw, height:2,
+          rx:1, fill:cvar(ser.cv), opacity:'.28' }));
+      }
     });
-    if (totals[i]) s.appendChild(svgEl('text', { x:x(i)+bw/2, y:y(totals[i])-6,
-      'text-anchor':'middle', class:'axb' }, totals[i]));
-    s.appendChild(svgEl('text', { x:x(i)+bw/2, y:H-14, 'text-anchor':'middle', class:'ax' }, d.slice(8)));
+    // The total sits above the TALLEST BAR of the group, not at the height the
+    // total would reach. In a stacked chart those were the same point; here the
+    // sum is roughly three times any single bar, so anchoring it to the value
+    // left the number floating in empty space, visually detached from its date.
+    if (totals[i]){
+      const tallest = Math.max(...series.map(ser => ser.vals[i] || 0));
+      s.appendChild(svgEl('text', { x:gx(i)+gw/2, y:y(tallest)-7,
+        'text-anchor':'middle', class:'axb' }, totals[i]));
+    }
+    s.appendChild(svgEl('text', { x:gx(i)+gw/2, y:H-14, 'text-anchor':'middle', class:'ax' }, d.slice(8)));
     const hit = svgEl('rect', { x:L+cw*i, y:T, width:cw, height:ih, class:'hit', tabindex:'0' });
-    const show = ev => tipShow(ev, d + ' · 총 ' + totals[i] + '실',
+    const show = ev => tipShow(ev, d + ' · 합계 ' + totals[i] + '실',
       series.map(ser => ({ label:ser.ko, value:ser.vals[i] + '실', color:cvar(ser.cv) })));
     hit.addEventListener('pointermove', show);
     hit.addEventListener('focus', e => show({ clientX:innerWidth/2, clientY:200 }));
@@ -255,8 +292,11 @@ function drawOccupancy(host, legendHost, tableHost, rows){
   });
   host.innerHTML = ''; host.appendChild(s);
   if (legendHost) legendHost.innerHTML =
-    HOTELS.map(h => `<span><i class="sw" style="background:var(${h.cv})"></i>${h.ko}</span>`).join('') +
-    `<span style="margin-left:auto"><b>피크 ${peak}실</b> · ${peakDay}</span>`;
+    HOTELS.map((h,k) => `<span><i class="sw" style="background:var(${h.cv})"></i>${h.ko}` +
+      `<span style="opacity:.6;font-size:11px">(${k+1}번째 막대)</span></span>`).join('') +
+    `<span style="margin-left:auto">세로축은 <b>호텔 1곳 기준</b> 객실 수 · ` +
+    `막대 위 숫자는 그날 <b>세 호텔 합계</b> · ` +
+    `합계가 가장 큰 날 <b>${peak}실</b>${peak ? ' · ' + peakDay : ''}</span>`;
   if (tableHost) tableHost.innerHTML =
     '<thead><tr><th>날짜</th>' + HOTELS.map(h => `<th class="n">${h.ko}</th>`).join('') +
     '<th class="n">합계</th></tr></thead><tbody>' +
@@ -398,14 +438,14 @@ function drawKpis(host, rows, flags){
   const tiles = [
     ['신청 팀', teams, '', '팀'], ['국가', ctry, '', '개국'],
     ['총 인원', p, '', '명'], ['요청 객실', rm, '', '실'],
-    ['피크 점유', pk, '', '실'], ['room-nights', rn, '', ''],
+    ['최다 지망일', pk, '', '실'], ['room-nights', rn, '', ''],
     ['미승인', pend, pend?'warn':'good', '건']
   ];
   if (flags) tiles.push(['확인필요', flg, flg?'bad':'good', '건']);
   else       tiles.push(['자가 신고', unv, unv?'warn':'good', '건']);
   host.innerHTML = tiles.map(t =>
     `<div class="kpi ${t[2]}"><dt>${t[0]}</dt><dd>${fmt(t[1])}<small>${t[3]}</small></dd></div>`).join('');
-  // "요청 객실" counts every row; "피크 점유" can only count rows whose hotel
+  // "요청 객실" counts every row; "최다 지망일" can only count rows whose hotel
   // code is one of GMA/GCC/ISQ. When they disagree, say so — a peak that is
   // quietly short is how a hotel ends up blocking too few rooms.
   if (occ.orphanRooms){
@@ -413,7 +453,7 @@ function drawKpis(host, rows, flags){
     host.insertAdjacentHTML('afterend',
       `<div class="newsflash" style="margin-top:0"><span class="dot">!</span>` +
       `<span>호텔 코드가 확인되지 않는 신청 ${occ.orphans.length}건 · ${fmt(occ.orphanRooms)}실이 ` +
-      `일자별 점유·피크 계산에서 제외되었습니다 (코드: ${esc(codes)}). 배정 호텔을 확인해 주세요.</span></div>`);
+      `일자별 지망 현황 계산에서 제외되었습니다 (코드: ${esc(codes)}). 배정 호텔을 확인해 주세요.</span></div>`);
   }
 }
 
@@ -478,7 +518,7 @@ function exportXlsx(opts){
     ['트윈룸', rows.reduce((s,a)=>s+(a.rooms_twin|0),0)],
     ['총 객실', rows.reduce((s,a)=>s+rooms(a),0)],
     ['room-nights', rows.reduce((s,a)=>s+nights(a)*rooms(a),0)],
-    ['피크 점유(실)', occ.peak], ['피크 날짜', occ.peakDay],
+    ['최다 지망일 객실 수', occ.peak], ['최다 지망 날짜', occ.peakDay],
     ['미승인', rows.filter(a=>(a.status||'pending')!=='approved').length]
   ]);
 
@@ -492,13 +532,14 @@ function exportXlsx(opts){
   /* 3. 신청 목록 */
   S('신청목록', sheetRows(rows, showContact));
 
-  /* 4. 날짜별 점유 */
+  /* 4. 날짜별 지망 현황 */
   // A recipient who only ever sees this file needs the conventions spelled
   // out here — on screen they are in the panel text, in the file they were
   // nowhere.
-  S('날짜별점유', [
-    ['※ 각 날짜의 "그날 밤" 사용 객실 수입니다. 체크아웃 당일은 포함되지 않습니다 (9/7~9/12 숙박 = 9/7~9/11 5박).'],
-    ['※ 호텔 블로킹은 총합이 아니라 피크(최대 동시 사용) 기준으로 잡으셔야 합니다. 피크 ' +
+  S('날짜별지망', [
+    ['※ 수요조사 단계입니다. 배정 확정 수치가 아니라 각 팀의 지망 기준 집계입니다.'],
+    ['※ 각 날짜의 "그날 밤" 필요 객실 수이며, 체크아웃 당일은 포함되지 않습니다 (9/7~9/12 숙박 = 9/7~9/11 5박).'],
+    ['※ 물량 검토는 기간 총합이 아니라 최다 지망일(동시에 가장 많이 필요한 날) 기준으로 보셔야 합니다. ' +
       occ.peak + '실 · ' + occ.peakDay],
     (occ.orphanRooms ? ['※ 호텔 코드 미확인 ' + occ.orphans.length + '건 · ' + occ.orphanRooms +
       '실은 아래 표에서 제외되어 있습니다.'] : ['']),
