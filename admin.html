@@ -229,7 +229,7 @@ async function scrMain(){
    '<div class="tbl" style="margin-bottom:12px"><table><thead><tr><th>NPC</th><th>총기</th><th>Air</th><th>.22</th><th>Shotgun</th><th>사진 완료</th></tr></thead><tbody>'+(fcRows||'<tr><td colspan="6" class="muted">None.</td></tr>')+'</tbody></table></div>'+
    '<div class="edsec" style="margin:4px 0 4px">전체 총기 목록</div><div class="tbl"><table><thead><tr><th>NPC</th><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+(fAllRows||'<tr><td colspan="8" class="muted">None.</td></tr>')+'</tbody></table></div>';
   var revA=0,revP=0,revCols=[],revColIdx={},revRws=[];
-  (s.invoices||[]).forEach(function(V){var items=invItemsOf(V,s);var t=items.reduce(function(a,b){return a+(+b.t||0)},0);var appr=V.status==='approved';
+  (s.invoices||[]).forEach(function(V){var items=invItemsOf(V,s).filter(function(b){return !isOnsite(b)});var t=items.reduce(function(a,b){return a+(+b.t||0)},0);var appr=V.status==='approved';
     if(appr)revA+=t;else revP+=t;
     items.forEach(function(it){var k=it.d||'(무제)';if(!(k in revColIdx)){revColIdx[k]=revCols.length;revCols.push({d:k,tot:0});}});
     revRws.push({V:V,items:items,t:t,appr:appr});});
@@ -639,25 +639,27 @@ function buildAutoItemsA(mem,fgs,P){var items=[];
   var fa=mem.filter(function(m){return (fgs||[]).some(function(g2){return g2.owner===memName(m)||g2.owner===m.name})}).length;
   if(fa)items.push({sec:'Miscellaneous',d:'Firearms Import/Export Fee',s:'(per athlete)',q:fa+' Athlete(s)',m:'',p:'* '+P.firearm+' USD =',t:fa*P.firearm});
   return items;}
+function isOnsite(r){return !!(r&&(r.onsite||/unofficial\s+training/i.test(String(r.d||''))));}
+function onsiteRow(o){if(!(o>0))return '';return '<tr><td colspan="3" style="border:none;padding:2px 8px"></td><td style="border:1px solid #bbb;padding:6px 8px;font-weight:bold;text-align:center;font-size:11.5px">PAYABLE ON SITE<span style="display:block;font-weight:normal;font-size:9px;color:#a33">(not included in the total above)</span></td><td style="border:1px solid #bbb;padding:6px 8px;text-align:right;font-weight:bold">'+Math.round(o).toLocaleString('en-US')+' USD</td></tr>';}
 function itemsToTableA(items){
-  function fmt(r){var v=Math.round(+r.t||0).toLocaleString('en-US');return v+(r.cur==='EUR'?' EUR':' USD');}
+  function fmt(r){var v=Math.round(+r.t||0).toLocaleString('en-US')+(r.cur==='EUR'?' EUR':' USD');return isOnsite(r)?v+'<span style="display:block;font-size:9px;color:#a33;font-weight:normal">(payable on site)</span>':v;}
   function rowH(r){return '<tr><td style="border:1px solid #bbb;padding:4px 8px">'+esc(r.d)+(r.s?'<span style="display:block;font-size:9.5px;color:#a33">'+esc(r.s)+'</span>':'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.q||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.m||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.p||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+fmt(r)+'</td></tr>';}
   function subF(u,e){var h2=Math.round(u).toLocaleString('en-US')+' USD';if(e>0)h2+=' + '+Math.round(e).toLocaleString('en-US')+' EUR';return h2;}
   function secH(name,u,e){return '<tr><td colspan="4" style="border:1px solid #bbb;padding:5px 8px;font-weight:bold;font-size:14px">'+esc(name)+'</td><td style="border:1px solid #bbb;padding:5px 8px;text-align:right;font-weight:bold">'+subF(u,e)+'</td></tr>';}
   var order=[],by={};(items||[]).forEach(function(it){var k=it.sec||'Other';if(!by[k]){by[k]=[];order.push(k);}by[k].push(it);});
   var h='<table style="width:100%;margin:10px 0;border-collapse:collapse;font-size:12px"><thead><tr><th style="border:1px solid #444;padding:5px 8px;width:33%">Description</th><th style="border:1px solid #444;padding:5px 8px">Quantity</th><th style="border:1px solid #444;padding:5px 8px"></th><th style="border:1px solid #444;padding:5px 8px">Price</th><th style="border:1px solid #444;padding:5px 8px;width:18%">Total</th></tr></thead><tbody>';
-  var totU=0,totE=0;order.forEach(function(k){var su=0,se=0;by[k].forEach(function(b){if(b.cur==='EUR')se+=(+b.t||0);else su+=(+b.t||0);});totU+=su;totE+=se;h+=secH(k,su,se)+by[k].map(rowH).join('');});
-  h+='<tr><td colspan="3" style="border:none;padding:6px 8px"></td><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:center;font-size:14px">TOTAL</td><td style="border:1px solid #444;padding:6px 8px;text-align:right;font-weight:bold;font-size:14px">'+subF(totU,totE)+'</td></tr></tbody></table>';
+  var totU=0,totE=0,totO=0;order.forEach(function(k){var su=0,se=0;by[k].forEach(function(b){if(isOnsite(b)){totO+=(+b.t||0);}else if(b.cur==='EUR')se+=(+b.t||0);else su+=(+b.t||0);});totU+=su;totE+=se;h+=secH(k,su,se)+by[k].map(rowH).join('');});
+  h+='<tr><td colspan="3" style="border:none;padding:6px 8px"></td><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:center;font-size:14px">TOTAL</td><td style="border:1px solid #444;padding:6px 8px;text-align:right;font-weight:bold;font-size:14px">'+subF(totU,totE)+'</td></tr>'+onsiteRow(totO)+'</tbody></table>';
   return h;}
 /* ===== 인보이스 항목 편집기 ===== */
 function invItemsOf(V,s){return (V.items&&V.items.length)?V.items:buildAutoItemsA(s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0}),s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));}
-function invTotalOf(V,s){return invItemsOf(V,s).reduce(function(a,b){return a+(+b.t||0)},0);}
+function invTotalOf(V,s){return invItemsOf(V,s).reduce(function(a,b){return a+(isOnsite(b)?0:(+b.t||0))},0);}
 var _ed=null,_edId=0,_edV=null;
 function editInv(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;_edId=id;_edV=V;
   var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});
   _ed=(V.items&&V.items.length)?JSON.parse(JSON.stringify(V.items)):buildAutoItemsA(mem,s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));
   edRender();}
-function edTotal(){return _ed.reduce(function(a,b){return a+(+b.t||0)},0);}
+function edTotal(){return _ed.reduce(function(a,b){return a+(isOnsite(b)?0:(+b.t||0))},0);}
 function edRowsHtml(){
   var SECS=['Accommodation','Transportation','Miscellaneous','Other'];
   return _ed.map(function(r,i){

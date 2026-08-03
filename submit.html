@@ -10873,15 +10873,17 @@ function buildAutoItems(mem){var P=pricingOf();var items=[];
   var ts2=Number(_trSlots)||0;
   if(ts2>0)items.push({sec:'Miscellaneous',d:'Unofficial Training Fee (Para Trap only)',s:'(per round · payable on site)',q:ts2+' Round(s)',m:'',p:'* '+P.training+' USD =',t:ts2*P.training});
   return items;}
+function isOnsite(r){return !!(r&&(r.onsite||/unofficial\s+training/i.test(String(r.d||''))));}
+function onsiteRow(o){if(!(o>0))return '';return '<tr><td colspan="3" style="border:none;padding:2px 8px"></td><td style="border:1px solid #bbb;padding:6px 8px;font-weight:bold;text-align:center;font-size:11.5px">PAYABLE ON SITE<span style="display:block;font-weight:normal;font-size:9px;color:#a33">(not included in the total above)</span></td><td style="border:1px solid #bbb;padding:6px 8px;text-align:right;font-weight:bold">'+Math.round(o).toLocaleString('en-US')+' USD</td></tr>';}
 function itemsToTable(items){
-  function fmt(r){var v=Math.round(+r.t||0).toLocaleString('en-US');return v+(r.cur==='EUR'?' EUR':' USD');}
+  function fmt(r){var v=Math.round(+r.t||0).toLocaleString('en-US')+(r.cur==='EUR'?' EUR':' USD');return isOnsite(r)?v+'<span style="display:block;font-size:9px;color:#a33;font-weight:normal">(payable on site)</span>':v;}
   function rowH(r){return '<tr><td style="border:1px solid #bbb;padding:4px 8px">'+esc(r.d)+(r.s?'<span style="display:block;font-size:9.5px;color:#a33">'+esc(r.s)+'</span>':'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.q||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.m||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.p||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+fmt(r)+'</td></tr>';}
   function subF(u,e){var h2=Math.round(u).toLocaleString('en-US')+' USD';if(e>0)h2+=' + '+Math.round(e).toLocaleString('en-US')+' EUR';return h2;}
   function secH(name,u,e){return '<tr><td colspan="4" style="border:1px solid #bbb;padding:5px 8px;font-weight:bold;font-size:14px">'+esc(name)+'</td><td style="border:1px solid #bbb;padding:5px 8px;text-align:right;font-weight:bold">'+subF(u,e)+'</td></tr>';}
   var order=[],by={};(items||[]).forEach(function(it){var k=it.sec||'Other';if(!by[k]){by[k]=[];order.push(k);}by[k].push(it);});
   var h='<table style="width:100%;margin:10px 0;border-collapse:collapse;font-size:12px"><thead><tr><th style="border:1px solid #444;padding:5px 8px;width:33%">Description</th><th style="border:1px solid #444;padding:5px 8px">Quantity</th><th style="border:1px solid #444;padding:5px 8px"></th><th style="border:1px solid #444;padding:5px 8px">Price</th><th style="border:1px solid #444;padding:5px 8px;width:18%">Total</th></tr></thead><tbody>';
-  var totU=0,totE=0;order.forEach(function(k){var su=0,se=0;by[k].forEach(function(b){if(b.cur==='EUR')se+=(+b.t||0);else su+=(+b.t||0);});totU+=su;totE+=se;h+=secH(k,su,se)+by[k].map(rowH).join('');});
-  h+='<tr><td colspan="3" style="border:none;padding:6px 8px"></td><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:center;font-size:14px">TOTAL</td><td style="border:1px solid #444;padding:6px 8px;text-align:right;font-weight:bold;font-size:14px">'+subF(totU,totE)+'</td></tr></tbody></table>';
+  var totU=0,totE=0,totO=0;order.forEach(function(k){var su=0,se=0;by[k].forEach(function(b){if(isOnsite(b)){totO+=(+b.t||0);}else if(b.cur==='EUR')se+=(+b.t||0);else su+=(+b.t||0);});totU+=su;totE+=se;h+=secH(k,su,se)+by[k].map(rowH).join('');});
+  h+='<tr><td colspan="3" style="border:none;padding:6px 8px"></td><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:center;font-size:14px">TOTAL</td><td style="border:1px solid #444;padding:6px 8px;text-align:right;font-weight:bold;font-size:14px">'+subF(totU,totE)+'</td></tr>'+onsiteRow(totO)+'</tbody></table>';
   return h;}
 function invItemsTable(mem){return itemsToTable(buildAutoItems(mem));}
 function billingOpts(){var P=pricingOf();
