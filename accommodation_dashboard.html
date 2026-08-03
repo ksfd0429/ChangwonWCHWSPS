@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>숙박 대시보드 (LOC) — 2026 창원 WSPS 세계선수권</title>
+<link rel="stylesheet" href="accommodation_shared.css">
+</head>
+<body>
+
+<header class="top"><div class="wrap bar">
+  <div>
+    <div class="eyebrow">2026 창원 WSPS 세계장애인사격선수권 · 조직위 전용</div>
+    <h1>숙박 신청 대시보드</h1>
+    <div id="who" style="font-size:12.5px;opacity:.85;margin-top:4px"></div>
+  </div>
+  <div class="hbtns">
+    <button class="hb" id="btnHist" type="button">변동 이력
+      <span class="badge" id="badge" hidden>0</span></button>
+    <button class="hb" id="btnShare" type="button">공유 링크</button>
+    <button class="hb" id="btnXlsx" type="button">엑셀 내려받기</button>
+    <button class="hb" id="btnReload" type="button">새로고침</button>
+    <button class="hb" id="btnTheme" type="button">다크</button>
+    <button class="hb" id="btnOut" type="button">키 삭제</button>
+  </div>
+</div></header>
+
+<div id="gate" class="wrap" style="max-width:480px;margin:70px auto">
+  <div class="card">
+    <h2 style="margin:0 0 6px;font-size:16px">service_role 키 입력</h2>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 14px">
+      admin.html과 같은 키입니다. 이 브라우저의 sessionStorage에만 저장되고 탭을 닫으면 사라집니다.
+      <b>협력업체에는 이 키가 아니라 공유 링크를 전달하세요.</b></p>
+    <input id="svc" type="password" placeholder="service_role key" autocomplete="off"
+      style="width:100%;padding:11px 12px;font:inherit;border:1px solid var(--line);
+      border-radius:6px;min-height:44px;background:var(--bg);color:var(--txt)">
+    <p id="gerr" style="color:var(--r);font-size:12.5px;min-height:18px;margin:8px 0 0"></p>
+    <button class="btn" id="btnOpen" style="margin-top:6px">열기</button>
+  </div>
+</div>
+
+<main id="app" class="wrap" hidden>
+
+  <div class="newsflash" id="flash" hidden>
+    <span class="dot" id="flashN">0</span>
+    <span id="flashTxt"></span>
+    <button class="btn sec sm" id="flashOpen" type="button">이력 보기</button>
+    <button class="btn sec sm" id="flashSeen" type="button">확인함</button>
+  </div>
+
+  <div class="filters">
+    <span><label for="scope">분석 기준</label><select id="scope"></select></span>
+    <span><label for="fHotel">호텔</label><select id="fHotel"><option value="">전체</option></select></span>
+    <span><label for="fStatus">상태</label>
+      <select id="fStatus"><option value="">전체</option>
+        <option value="approved">승인</option><option value="pending">미승인</option></select></span>
+    <span><label for="fDate">체크인</label><select id="fDate"><option value="">전체</option></select></span>
+    <span><label for="fFlag">점검</label>
+      <select id="fFlag"><option value="">전체</option>
+        <option value="1">확인필요만</option><option value="u">자가신고만</option></select></span>
+    <span><label for="q">검색</label>
+      <input id="q" type="search" placeholder="국가 · 팀 · 담당자 · 이메일"></span>
+    <span class="spacer"></span>
+    <span id="fcount" style="font-size:12.5px;color:var(--muted)"></span>
+    <button class="btn sec sm" id="freset" type="button">초기화</button>
+  </div>
+
+  <dl class="kpis" id="kpis"></dl>
+
+  <section class="panel">
+    <h2>날짜별 객실 점유</h2>
+    <p class="sub">각 날짜에 사용 중인 객실 수입니다. 배정된 팀은 배정 호텔로, 미배정 팀은 1지망으로
+      집계하며 체크아웃 당일은 제외됩니다. 호텔 블로킹은 총합이 아니라 이 피크 기준으로 잡으세요.</p>
+    <div id="occ"></div>
+    <div class="legend" id="occLeg"></div>
+    <details><summary>표로 보기</summary>
+      <div class="scroll" style="max-height:340px"><table id="occTbl"></table></div></details>
+  </section>
+
+  <section class="panel">
+    <h2 id="scopeTitle">분석</h2>
+    <p class="sub">위 <b>분석 기준</b>을 바꾸면 이 차트·표와 엑셀 내려받기가 함께 바뀝니다.</p>
+    <div id="scopeChart"></div>
+    <details open><summary>표로 보기</summary>
+      <div class="scroll" style="max-height:420px"><table id="scopeTbl"></table></div></details>
+  </section>
+
+  <div class="two">
+    <section class="panel">
+      <h2>도착 · 출발 분포</h2>
+      <p class="sub">날짜별 팀 수입니다. 셔틀 배차와 체크인 데스크 배치에 씁니다.</p>
+      <div id="arr"></div>
+      <div class="legend" id="arrLeg"></div>
+      <details><summary>표로 보기</summary>
+        <div class="scroll" style="max-height:280px"><table id="arrTbl"></table></div></details>
+    </section>
+    <section class="panel">
+      <h2>선호 순위 분포</h2>
+      <p class="sub">각 호텔이 몇 번째 지망으로 선택됐는지입니다. 진할수록 팀 수가 많습니다.</p>
+      <table class="mx" id="mx"></table>
+      <p class="sub" style="margin-top:14px">1지망이 몰린 호텔은 그 팀들의 2지망 분포를 보고
+        어디로 밀어낼지 판단하세요.</p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>신청 목록</h2>
+    <p class="sub">열 제목을 누르면 정렬됩니다.
+      <span style="color:var(--y);font-weight:650">노란 배경</span>은 마지막 확인 이후 변경된 팀입니다.</p>
+    <div class="scroll"><table id="rows"></table></div>
+  </section>
+</main>
+
+<div class="modal" id="hist" hidden><div class="box">
+  <button class="x" id="histX" type="button" aria-label="닫기">×</button>
+  <h2>변동 이력</h2>
+  <p class="sub" style="margin-bottom:12px">최근 500건까지 기록됩니다.
+    창을 닫으면 현재 시각까지 확인한 것으로 처리됩니다.</p>
+  <div class="scroll" style="max-height:60vh"><table id="histTbl"></table></div>
+</div></div>
+
+<div class="modal" id="share" hidden><div class="box">
+  <button class="x" id="shareX" type="button" aria-label="닫기">×</button>
+  <h2>협력업체 공유 링크</h2>
+  <p class="sub"><b>협력업체에는 맨 위 기본 링크만 보내면 됩니다</b> — 코드 입력 없이 바로 열립니다.
+    아래 개별 링크는 화면에 업체명을 띄우거나 연락처 표시가 필요한 경우에만 쓰세요.
+    어느 쪽이든 읽기 전용이며, service_role 키는 절대 외부에 전달하지 마세요.</p>
+  <div class="scroll" style="max-height:52vh"><table id="shareTbl"></table></div>
+</div></div>
+
+<div id="tip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="accommodation_analytics.js"></script>
+<script>
+const SUPABASE_URL = "https://tkdvyxouknhjhaqjrotb.supabase.co";
+const POLL_MS = 45000;
+const $ = s => document.querySelector(s);
+const A = window.ACC;
+let sbAdmin = null, ROWS = [], LOG = [], FLAGS = {}, SHARES = [],
+    sortKey = 'country', sortAsc = true, timer = null, STAMP = '';
+
+/* ------------------------------------------------------------- auth ------ */
+function arm(k){
+  try{ sbAdmin = supabase.createClient(SUPABASE_URL, k,
+        { auth:{ autoRefreshToken:false, persistSession:false } }); return null; }
+  catch(e){ return 'Supabase 클라이언트 생성 실패'; }
+}
+async function load(){
+  if(!sbAdmin) return false;
+  const r = await sbAdmin.from('accommodation').select('*').order('country');
+  if(r.error) return false;
+  ROWS = r.data || []; FLAGS = A.crossCheck(ROWS);
+  const l = await sbAdmin.from('accommodation_log').select('*')
+    .order('at',{ascending:false}).limit(500);
+  LOG = l.error ? [] : (l.data || []);
+  const s = await sbAdmin.from('acc_share').select('*').order('label');
+  SHARES = s.error ? [] : (s.data || []);
+  STAMP = new Date().toLocaleString('ko-KR', { hour12:false });
+  return true;
+}
+$('#btnOpen').onclick = async () => {
+  const k = $('#svc').value.trim();
+  if(!k){ $('#gerr').textContent = '키를 입력하세요.'; return; }
+  $('#gerr').textContent = '확인 중…';
+  const e = arm(k); if(e){ $('#gerr').textContent = e; return; }
+  if(await load()){ sessionStorage.setItem('cw_svc', k); show(); }
+  else $('#gerr').textContent = '키가 올바르지 않거나 accommodation 테이블에 접근할 수 없습니다.';
+};
+$('#svc').addEventListener('keydown', e => { if(e.key==='Enter') $('#btnOpen').click(); });
+$('#btnOut').onclick = () => { sessionStorage.removeItem('cw_svc'); location.reload(); };
+function show(){
+  $('#gate').style.display='none'; $('#app').hidden=false;
+  $('#who').textContent = '조직위 전용 · 기준 시각 ' + STAMP;
+  initControls(); render();
+  if(!timer) timer = setInterval(refresh, POLL_MS);
+}
+async function refresh(){
+  const before = LOG.length;
+  if(!await load()) return;
+  $('#who').textContent = '조직위 전용 · 기준 시각 ' + STAMP;
+  render();
+  if(LOG.length !== before) paintBadge();
+}
+$('#btnReload').onclick = refresh;
+
+/* --------------------------------------------------------- controls ------ */
+function initControls(){
+  if($('#scope').options.length) return;
+  $('#scope').innerHTML = A.SCOPES.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  $('#fHotel').innerHTML = '<option value="">전체</option>' +
+    A.HOTELS.map(h=>`<option value="${h.code}">${h.ko}</option>`).join('');
+  $('#fDate').innerHTML = '<option value="">전체</option>' +
+    A.dateRange().map(d=>`<option value="${d}">${d}</option>`).join('');
+  ['scope','fHotel','fStatus','fDate','fFlag','q'].forEach(id=>{
+    $('#'+id).addEventListener('input', render);
+    $('#'+id).addEventListener('change', render);
+  });
+  $('#freset').onclick = () => {
+    ['fHotel','fStatus','fDate','fFlag','q'].forEach(i=>$('#'+i).value=''); render(); };
+}
+function filtered(){
+  const h=$('#fHotel').value, st=$('#fStatus').value, dt=$('#fDate').value,
+        fg=$('#fFlag').value, q=$('#q').value.trim().toLowerCase();
+  return ROWS.filter(a=>{
+    if(h && A.bucket(a)!==h) return false;
+    if(st==='approved' && a.status!=='approved') return false;
+    if(st==='pending'  && a.status==='approved') return false;
+    if(dt && a.check_in!==dt) return false;
+    if(fg==='1' && !FLAGS[a.id]) return false;
+    if(fg==='u' && a.verified) return false;
+    if(q && ![a.country,a.country_name,a.team_name,a.contact_name,a.contact_email]
+      .join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function filterNote(){
+  const p=[];
+  if($('#fHotel').value) p.push('호텔='+A.hname($('#fHotel').value));
+  if($('#fStatus').value) p.push('상태='+($('#fStatus').value==='approved'?'승인':'미승인'));
+  if($('#fDate').value) p.push('체크인='+$('#fDate').value);
+  if($('#fFlag').value) p.push($('#fFlag').value==='1'?'확인필요만':'자가신고만');
+  if($('#q').value.trim()) p.push('검색="'+$('#q').value.trim()+'"');
+  return p.length?p.join(' · '):'전체';
+}
+
+/* --------------------------------------------------------- tracker ------- */
+const NS = 'loc';
+function changedIds(){
+  const ls = A.lastSeen(NS);
+  // no baseline yet -> the badge counts every entry, so highlight them all too
+  if(!ls) return new Set(LOG.map(e=>e.accommodation_id));
+  return new Set(LOG.filter(e=>new Date(e.at)>new Date(ls)).map(e=>e.accommodation_id));
+}
+function paintBadge(){
+  const n = A.unseen(LOG, NS), b = $('#badge');
+  b.hidden = !n; b.textContent = n>99?'99+':n;
+  const f = $('#flash');
+  if(n){ f.hidden=false; $('#flashN').textContent = n>99?'99+':n;
+    $('#flashTxt').textContent = '마지막 확인 이후 '+n+'건의 변동이 있습니다.'; }
+  else f.hidden = true;
+}
+function openHist(){ A.drawHistory($('#histTbl'), LOG); $('#hist').hidden=false; }
+function closeHist(){ $('#hist').hidden=true; A.markSeen(NS); paintBadge(); render(); }
+$('#btnHist').onclick = openHist;
+$('#histX').onclick = closeHist;
+$('#hist').addEventListener('click', e=>{ if(e.target===$('#hist')) closeHist(); });
+$('#flashOpen').onclick = openHist;
+$('#flashSeen').onclick = () => { A.markSeen(NS); paintBadge(); render(); };
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  if(!$('#hist').hidden) closeHist();
+  if(!$('#share').hidden) $('#share').hidden = true;
+});
+
+/* ----------------------------------------------------------- share ------- */
+$('#btnShare').onclick = () => {
+  const root = location.href.replace(/[^/]*$/,'') + 'accommodation_mirror.html';
+  const base = root + '?t=';
+  $('#shareTbl').innerHTML =
+    '<thead><tr><th>대상</th><th>상태</th><th>연락처 표시</th><th>마지막 접속</th><th>링크</th></tr></thead><tbody>' +
+    `<tr style="background:var(--bg)"><td><b>기본 공유 링크</b><br>` +
+    `<span style="color:var(--muted);font-size:11.5px">모든 협력업체 공용</span></td>` +
+    `<td><span class="chip a">사용중</span></td><td><span class="chip">숨김</span></td>` +
+    `<td style="color:var(--muted)">—</td>` +
+    `<td><input readonly value="${A.esc(root)}" style="width:100%;font:400 11.5px ui-monospace,monospace;` +
+    `padding:6px 8px;border:1px solid var(--acc);border-radius:5px;background:var(--card);color:var(--txt)"` +
+    ` onclick="this.select()"></td></tr>` +
+    (SHARES.length ? SHARES.map(s=>`<tr><td><b>${A.esc(s.label||'—')}</b></td>` +
+      `<td><span class="chip ${s.active?'a':'u'}">${s.active?'사용중':'중지'}</span></td>` +
+      `<td>${s.show_contact?'<span class="chip u">표시</span>':'<span class="chip">숨김</span>'}</td>` +
+      `<td style="font-size:12px;color:var(--muted)">${s.last_used_at?new Date(s.last_used_at).toLocaleString('ko-KR'):'—'}</td>` +
+      `<td><input readonly value="${A.esc(base+s.token)}" style="width:100%;font:400 11.5px ui-monospace,monospace;` +
+      `padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--txt)"` +
+      ` onclick="this.select()"></td></tr>`).join('')
+      : '<tr><td colspan="5" class="empty">발급된 공유 링크가 없습니다. acc_share 테이블에 행을 추가하세요.</td></tr>') +
+    '</tbody>';
+  $('#share').hidden = false;
+};
+$('#shareX').onclick = () => { $('#share').hidden = true; };
+$('#share').addEventListener('click', e=>{ if(e.target===$('#share')) $('#share').hidden=true; });
+
+/* ---------------------------------------------------------- render ------- */
+function render(){
+  const rows = filtered(), fresh = changedIds();
+  $('#fcount').textContent = rows.length+' / '+ROWS.length+'팀 표시';
+  $('#scopeTitle').textContent = A.scopeBy($('#scope').value).label + ' 기준 분석';
+  A.drawKpis($('#kpis'), rows, FLAGS);
+  A.drawOccupancy($('#occ'), $('#occLeg'), $('#occTbl'), rows);
+  A.drawScope($('#scopeChart'), $('#scopeTbl'), rows, $('#scope').value);
+  A.drawArrivals($('#arr'), $('#arrLeg'), $('#arrTbl'), rows);
+  A.drawMatrix($('#mx'), rows);
+  drawRows(rows, fresh);
+  paintBadge();
+}
+const COLS = [
+  ['country','국가',0],['team_name','팀 / 담당자',0],['pax','총원',1],['gender','남/여',0],
+  ['check_in','체크인 → 아웃',0],['nights','박',1],['rooms','객실 (싱글/트윈)',1],
+  ['choice_1','지망',0],['allocated_hotel','배정',0],['status','상태',0]
+];
+function val(a,k){
+  switch(k){ case 'pax':return A.pax(a); case 'rooms':return A.rooms(a);
+    case 'nights':return A.nights(a); case 'gender':return a.n_male|0;
+    default:return a[k]||''; }
+}
+function drawRows(rows, fresh){
+  const sorted=[...rows].sort((x,y)=>{
+    const p=val(x,sortKey), q=val(y,sortKey);
+    const r=(typeof p==='number'&&typeof q==='number')?p-q:String(p).localeCompare(String(q));
+    return sortAsc?r:-r;
+  });
+  const head='<thead><tr>'+COLS.map(c=>
+    `<th class="s ${c[2]?'n':''}" data-k="${c[0]}">${c[1]}${sortKey===c[0]?(sortAsc?' ▲':' ▼'):''}</th>`
+  ).join('')+'</tr></thead>';
+  const body='<tbody>'+(sorted.length?sorted.map(a=>{
+    const fl=FLAGS[a.id]||[], f=fresh.has(a.id)?' class="fresh"':'';
+    return `<tr${f}><td><b>${A.esc(a.country)}</b><br><span style="color:var(--muted);font-size:11.5px">${A.esc(a.country_name||'')}</span></td>`+
+    `<td><b>${A.esc(a.team_name||'—')}</b> <span class="chip ${a.verified?'v':'u'}">${a.verified?'인증':'자가'}</span>`+
+    (fresh.has(a.id)?' <span class="chip u">변경</span>':'')+
+    `<br><span style="color:var(--muted);font-size:11.5px">${A.esc(a.contact_name||'')} · ${A.esc(a.contact_email||'')}</span>`+
+    `<br><a href="accommodation.html?c=${A.esc(a.edit_code)}" target="_blank" style="font-size:11px;font-family:ui-monospace,monospace">${A.esc(a.edit_code)} ↗</a>`+
+    (fl.length?`<br><span class="flagtxt">⚑ ${A.esc(fl.join(' · '))}</span>`:'')+`</td>`+
+    `<td class="n"><b>${A.pax(a)}</b><br><span style="color:var(--muted);font-size:11px">선 ${a.n_athletes|0} / 임 ${a.n_officials|0}</span></td>`+
+    `<td class="n">${a.n_male|0} / ${a.n_female|0}</td>`+
+    `<td>${A.esc(a.check_in||'')}<br><span style="color:var(--muted);font-size:11.5px">→ ${A.esc(a.check_out||'')}</span></td>`+
+    `<td class="n">${A.nights(a)}</td>`+
+    `<td class="n"><b>${A.rooms(a)}</b><br><span style="color:var(--muted);font-size:11px">${a.rooms_single|0}/${a.rooms_twin|0}</span></td>`+
+    `<td style="font-size:11.5px">1. ${A.esc(A.hname(a.choice_1))}<br><span style="color:var(--muted)">2. ${A.esc(A.hname(a.choice_2))}<br>3. ${A.esc(A.hname(a.choice_3))}</span></td>`+
+    `<td>${a.allocated_hotel?`<span class="chip a">${A.esc(A.hname(a.allocated_hotel))}</span>`:'<span style="color:var(--muted)">미배정</span>'}</td>`+
+    `<td>${a.status==='approved'?'<span class="chip a">승인</span>':'<span class="chip u">미승인</span>'}</td></tr>`;
+  }).join('') : '<tr><td colspan="10" class="empty">조건에 맞는 신청이 없습니다.</td></tr>')+'</tbody>';
+  $('#rows').innerHTML=head+body;
+  $('#rows').querySelectorAll('th.s').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(sortKey===k) sortAsc=!sortAsc; else { sortKey=k; sortAsc=true; }
+    render();
+  });
+}
+
+$('#btnXlsx').onclick = () => A.exportXlsx({
+  rows: filtered(), log: LOG, scopeKey: $('#scope').value,
+  showContact: true, stamp: STAMP, filterNote: filterNote()
+});
+$('#btnTheme').onclick = () => {
+  const d = document.documentElement.dataset.theme==='dark';
+  document.documentElement.dataset.theme = d?'light':'dark';
+  $('#btnTheme').textContent = d?'다크':'라이트';
+  if(!$('#app').hidden) render();
+};
+
+(async () => {
+  const k = sessionStorage.getItem('cw_svc');
+  if(k && !arm(k) && await load()) show();
+})();
+</script>
+</body>
+</html>

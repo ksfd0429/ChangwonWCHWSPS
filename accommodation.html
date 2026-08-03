@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accommodation — Changwon 2026 WSPS World Championships</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --navy:#16456B; --acc:#1B6FA8; --g:#2E8B57; --y:#E87722; --r:#C94A3D;
+  --txt:#13314C; --line:#CBDBE8;
+  --bg:#F4F8FB; --card:#FFFFFF; --muted:#5B7690;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--txt);
+  font:400 15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:80px}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+a{color:var(--acc)}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px;border-radius:4px}
+
+header.top{background:var(--navy);color:#fff;padding:20px 0}
+header .bar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.eyebrow{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;font-weight:600}
+h1{font-size:22px;margin:6px 0 0;font-weight:650;letter-spacing:-.01em}
+.who{font-size:13px;opacity:.9;text-align:right}
+.who b{display:block;font-size:15px;font-weight:650}
+.navlink{color:#fff;font-size:13px;font-weight:600;text-decoration:none;opacity:.9}
+.navlink:hover{opacity:1;text-decoration:underline}
+
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px;margin:22px 0}
+h2{font-size:17px;margin:0 0 4px;font-weight:650;color:var(--navy)}
+h3{font-size:14.5px;margin:20px 0 10px;font-weight:650;color:var(--navy)}
+.lede{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+
+/* gate */
+#gate{max-width:520px;margin:60px auto;text-align:center}
+#gate .box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:32px}
+#gate h2{margin-bottom:10px}
+#app{display:block}
+
+/* map */
+#map{height:400px;border-radius:8px;border:1px solid var(--line)}
+.pin{display:flex;align-items:center;justify-content:center;color:#fff;font:700 12px system-ui;
+  border-radius:50%;width:26px;height:26px;box-shadow:0 0 0 3px #fff,0 2px 6px rgba(0,0,0,.3)}
+.pin.sq{border-radius:7px}
+.leaflet-popup-content{margin:12px 14px;font-size:13.5px;line-height:1.5}
+.leaflet-popup-content .plink{display:block;margin-top:7px;font-weight:600}
+.maptools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.status-line{font-size:13px;color:var(--muted);min-height:20px}
+.coordbox{display:none;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;
+  padding:14px;border:1px solid var(--acc);border-radius:8px;background:var(--bg)}
+.coordbox.on{display:flex}
+.coordbox .field{margin:0;flex:1 1 140px}
+.coordbox label{font-size:12px;font-weight:650;display:block;margin-bottom:5px;color:var(--muted)}
+.coordbox input,.coordbox select{min-height:40px;padding:8px 10px;font-size:13.5px}
+
+/* bars */
+.barrow{display:grid;grid-template-columns:200px 1fr;gap:12px;align-items:center;margin-bottom:9px}
+.barlabel{font-size:13px;color:var(--muted);text-align:right;line-height:1.3}
+.bartrack{display:flex;align-items:center;gap:8px;height:26px}
+.bar{height:22px;border-radius:0 4px 4px 0;box-shadow:0 0 0 2px var(--card);min-width:2px}
+.barval{font-size:13px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;
+  border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:650;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+details summary{cursor:pointer;font-size:13px;font-weight:650;color:var(--muted);padding:8px 0;min-height:34px}
+
+/* hotel cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.card{border:1px solid var(--line);border-radius:8px;padding:16px 16px 16px 20px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--c)}
+.card h4{margin:0 0 2px;font-size:15px;font-weight:650;color:var(--navy)}
+.card .addr{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.score{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
+.score b{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.score small{font-size:12px;color:var(--muted)}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:650;font-variant-numeric:tabular-nums}
+.pitch{margin:12px 0 0;padding:11px 13px;border-radius:6px;background:var(--bg);
+  border-left:3px solid var(--c);font-size:13.5px;line-height:1.5}
+.links{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:13px}
+.links a{display:inline-flex;align-items:center;gap:6px;font-weight:600;margin-right:14px;line-height:2}
+.links .lang{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 4px}
+
+/* form */
+fieldset{border:1px solid var(--line);border-radius:8px;padding:18px;margin:0 0 18px}
+legend{font-size:13px;font-weight:700;padding:0 8px;color:var(--navy)}
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+label.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:6px}
+.hint{font-size:12.5px;color:var(--muted);margin:5px 0 0}
+.req{color:var(--r);font-weight:700}
+input,select,textarea{width:100%;padding:10px 12px;font:inherit;font-size:14px;background:#fff;
+  color:var(--txt);border:1px solid var(--line);border-radius:6px;min-height:44px}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+input[readonly]{background:var(--bg);color:var(--muted)}
+input.bad,select.bad{border-color:var(--r);background:#FDF4F3}
+textarea{min-height:88px;resize:vertical}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.rankrow{display:grid;grid-template-columns:90px 1fr;gap:12px;align-items:center;margin-bottom:12px}
+.rankrow>span{font-size:13px;font-weight:650;color:var(--muted)}
+.total{display:flex;justify-content:space-between;align-items:center;background:var(--bg);
+  border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-top:12px;font-size:14px}
+.total b{font-size:19px;font-variant-numeric:tabular-nums}
+.err{font-size:12.5px;color:var(--r);font-weight:600;margin:6px 0 0;min-height:18px}
+.ok{color:var(--g)}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:13px 24px;
+  font:inherit;font-size:15px;font-weight:650;cursor:pointer;min-height:48px}
+.btn.sec{background:#fff;color:var(--txt);border:1px solid var(--line)}
+.btn.sm{padding:9px 16px;font-size:13.5px;min-height:40px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn[aria-pressed="true"]{background:var(--g)}
+.actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:20px}
+.note{border-left:3px solid var(--y);background:var(--bg);padding:12px 14px;
+  border-radius:0 6px 6px 0;font-size:13.5px;color:var(--muted);margin-top:14px}
+.note.info{border-left-color:var(--acc)} .note.good{border-left-color:var(--g)}
+.note strong{color:var(--txt)}
+.banner{padding:12px 16px;border-radius:8px;font-size:14px;font-weight:600;margin-bottom:16px;display:none}
+.banner.show{display:block}
+.banner.s{background:#E8F5EE;color:#1D6B42;border:1px solid #A9D9BF}
+.banner.e{background:#FBECEA;color:#9B3227;border:1px solid #EBB6AF}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:14px;overflow-x:auto;
+  font:400 12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:10px;white-space:pre-wrap;word-break:break-word}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap bar">
+  <div>
+    <div class="eyebrow">Changwon 2026 · WSPS World Championships · 7–18 September</div>
+    <h1>Accommodation Application</h1>
+  </div>
+  <div class="who">
+    <a class="navlink" href="index.html">NPC Portal ↗</a>
+    <b id="whoCountry"></b>
+    <span id="whoEmail"></span>
+  </div>
+</div></header>
+
+<main id="app" class="wrap">
+
+<div class="banner" id="banner" role="status" aria-live="polite"></div>
+
+<!-- MAP -->
+<section>
+  <h2>Venue &amp; hotels</h2>
+  <p class="lede">Click a pin for the hotel's official website. Distances are real driving
+    routes from the OSRM routing engine, not straight lines.</p>
+  <div class="maptools" id="adminTools" style="display:none">
+    <button class="btn sec sm" id="recalcBtn" type="button">Geocode &amp; route</button>
+    <button class="btn sec sm" id="editBtn" type="button" aria-pressed="false">Edit pin positions</button>
+    <button class="btn sec sm" id="freezeBtn" type="button">Export frozen config</button>
+    <span class="status-line" id="mapStatus"></span>
+  </div>
+  <div id="map"></div>
+  <div class="coordbox" id="coordbox">
+    <div class="field" style="flex:1 1 200px"><label for="pinSel">Pin to move</label><select id="pinSel"></select></div>
+    <div class="field"><label for="latIn">Latitude</label><input id="latIn" inputmode="decimal"></div>
+    <div class="field"><label for="lonIn">Longitude</label><input id="lonIn" inputmode="decimal"></div>
+    <button class="btn sm" id="applyCoord" type="button">Apply &amp; re-route</button>
+  </div>
+  <div class="note info" id="geoNote" style="display:none">
+    <strong>Venue pin needs confirming.</strong> Address lookup placed it incorrectly, so the
+    seed is an estimate and the geocoder now searches by venue <em>name</em> first. Confirm the
+    ◎ pin sits on the shooting range, then export and paste into <code>PLACES</code> /
+    <code>oc_settings.hotels</code>.
+  </div>
+  <pre id="frozen" style="display:none"></pre>
+</section>
+
+<!-- DISTANCE -->
+<section id="distSec">
+  <h2>Road distance to the venue</h2>
+  <p class="lede">Twelve competition days means up to 24 transfers per delegation.</p>
+  <div class="note" id="distPending">
+    Travel times are being confirmed against the final venue survey and will be
+    published here shortly. Hotel locations are shown on the map above.
+  </div>
+  <div id="chartKm"></div>
+  <h3>Drive time (one way)</h3>
+  <div id="chartMin"></div>
+  <div class="legend" id="legend"></div>
+  <details><summary>View as table — includes hotel-to-hotel</summary>
+    <table><thead><tr><th>From → To</th><th style="text-align:right">km</th>
+      <th style="text-align:right">Drive</th></tr></thead><tbody id="matrix"></tbody></table></details>
+</section>
+
+<!-- HOTELS -->
+<section>
+  <h2>The three hotels</h2>
+  <div class="note good" style="margin:0 0 16px">
+    <strong>Breakfast and dinner are provided at every hotel</strong> and are included in the
+    accommodation fee. No meal booking is required in this form.
+  </div>
+  <div class="cards" id="cards"></div>
+</section>
+
+<!-- FORM -->
+<section>
+  <h2>Application</h2>
+  <p class="lede">All delegations must re-apply, including those who submitted previously.
+    Every field except the final <em>Other</em> section is required.</p>
+
+  <form id="f" novalidate>
+    <fieldset>
+      <legend>Delegation</legend>
+      <div class="g2">
+        <div class="field"><label class="lbl" for="npc">NPC / Country <span class="req">*</span></label>
+          <input id="npc" list="npcList" required autocomplete="off" spellcheck="false"
+                 placeholder="Type a code or a country name — KOR, Korea, Germ…"
+                 aria-describedby="npcEcho">
+          <datalist id="npcList"></datalist>
+          <p class="hint" id="npcEcho">Start typing to search all 77 participating nations.</p>
+          <input type="hidden" id="cn"></div>
+        <div class="field"><label class="lbl" for="team">Team name <span class="req">*</span></label>
+          <input id="team" required placeholder="e.g. Korea National Team A">
+          <p class="hint">Several teams from the same country may apply separately —
+            each is identified by its contact email.</p></div>
+      </div>
+      <div class="g2">
+        <div class="field"><label class="lbl" for="cname">Contact person <span class="req">*</span></label>
+          <input id="cname" required autocomplete="name"></div>
+        <div class="field"><label class="lbl" for="cmail">Contact email <span class="req">*</span></label>
+          <input type="email" id="cmail" required autocomplete="email"></div>
+      </div>
+      <p class="err" id="eDel" role="status" aria-live="polite"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Headcount</legend>
+      <p class="hint" style="margin:0 0 14px">Coaches and personal assistants are counted within Officials.</p>
+      <div class="g2">
+        <div class="field"><label class="lbl" for="nAth">Athletes <span class="req">*</span></label>
+          <input type="number" id="nAth" min="0" max="300" required></div>
+        <div class="field"><label class="lbl" for="nOff">Officials <span class="req">*</span></label>
+          <input type="number" id="nOff" min="0" max="300" required>
+          <p class="hint">Includes coaches and personal assistants</p></div>
+      </div>
+      <div class="g2">
+        <div class="field"><label class="lbl" for="nM">Total Number of Male <span class="req">*</span></label>
+          <input type="number" id="nM" min="0" max="300" required></div>
+        <div class="field"><label class="lbl" for="nF">Total Number of Female <span class="req">*</span></label>
+          <input type="number" id="nF" min="0" max="300" required></div>
+      </div>
+      <div class="total"><span>Total requiring accommodation</span><b id="totalPax">0</b></div>
+      <p class="err" id="ePax" role="status" aria-live="polite"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Check-in &amp; check-out</legend>
+      <p class="hint" style="margin:0 0 14px">Official accommodation window:
+        3 – 21 September 2026. Competition runs 7 – 18 September.</p>
+      <div class="g2">
+        <div class="field"><label class="lbl" for="ci">Check-in date <span class="req">*</span></label>
+          <input type="date" id="ci" min="2026-09-01" max="2026-09-21" required></div>
+        <div class="field"><label class="lbl" for="co">Check-out date <span class="req">*</span></label>
+          <input type="date" id="co" min="2026-09-02" max="2026-09-25" required></div>
+      </div>
+      <div class="total"><span>Nights</span><b id="nights">—</b></div>
+      <p class="err" id="eDate" role="status" aria-live="polite"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Hotel preference</legend>
+      <p class="hint" style="margin:0 0 14px">All three hotels must be ranked. Each choice must be different.</p>
+      <div class="rankrow"><span>1st <span class="req">*</span></span><select id="c1" required></select></div>
+      <div class="rankrow"><span>2nd <span class="req">*</span></span><select id="c2" required></select></div>
+      <div class="rankrow"><span>3rd <span class="req">*</span></span><select id="c3" required></select></div>
+      <p class="err" id="eRank" role="status" aria-live="polite"></p>
+      <div class="note">Please note that if your preferred hotel is over capacity, your
+        delegation may be reassigned to your next-choice hotel.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Rooms requested</legend>
+      <div class="g2">
+        <div class="field"><label class="lbl" for="r1">Single rooms <span class="req">*</span></label>
+          <input type="number" id="r1" min="0" max="200" required></div>
+        <div class="field"><label class="lbl" for="r2">Twin rooms <span class="req">*</span></label>
+          <input type="number" id="r2" min="0" max="200" required></div>
+      </div>
+      <div class="total"><span>Total rooms</span><b id="roomTotal">0</b></div>
+      <p class="err" id="eBeds" role="status" aria-live="polite"></p>
+      <p class="hint">Room occupancy is up to your delegation — we only need the number of rooms.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Other <span style="font-weight:400;color:#5B7690">(optional)</span></legend>
+      <div class="field"><label class="lbl" for="diet">Dietary preferences</label>
+        <textarea id="diet" placeholder="e.g. 4 halal, 2 vegetarian, 1 gluten-free"></textarea></div>
+      <div class="field"><label class="lbl" for="notes">Other requests</label>
+        <textarea id="notes"></textarea></div>
+    </fieldset>
+
+    <div class="actions">
+      <button class="btn" type="submit" id="submitBtn">Submit application</button>
+      <span class="status-line" id="fstatus"></span>
+    </div>
+    <p class="hint" id="savedAt"></p>
+
+    <div class="note good" id="codeBox" style="display:none">
+      <strong>Keep this link.</strong> It is the only way back to this application —
+      no account or password needed.
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="editLink" readonly style="flex:1 1 320px;font-family:ui-monospace,monospace;font-size:13px">
+        <button class="btn sec sm" type="button" id="copyLink">Copy</button>
+      </div>
+      <p class="hint" style="margin-top:8px">Email it to yourself now — we cannot recover it for you.</p>
+    </div>
+  </form>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ===================== Supabase — same project as the portal ============= */
+const SUPABASE_URL = "https://tkdvyxouknhjhaqjrotb.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_vka5Jqtl7JtyzV5BOv9ZcQ_2E5e76Iy";
+let sb = null;
+try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){ console.error(e); }
+
+const S = { code:null, status:'pending', session:false };
+const qp = new URLSearchParams(location.search);
+
+/* Flip to true only after the venue pin has been confirmed and the routed
+   numbers below have been re-frozen. While false the page shows a holding
+   note instead of distances, so wrong figures are never published. */
+const DISTANCES_VERIFIED = false;
+
+/* LOC-only map tooling. Open accommodation.html?admin=1 to reveal it. */
+const LOC_MODE = qp.get('admin') === '1';
+
+/* ===================== hotels / places =================================== */
+const PLACES = {
+  venue:{ name:"Changwon International Shooting Range", ko:"창원국제사격장",
+    addr:"경상남도 창원시 의창구 사림로99번길 63",
+    qs:["창원국제사격장","Changwon International Shooting Range",
+        "사림로99번길 63, 의창구, 창원시, 경상남도"],
+    site:"https://www.cwsisul.or.kr/_shoot", siteLang:"ko",
+    lat:35.2509, lon:128.6849, verified:false, cvar:'--navy' },
+  hotels:[
+    { id:1, code:'GMA', cvar:'--acc',
+      name:"Grand Mercure Ambassador Changwon", ko:"그랜드머큐어 앰배서더 창원",
+      addr:"경상남도 창원시 성산구 원이대로 332",
+      qs:["그랜드머큐어 앰배서더 창원","Grand Mercure Ambassador Changwon",
+          "원이대로 332, 성산구, 창원시, 경상남도"],
+      site:"https://www.ambatel.com/grandmercure/changwon/En/main.do", siteLang:"EN",
+      info:"https://all.accor.com/hotel/7163/index.en.shtml", infoLabel:"Accor booking",
+      access:"https://access.visitkorea.or.kr/acm/detail.do?cotId=5ff54b32-7521-41da-b5c2-b384652d1ed6",
+      lat:35.2238, lon:128.6793, verified:false,
+      score:8.9, reviews:425, src:"Yeogi", km:3.4, min:4, checkIn:"15:00", checkOut:"12:00",
+      pitch:"The established choice — in continuous use for the championships since the Changwon 2022 WSPS World Cup." },
+    { id:2, code:'GCC', cvar:'--y',
+      name:"Grand City Hotel Changwon", ko:"그랜드시티호텔 창원",
+      addr:"경상남도 창원시 성산구 중앙대로 78",
+      qs:["그랜드시티호텔 창원","Grand City Hotel Changwon","중앙대로 78, 성산구, 창원시, 경상남도"],
+      site:"http://www.grandcityhotel.co.kr/", siteLang:"KO",
+      info:"https://kr.trip.com/hotels/changwon-hotel-detail-68225801/grand-city-hotel-changwon/",
+      infoLabel:"English info (Trip.com)",
+      lat:35.2265, lon:128.6809, verified:false,
+      score:9.05, reviews:282, src:"Trip.com", km:3.9, min:5, checkIn:"15:00", checkOut:"11:00",
+      pitch:"The most central — in the heart of downtown Changwon, with the best access to the city itself." },
+    { id:3, code:'ISQ', cvar:'--g',
+      name:"I-Square Hotel Gimhae", ko:"아이스퀘어호텔 김해",
+      addr:"경상남도 김해시 김해대로 2360",
+      qs:["아이스퀘어호텔","I-Square Hotel Gimhae","김해대로 2360, 김해시, 경상남도"],
+      site:"http://www.isquare-hotel.com/", siteLang:"KO",
+      info:"https://kr.trip.com/hotels/gimhae-si-hotel-detail-2633734/isquare-hotel-gimhae/",
+      infoLabel:"English info (Trip.com)",
+      access:"https://access.visitkorea.or.kr/acm/detail.do?cotId=28aae9e6-d158-4326-9e57-dc3d2671a3df",
+      lat:35.2320, lon:128.8846, verified:false,
+      score:9.1, reviews:153, src:"Trip.com", km:29.2, min:31, checkIn:"15:00", checkOut:"11:00",
+      pitch:"The most accessible — of the three, the hotel with the strongest focus on barrier-free facilities and access for disabled guests." }
+  ],
+  matrix:[]
+};
+const H = PLACES.hotels;
+/* Same list, same order as submit.html — keeps codes consistent with the rest
+   of the portal and with admin.html's flagTd(). */
+const NPCS=[['ARG','Argentina','ar'],['AUS','Australia','au'],['AUT','Austria','at'],['AZE','Azerbaijan','az'],['BHU','Bhutan','bt'],['BIH','Bosnia and Herzegovina','ba'],['BRA','Brazil','br'],['BUL','Bulgaria','bg'],['CAN','Canada','ca'],['CHI','Chile','cl'],['CHN','China','cn'],['COL','Colombia','co'],['CRC','Costa Rica','cr'],['CRO','Croatia','hr'],['CUB','Cuba','cu'],['CYP','Cyprus','cy'],['CZE','Czechia','cz'],['DEN','Denmark','dk'],['EGY','Egypt','eg'],['ESP','Spain','es'],['FIN','Finland','fi'],['FRA','France','fr'],['GBR','Great Britain','gb'],['GEO','Georgia','ge'],['GER','Germany','de'],['GRE','Greece','gr'],['HKG','Hong Kong','hk'],['HUN','Hungary','hu'],['INA','Indonesia','id'],['IND','India','in'],['IRI','Iran','ir'],['IRQ','Iraq','iq'],['ISL','Iceland','is'],['ISR','Israel','il'],['ITA','Italy','it'],['JPN','Japan','jp'],['KAZ','Kazakhstan','kz'],['KEN','Kenya','ke'],['KOR','Korea','kr'],['KUW','Kuwait','kw'],['LAT','Latvia','lv'],['LTU','Lithuania','lt'],['LUX','Luxembourg','lu'],['MAS','Malaysia','my'],['MEX','Mexico','mx'],['MGL','Mongolia','mn'],['MKD','North Macedonia','mk'],['MLT','Malta','mt'],['MNE','Montenegro','me'],['NED','Netherlands','nl'],['NGA','Nigeria','ng'],['NOR','Norway','no'],['NZL','New Zealand','nz'],['PAN','Panama','pa'],['PER','Peru','pe'],['POL','Poland','pl'],['POR','Portugal','pt'],['PUR','Puerto Rico','pr'],['ROU','Romania','ro'],['RSA','South Africa','za'],['RUS','Russia','ru'],['SGP','Singapore','sg'],['SLO','Slovenia','si'],['SRB','Serbia','rs'],['SRI','Sri Lanka','lk'],['SUI','Switzerland','ch'],['SVK','Slovakia','sk'],['SWE','Sweden','se'],['THA','Thailand','th'],['TPE','Chinese Taipei','tw'],['TUR','Turkey','tr'],['UAE','United Arab Emirates','ae'],['UKR','Ukraine','ua'],['URU','Uruguay','uy'],['USA','United States','us'],['UZB','Uzbekistan','uz'],['VEN','Venezuela','ve']];
+
+/* Accepts a code ('kor'), a full name ('Korea'), or an unambiguous prefix
+   ('Germ'). Returns [code,name,iso] or null. */
+function resolveNpc(raw){
+  const q=(raw||'').trim().toLowerCase();
+  if(!q) return null;
+  let hit=NPCS.find(n=>n[0].toLowerCase()===q);            if(hit) return hit;
+  hit=NPCS.find(n=>n[1].toLowerCase()===q);                if(hit) return hit;
+  const pre=NPCS.filter(n=>n[1].toLowerCase().startsWith(q)||n[0].toLowerCase().startsWith(q));
+  return pre.length===1 ? pre[0] : null;
+}
+function npcOptions(raw){
+  const q=(raw||'').trim().toLowerCase();
+  const list = q ? NPCS.filter(n=>n[0].toLowerCase().includes(q)||n[1].toLowerCase().includes(q)) : NPCS;
+  $('#npcList').innerHTML = list.slice(0,40)
+    .map(n=>`<option value="${n[0]}">${esc(n[1])}</option>`).join('');
+}
+function syncNpc(){
+  const el=$('#npc'), hit=resolveNpc(el.value);
+  npcOptions(el.value);
+  if(hit){
+    $('#cn').value=hit[1];
+    $('#npcEcho').innerHTML=`<img src="https://flagcdn.com/20x15/${hit[2]}.png" alt="" `+
+      `style="vertical-align:-2px;margin-right:6px">${esc(hit[0])} — ${esc(hit[1])}`;
+  }else{
+    $('#cn').value='';
+    $('#npcEcho').textContent = el.value.trim()
+      ? 'No match yet — keep typing, or pick from the list.'
+      : 'Start typing to search all 77 participating nations.';
+  }
+  return hit;
+}
+
+const OSRM='https://router.project-osrm.org', NOMI='https://nominatim.openstreetmap.org';
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cvar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ===================== boot — no login required ========================== */
+async function boot(){
+  // map failures must never take the application form down
+  try { initMap(); }
+  catch(err){
+    console.warn('map init failed', err);
+    $('#map').innerHTML='<p class="hint" style="padding:24px;text-align:center">'+
+      'Map could not load — distances are listed below. This does not affect your application.</p>';
+    ['recalcBtn','editBtn','freezeBtn'].forEach(i=>{ var b=$('#'+i); if(b) b.disabled=true; });
+  }
+  if(LOC_MODE){ $('#adminTools').style.display='flex'; $('#geoNote').style.display='block'; }
+  applyDistanceVisibility();
+  npcOptions('');
+  try { render(); } catch(err){ console.warn('render failed', err); validate(); }
+
+  if(!sb){ banner('e','Could not reach the submission service. Please try again later.'); return; }
+
+  // A portal session is OPTIONAL — if one exists we just pre-fill and mark the
+  // submission verified. Anyone can fill this in without an account.
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session){
+      S.session = true;
+      const { data:c } = await sb.rpc('my_country');
+      if(c){ $('#npc').value=c; syncNpc(); $('#whoCountry').textContent='Signed in as '+c; }
+      if(session.user.email){ $('#cmail').value=session.user.email; $('#whoEmail').textContent=session.user.email; }
+    }
+  }catch(e){ /* anonymous is fine */ }
+
+  const code = qp.get('c');
+  if(code) await loadByCode(code);
+  validate();
+}
+
+async function loadByCode(code){
+  const { data, error } = await sb.rpc('acc_load',{ p_code: code });
+  if(error){ banner('e','Could not open that link: '+error.message); return; }
+  if(!data){ banner('e','That edit link was not recognised. Check the address, or submit a new application below.'); return; }
+  S.code = data.edit_code; S.status = data.status || 'pending';
+  $('#npc').value=data.country||'';      $('#cn').value=data.country_name||''; syncNpc();
+  $('#team').value=data.team_name||'';   $('#cname').value=data.contact_name||'';
+  $('#cmail').value=data.contact_email||'';
+  $('#nAth').value=data.n_athletes??'';  $('#nOff').value=data.n_officials??'';
+  $('#nM').value=data.n_male??'';        $('#nF').value=data.n_female??'';
+  $('#ci').value=data.check_in||'';      $('#co').value=data.check_out||'';
+  $('#c1').value=data.choice_1||'';      $('#c2').value=data.choice_2||'';  $('#c3').value=data.choice_3||'';
+  $('#r1').value=data.rooms_single??'';  $('#r2').value=data.rooms_twin??'';
+  $('#diet').value=data.dietary||'';     $('#notes').value=data.notes||'';
+  $('#savedAt').textContent = data.updated_at ? 'Last saved: '+data.updated_at : '';
+  showLink(S.code);
+  if(S.status==='approved'){
+    banner('s','This application has been approved by the LOC'+
+      (data.allocated_hotel?' — allocated hotel: '+data.allocated_hotel:'')+'. It can no longer be edited.');
+    $('#f').querySelectorAll('input,select,textarea,button').forEach(el=>el.disabled=true);
+  }else{
+    $('#submitBtn').textContent='Update application';
+    banner('s','Your application was loaded. Change anything you need and submit again.');
+  }
+}
+function showLink(code){
+  const url = location.origin + location.pathname + '?c=' + code;
+  $('#editLink').value = url;
+  $('#codeBox').style.display='block';
+}
+$('#copyLink').addEventListener('click',()=>{
+  const el=$('#editLink'); el.select();
+  navigator.clipboard?.writeText(el.value);
+  $('#copyLink').textContent='Copied';
+  setTimeout(()=>$('#copyLink').textContent='Copy',1500);
+});
+function banner(kind,msg){
+  const b=$('#banner'); b.className='banner show '+kind; b.textContent=msg;
+  b.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ===================== validation ======================================== */
+const num = id => { const v=$('#'+id).value; return v===''?null:Number(v); };
+function mark(id,bad){ $('#'+id).classList.toggle('bad',!!bad); }
+
+function validate(){
+  let ok=true;
+  // delegation
+  const dFields=['npc','team','cname','cmail'];
+  const dEmpty=dFields.filter(id=>!$('#'+id).value.trim());
+  dFields.forEach(id=>mark(id, !$('#'+id).value.trim()));
+  const npcHit=resolveNpc($('#npc').value);
+  if($('#npc').value.trim()) mark('npc', !npcHit);
+  const mailOk=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($('#cmail').value.trim());
+  if($('#cmail').value.trim()) mark('cmail', !mailOk);
+  $('#eDel').textContent = dEmpty.length ? 'All delegation fields are required.'
+    : !npcHit ? 'Pick your nation from the list — type a code (KOR) or a name (Korea).'
+    : !mailOk ? 'Enter a valid email address.' : '';
+  if(dEmpty.length || !npcHit || !mailOk) ok=false;
+
+  // headcount
+  const a=num('nAth'), o=num('nOff'), m=num('nM'), f=num('nF');
+  ['nAth','nOff','nM','nF'].forEach(id=>mark(id, num(id)===null));
+  const pax=(a||0)+(o||0);
+  $('#totalPax').textContent = pax;
+  if([a,o,m,f].some(v=>v===null)){ $('#ePax').textContent='Athletes, Officials, Male and Female are all required.'; ok=false; }
+  else if(pax<=0){ $('#ePax').textContent='The delegation must contain at least one person.'; ok=false; }
+  else if(m+f!==pax){ $('#ePax').textContent=`Male + female (${m+f}) must equal the total (${pax}).`; mark('nM',1); mark('nF',1); ok=false; }
+  else $('#ePax').textContent='';
+
+  // dates
+  const ci=$('#ci').value, co=$('#co').value;
+  mark('ci',!ci); mark('co',!co);
+  let nights=null;
+  if(!ci||!co){ $('#eDate').textContent='Both dates are required.'; $('#nights').textContent='—'; ok=false; }
+  else{
+    nights=Math.round((new Date(co)-new Date(ci))/864e5);
+    $('#nights').textContent=nights;
+    if(nights<=0){ $('#eDate').textContent='Check-out must be after check-in.'; mark('co',1); ok=false; }
+    else if(ci<'2026-09-03'||co>'2026-09-21'){ $('#eDate').textContent='Note: your stay extends outside the official window (3–21 September).'; }
+    else $('#eDate').textContent='';
+  }
+
+  // hotel choices — all three, all distinct
+  const ch=['c1','c2','c3'].map(id=>$('#'+id).value);
+  ch.forEach((v,i)=>mark('c'+(i+1), !v));
+  if(ch.some(v=>!v)){ $('#eRank').textContent='All three preferences must be selected.'; ok=false; }
+  else if(new Set(ch).size!==3){ $('#eRank').textContent='Each preference must be a different hotel.';
+    ['c1','c2','c3'].forEach(id=>mark(id,1)); ok=false; }
+  else { $('#eRank').textContent=''; ['c1','c2','c3'].forEach(id=>mark(id,0)); }
+
+  // rooms — counts only; how they are occupied is the delegation's business
+  const r1=num('r1'), r2=num('r2');
+  mark('r1',r1===null); mark('r2',r2===null);
+  $('#roomTotal').textContent = (r1||0)+(r2||0);
+  if(r1===null||r2===null){
+    $('#eBeds').textContent='Both room counts are required (enter 0 if none).'; ok=false;
+  } else if((r1||0)+(r2||0)===0){
+    $('#eBeds').textContent='At least one room is required.'; ok=false;
+  } else $('#eBeds').textContent='';
+  $('#eBeds').className='err';
+
+  // The button stays enabled on purpose. A disabled control gives a screen
+  // reader nothing to act on and no reason why — clicking and hearing the
+  // specific problem is the accessible path.
+  $('#submitBtn').disabled = (S.status==='approved');
+  return {ok,pax,nights};
+}
+
+/* ===================== submit ============================================ */
+$('#npc').addEventListener('input',()=>{ syncNpc(); validate(); });
+$('#npc').addEventListener('change',()=>{ const h=syncNpc(); if(h) $('#npc').value=h[0]; validate(); });
+$('#npc').addEventListener('blur',  ()=>{ const h=syncNpc(); if(h) $('#npc').value=h[0]; validate(); });
+$('#f').addEventListener('input',validate);
+$('#f').addEventListener('change',validate);
+$('#f').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const v=validate();
+  if(!v.ok){
+    const msgs=['eDel','ePax','eDate','eRank','eBeds']
+      .map(id=>$('#'+id).textContent.trim()).filter(Boolean);
+    banner('e','Not submitted — '+(msgs.length?msgs.join('  •  ')
+      :'some required fields are missing.'));
+    const first=document.querySelector('.bad');
+    if(first){ first.focus({preventScroll:true}); first.scrollIntoView({behavior:'smooth',block:'center'}); }
+    return;
+  }
+  const btn=$('#submitBtn'); btn.disabled=true; $('#fstatus').textContent='Submitting…';
+  const { data, error } = await sb.rpc('acc_submit',{
+    p_code: S.code,
+    p_country: (resolveNpc($('#npc').value)||[''])[0],
+    p_country_name: $('#cn').value.trim(),
+    p_team: $('#team').value.trim(),
+    p_contact: $('#cname').value.trim(),
+    p_email: $('#cmail').value.trim(),
+    p_ath: num('nAth'), p_off: num('nOff'), p_male: num('nM'), p_female: num('nF'),
+    p_in: $('#ci').value, p_out: $('#co').value,
+    p_c1: $('#c1').value, p_c2: $('#c2').value, p_c3: $('#c3').value,
+    p_single: num('r1'), p_twin: num('r2'),
+    p_diet: $('#diet').value.trim(), p_notes: $('#notes').value.trim()
+  });
+  $('#fstatus').textContent=''; btn.disabled=false;
+  if(error){
+    const dup=/already exists/i.test(error.message||'');
+    banner('e','Submission failed: '+error.message+
+      (dup?' If you no longer have that link, email the LOC and we will resend it — do not create a second entry.':''));
+    return;
+  }
+  S.code = data;
+  btn.textContent='Update application';
+  $('#savedAt').textContent='Last saved just now.';
+  showLink(S.code);
+  banner('s','Application saved. Keep the link below — it is how you come back to edit it.');
+  $('#codeBox').scrollIntoView({behavior:'smooth',block:'center'});
+});
+
+/* ===================== map =============================================== */
+let map, markers={}, lines=[], editing=false;
+const ALL = () => [PLACES.venue, ...H];
+const key = p => p.code || 'VENUE';
+function popupHTML(p){
+  let h=`<b>${esc(p.name)}</b><div style="color:#5B7690;font-size:12.5px">${esc(p.addr)}</div>`;
+  if(p.score) h+=`<div style="color:#5B7690;font-size:12.5px">★ ${p.score}/10 · ${p.reviews} reviews</div>`;
+  if(p.site) h+=`<a class="plink" href="${p.site}" target="_blank" rel="noopener noreferrer">Official website (${p.siteLang}) ↗</a>`;
+  if(p.info) h+=`<a class="plink" href="${p.info}" target="_blank" rel="noopener noreferrer">${esc(p.infoLabel)} ↗</a>`;
+  if(p.access) h+=`<a class="plink" href="${p.access}" target="_blank" rel="noopener noreferrer">Barrier-free access info ↗</a>`;
+  return h;
+}
+function initMap(){
+  if(typeof L==='undefined'){
+    $('#map').innerHTML='<p class="hint" style="padding:24px;text-align:center">Map could not load — distances are listed below.</p>';
+    ['recalcBtn','editBtn','freezeBtn'].forEach(i=>$('#'+i).disabled=true); return;
+  }
+  map=L.map('map',{scrollWheelZoom:false}).setView([35.24,128.78],11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  map.on('click',e=>{ if(editing) setPin($('#pinSel').value,e.latlng.lat,e.latlng.lng); });
+  drawPins(); fitAll();
+}
+function drawPins(){
+  if(!map) return;
+  Object.values(markers).forEach(m=>map.removeLayer(m)); markers={};
+  ALL().forEach(p=>{
+    const sq=(p===PLACES.venue), label=sq?'◎':p.id;
+    const mk=L.marker([p.lat,p.lon],{ draggable:editing,
+      icon:L.divIcon({html:`<div class="pin${sq?' sq':''}" style="background:var(${p.cvar})">${label}</div>`,
+        className:'',iconSize:[26,26],iconAnchor:[13,13]}), title:p.name});
+    mk.bindPopup(popupHTML(p));
+    mk.on('dragend',ev=>{const ll=ev.target.getLatLng(); setPin(key(p),ll.lat,ll.lng,true);});
+    mk.addTo(map); markers[key(p)]=mk;
+  });
+}
+const fitAll=()=>{ if(map&&Object.keys(markers).length)
+  map.fitBounds(L.featureGroup(Object.values(markers)).getBounds().pad(.2)); };
+const findPlace=k=>ALL().find(p=>key(p)===k);
+function setPin(k,lat,lon,fromDrag){
+  const p=findPlace(k); if(!p) return;
+  p.lat=+lat.toFixed(6); p.lon=+lon.toFixed(6); p.verified=true; p.manual=true;
+  if(!fromDrag&&markers[k]) markers[k].setLatLng([p.lat,p.lon]);
+  $('#pinSel').value=k; $('#latIn').value=p.lat; $('#lonIn').value=p.lon;
+  $('#mapStatus').textContent=`Pin moved: ${p.name} (${p.lat}, ${p.lon}) — press Apply & re-route`;
+}
+async function geocode(p){
+  for(const q of p.qs){
+    try{
+      const j=await (await fetch(`${NOMI}/search?format=jsonv2&limit=1&countrycodes=kr&q=`+encodeURIComponent(q))).json();
+      if(j.length){ p.lat=+j[0].lat; p.lon=+j[0].lon; p.verified=true;
+        p.osm=j[0].display_name; p.matchedBy=q; return; }
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,1100));
+  }
+  throw new Error('no geocode match: '+p.name);
+}
+async function route(a,b){
+  const j=await (await fetch(`${OSRM}/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson`)).json();
+  if(j.code!=='Ok') throw new Error('route '+j.code);
+  const r=j.routes[0];
+  return {km:+(r.distance/1000).toFixed(1),min:Math.round(r.duration/60),geo:r.geometry};
+}
+async function routeAll(){
+  lines.forEach(l=>map.removeLayer(l)); lines=[];
+  for(const h of H){
+    const rv=await route(h,PLACES.venue); h.km=rv.km; h.min=rv.min;
+    lines.push(L.geoJSON(rv.geo,{style:{color:cvar(h.cvar),weight:4,opacity:.85}}).addTo(map));
+  }
+  PLACES.matrix=[];
+  for(let i=0;i<H.length;i++) for(let j=i+1;j<H.length;j++){
+    const r=await route(H[i],H[j]); PLACES.matrix.push({a:H[i].code,b:H[j].code,km:r.km,min:r.min});
+  }
+  render();
+}
+async function recalc(){
+  if(!map) return;
+  try{
+    $('#mapStatus').textContent='Geocoding…';
+    for(const p of ALL()) if(!p.manual) await geocode(p);
+    drawPins();
+    $('#mapStatus').textContent='Routing…';
+    await routeAll(); fitAll();
+    $('#mapStatus').textContent='✓ Routed — please confirm the venue pin';
+    applyDistanceVisibility();
+  }catch(e){ $('#mapStatus').textContent='Failed: '+e.message; }
+}
+async function applyCoord(){
+  const k=$('#pinSel').value, la=parseFloat($('#latIn').value), lo=parseFloat($('#lonIn').value);
+  if(!isNaN(la)&&!isNaN(lo)) setPin(k,la,lo);
+  try{ $('#mapStatus').textContent='Re-routing…'; drawPins(); await routeAll(); fitAll();
+    $('#mapStatus').textContent='✓ Re-routed'; }
+  catch(e){ $('#mapStatus').textContent='Failed: '+e.message; }
+}
+function freeze(){
+  const out={ venue:pick(PLACES.venue),
+    hotels:H.map(h=>Object.assign(pick(h),{code:h.code,km:h.km,min:h.min})),
+    matrix:PLACES.matrix };
+  const el=$('#frozen'); el.style.display='block';
+  el.textContent=JSON.stringify(out,null,2);
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+const pick=p=>({lat:p.lat,lon:p.lon,verified:!!p.verified,manual:!!p.manual,matchedBy:p.matchedBy||null});
+
+/* ===================== render ============================================ */
+function applyDistanceVisibility(){
+  const show = DISTANCES_VERIFIED || PLACES.venue.verified;
+  $('#distPending').style.display = show ? 'none' : 'block';
+  ['chartKm','chartMin','legend'].forEach(id=>{
+    const el=$('#'+id); if(el) el.style.display = show ? '' : 'none';
+  });
+  const d=$('#matrix')?.closest('details'); if(d) d.style.display = show ? '' : 'none';
+  const h=[...document.querySelectorAll('#distSec h3')][0]; if(h) h.style.display = show ? '' : 'none';
+}
+function bars(el,k,unit,dp){
+  const max=Math.max(...H.map(h=>h[k]));
+  el.innerHTML=H.map(h=>`<div class="barrow"><div class="barlabel">${esc(h.name)}</div>
+    <div class="bartrack"><div class="bar" style="width:${h[k]/max*100}%;background:var(${h.cvar})"></div>
+    <span class="barval">${h[k].toFixed(dp)} ${unit}</span></div></div>`).join('');
+}
+function render(){
+  bars($('#chartKm'),'km','km',1); bars($('#chartMin'),'min','min',0);
+  const rows=H.map(h=>[`${h.name} → ${PLACES.venue.name}`,h.km,h.min]);
+  PLACES.matrix.forEach(m=>{const a=H.find(x=>x.code===m.a),b=H.find(x=>x.code===m.b);
+    rows.push([`${a.name} ↔ ${b.name}`,m.km,m.min]);});
+  $('#matrix').innerHTML=rows.map(r=>`<tr><td>${esc(r[0])}</td>
+    <td class="num">${r[1]} km</td><td class="num">${r[2]} min</td></tr>`).join('');
+
+  $('#cards').innerHTML=H.map(h=>`<div class="card" style="--c:var(${h.cvar})">
+    <h4>${esc(h.name)}</h4><p class="addr">${esc(h.addr)}</p>
+    <div class="score"><b>${h.score}</b><small>/10 · ${h.reviews} reviews · ${h.src}</small></div>
+    <dl style="margin:0"><div class="kv"><dt>Check-in / out</dt><dd>${h.checkIn} / ${h.checkOut}</dd></div></dl>
+    <p class="pitch">${esc(h.pitch)}</p>
+    <div class="links">
+      <a href="${h.site}" target="_blank" rel="noopener noreferrer">Official website
+        <span class="lang">${h.siteLang}</span> ↗</a>
+      ${h.info?`<a href="${h.info}" target="_blank" rel="noopener noreferrer">${esc(h.infoLabel)} ↗</a>`:''}
+      ${h.access?`<a href="${h.access}" target="_blank" rel="noopener noreferrer">Barrier-free info ↗</a>`:''}
+    </div></div>`).join('');
+
+  $('#legend').innerHTML=[[PLACES.venue.name,'--navy'],...H.map(h=>[h.name,h.cvar])]
+    .map(([n,c])=>`<span><i class="swatch" style="background:var(${c})"></i>${esc(n)}</span>`).join('');
+
+  ['c1','c2','c3'].forEach(id=>{ const s=$('#'+id),k=s.value;
+    s.innerHTML='<option value="">— select —</option>'+
+      H.map(h=>`<option value="${h.code}">${esc(h.name)}</option>`).join(''); s.value=k; });
+
+  const ps=$('#pinSel'), pk=ps.value;
+  ps.innerHTML=ALL().map(p=>`<option value="${key(p)}">${esc(p.name)}</option>`).join('');
+  ps.value=pk||'VENUE';
+  const pp=findPlace(ps.value); if(pp){$('#latIn').value=pp.lat;$('#lonIn').value=pp.lon;}
+  validate();
+}
+$('#recalcBtn').addEventListener('click',recalc);
+$('#freezeBtn').addEventListener('click',freeze);
+$('#applyCoord').addEventListener('click',applyCoord);
+$('#editBtn').addEventListener('click',()=>{
+  editing=!editing;
+  $('#editBtn').setAttribute('aria-pressed',String(editing));
+  $('#coordbox').classList.toggle('on',editing);
+  drawPins();
+});
+$('#pinSel').addEventListener('change',()=>{
+  const p=findPlace($('#pinSel').value);
+  if(p){$('#latIn').value=p.lat;$('#lonIn').value=p.lon; if(map) map.panTo([p.lat,p.lon]);}
+});
+
+boot();
+</script>
+</body>
+</html>
