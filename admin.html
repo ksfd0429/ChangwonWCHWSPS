@@ -127,7 +127,17 @@ function mL(){try{var s=JSON.parse(localStorage.getItem('cw_mock')||'null');if(s
 function mS(s){localStorage.setItem('cw_mock',JSON.stringify(s));}
 function today(){return new Date().toISOString().slice(0,10)}
 function fmtKST(v){if(!v)return '';try{var d=new Date(v);if(isNaN(d.getTime()))return String(v).slice(0,16).replace('T',' ');return d.toLocaleString('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(/,\s*/,' ');}catch(e){return String(v).slice(0,16).replace('T',' ');}}
-function stage(h){$('#app').innerHTML='<div class="wrap">'+h+'</div>'}
+/* ===== 모든 관리 테이블 좌측에 순번(#) 열 자동 삽입 ===== */
+function numberTables(root){var sc=root||document;var ts=sc.querySelectorAll('.tbl table');
+ for(var k=0;k<ts.length;k++){var t=ts[k];if(t.getAttribute('data-numbered'))continue;t.setAttribute('data-numbered','1');
+  var hd=t.tHead;
+  if(hd){for(var r=0;r<hd.rows.length;r++){var hr=hd.rows[r];var hc=document.createElement('th');hc.innerHTML=(r===0?'#':'');hc.style.cssText='width:38px;min-width:38px;text-align:center';hr.insertBefore(hc,hr.firstChild);}}
+  var tb=t.tBodies[0];if(!tb)continue;var n=0;
+  for(var i=0;i<tb.rows.length;i++){var row=tb.rows[i];var f=row.cells[0];
+   if(f&&f.colSpan>1){f.colSpan=f.colSpan+1;continue;}
+   n++;var td=document.createElement('td');td.textContent=n;td.style.cssText='text-align:center;color:#8a94a0;font-size:11.5px;white-space:nowrap';row.insertBefore(td,row.firstChild);}
+ }}
+function stage(h){$('#app').innerHTML='<div class="wrap">'+h+'</div>';try{numberTables($('#app'))}catch(e){}}
 function memName(m){var f=(m.first_name||'').trim(),l=(m.last_name||'').trim();if(f||l)return (l.toUpperCase()+' '+f).trim();return m.name||'';}
 
 function scrLogin(){
@@ -748,10 +758,10 @@ async function saveBank(){var o={holder:$('#bk_h').value.trim(),account:$('#bk_a
 /* ===== section/doc modals ===== */
 var _openSec='';var _SEC={};
 function openSec(k){var d=_SEC[k];if(!d)return;_openSec=k;var old=document.getElementById('am');if(old)old.remove();
-  document.body.insertAdjacentHTML('beforeend','<div class="mback" id="am" onclick="if(event.target===this)closeSec()"><div class="amodal"><div class="row" style="margin-bottom:8px"><b style="font-size:15px;color:var(--navy)">'+d.t+'</b><button class="mclose" style="margin-left:auto" onclick="closeSec()">×</button></div>'+d.h+'</div></div>');}
+  document.body.insertAdjacentHTML('beforeend','<div class="mback" id="am" onclick="if(event.target===this)closeSec()"><div class="amodal"><div class="row" style="margin-bottom:8px"><b style="font-size:15px;color:var(--navy)">'+d.t+'</b><button class="mclose" style="margin-left:auto" onclick="closeSec()">×</button></div>'+d.h+'</div></div>');try{numberTables(document.getElementById('am'))}catch(e){}}
 function closeSec(){_openSec='';var el=document.getElementById('am');if(el)el.remove();}
 function infoModal(t,h){var old=document.getElementById('dm');if(old)old.remove();
-  document.body.insertAdjacentHTML('beforeend','<div class="mback z2" id="dm" onclick="if(event.target===this)this.remove()"><div class="amodal"><div class="row" style="margin-bottom:8px"><b style="font-size:14px;color:var(--navy)">'+t+'</b><button class="mclose" style="margin-left:auto" onclick="document.getElementById(\'dm\').remove()">×</button></div>'+h+'</div></div>');}
+  document.body.insertAdjacentHTML('beforeend','<div class="mback z2" id="dm" onclick="if(event.target===this)this.remove()"><div class="amodal"><div class="row" style="margin-bottom:8px"><b style="font-size:14px;color:var(--navy)">'+t+'</b><button class="mclose" style="margin-left:auto" onclick="document.getElementById(\'dm\').remove()">×</button></div>'+h+'</div></div>');try{numberTables(document.getElementById('dm'))}catch(e){}}
 
 /* ===== A4 문서: 화면 자동 줌(transform scale) + 탭 확대 모달 · 인쇄는 실 A4 ===== */
 var A4W=794,_fitT;
