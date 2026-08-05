@@ -181,7 +181,7 @@ async function scrMain(){
   var fRows=s.firearm_submissions.map(function(x,i){var sc=(x.grp||'*ALL*');
     return '<tr><td>'+flagTd(x.country)+'</td><td>'+esc(sc==='*ALL*'?'Entire delegation':sc)+'</td><td>'+esc(x.submitted_at||'')+'</td><td><span class="tag g">submitted</span></td><td style="font-size:11px">OC-F-'+esc(x.country)+'-'+esc(String(x.submitted_at||'').replace(/-/g,''))+'</td><td><button class="btn" style="padding:4px 9px;font-size:11px;background:#2E6B5B" onclick="photoF('+i+')">🖼 사진</button> '+(x.reg_no?'':'<button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editFrm('+i+')">편집</button> ')+(x.reg_no?'<span class="tag g">발행 #'+esc(x.reg_no)+'</span>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="issueF('+i+')">발행</button>')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docF('+i+')">문서</button> <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="detF('+i+')">Detail</button></td></tr>';}).join('');
   var vRows=(s.invoices||[]).map(function(V){
-    return '<tr><td>'+flagTd(V.country)+'</td><td>'+esc(V.title)+'</td><td>'+(V.member_ids||[]).length+'</td><td>'+(V.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending</span>')+'</td><td>'+(V.no?esc(V.no):'—')+'</td><td>'+esc(V.account||'—')+'</td><td>'+(V.status==='approved'?'<button class="btn r" style="padding:4px 9px;font-size:11px" onclick="revokeV('+V.id+')">Revoke</button>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="approveV('+V.id+')">Approve</button>')+' <button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editInv('+V.id+')">편집</button> <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docV('+V.id+')">문서</button></td></tr>';}).join('');
+    return '<tr><td>'+flagTd(V.country)+'</td><td>'+esc(V.title)+'</td><td>'+(V.member_ids||[]).length+'</td><td>'+(V.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending</span>')+'</td><td>'+(V.no?esc(V.no):'—')+'</td><td>'+esc(V.account||'—')+'</td><td>'+(V.status==='approved'?'<button class="btn r" style="padding:4px 9px;font-size:11px" onclick="revokeV('+V.id+')">Revoke</button>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="approveV('+V.id+')">Approve</button>')+' <button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editInv('+V.id+')">편집</button>'+(vEdited(V)?' <button class="btn" style="padding:4px 9px;font-size:11px;background:#8A5A10" title="'+(V.edit_note?'수정 사유 보기/수정':'수정 사유 미작성')+'" onclick="vNoteOpen('+V.id+',\''+'note'+'\')">📝 사유'+(V.edit_note?'':' <b>!</b>')+'</button>':'')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docV('+V.id+')">문서</button></td></tr>';}).join('');
   var aRows=s.npc_accounts.map(function(a){return '<tr><td>'+flagTd(a.country)+'</td><td>'+esc(a.email||'')+'</td><td>'+(a.active?'<span class="tag g">active</span>':'<span class="tag y">inactive</span>')+'</td><td><button class="btn y" style="padding:4px 9px;font-size:11px" onclick="sendResetMail(\''+a.country+'\')">Send reset link</button> <button class="btn r" style="padding:4px 9px;font-size:11px" onclick="resetCountry(\''+a.country+'\')">계정 리셋</button></td></tr>';}).join('');
   var rosterRows=s.members.map(function(m){return '<tr><td>'+flagTd(m.country)+'</td><td>'+esc(memName(m))+'</td><td>'+esc(m.position||'')+'</td><td>'+esc(m.sub_group||'')+'</td><td>'+esc(m.passport||'')+'</td><td>'+esc(m.arrive||'')+' ~ '+esc(m.depart||'')+'</td><td>'+esc(m.room||'')+'</td><td>'+esc(m.wheelchair||'')+'</td></tr>';}).join('');
   var b0=bankS(s),p0=pricingS(s);
@@ -530,8 +530,30 @@ async function approveInv(id){var s=dataS();var L=s.invitations.find(function(x)
   if(LIVE){var reg=await issueDocno('invitation',L.country,L.title||'Entire delegation','invitations',id);if(reg==null)return;await sbc.from('invitations').update({reg_no:reg,status:'approved',approved_at:today()}).eq('id',id);}else{L.reg_no=mockIssue(s,'invitation',L.country,L.title,'invitations',id);L.status='approved';L.approved_at=today();mS(s);}scrMain();}
 async function revokeInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.id===id});if(!L)return;if(!confirm('승인을 취소할까요?'))return;
   if(LIVE){await sbc.from('invitations').update({status:'pending',no:'',approved_at:''}).eq('id',id);}else{L.status='pending';L.no='';L.approved_at='';mS(s);}scrMain();}
-async function approveV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var no=prompt('인보이스 번호 (숫자)',nextNo(s.invoices||[]));if(no==null)return;var acct=prompt('납부 계좌번호 (Banking Information에 기재 · 기본값=관리 계좌)',bankS(s).account);if(acct==null)return;
-  if(LIVE){var reg=await issueDocno('invoice',V.country,'CW26INV-'+no,'invoices',id);if(reg==null)return;await sbc.from('invoices').update({no:no,account:acct,reg_no:reg,status:'approved',approved_at:today()}).eq('id',id);}else{V.no=no;V.account=acct;V.reg_no=mockIssue(s,'invoice',V.country,'CW26INV-'+no,'invoices',id);V.status='approved';V.approved_at=today();mS(s);}scrMain();}
+/* ===== 인보이스 수정 사유 (관리자 수정 → 승인 시 필수 · NPC 공개) ===== */
+function vEdited(V){return !!(V&&(V.edited_at||V.doc_html));}
+function vNoteBox(V){if(!V||!V.edit_note)return '';
+ return '<div style="background:#FFF6E5;border:1px solid #E0A44A;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;line-height:1.65"><b style="color:#8A5A10">\uD83D\uDCDD 수정 사유 — 해당 NPC에게 공개됨</b><div style="margin-top:3px">'+esc(V.edit_note).replace(/\n/g,'<br>')+'</div></div>';}
+var _vnId=0;
+function vNoteOpen(id,mode){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;_vnId=id;
+ infoModal('수정 사유 입력 — '+esc(V.country)+' · '+esc(V.title||''),
+  '<p class="muted" style="font-size:12px;margin:0 0 8px;line-height:1.65">이 인보이스는 조직위가 내용을 수정했습니다. 여기에 적은 사유는 <b>해당 NPC 계정의 인보이스 미리보기에 그대로 표시</b>됩니다. 각국 담당자가 읽으므로 <b>영문 작성을 권장</b>합니다.</p>'+
+  '<textarea id="vn_t" style="width:100%;min-height:130px;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13px;line-height:1.6" placeholder="e.g. Accommodation nights corrected from 8 to 7 based on the arrival date in your roster.">'+esc(V.edit_note||'')+'</textarea>'+
+  '<div class="row" style="margin-top:10px;gap:8px"><button class="btn sec" onclick="document.getElementById(String.fromCharCode(100,109)).remove()">취소</button><button class="btn g" style="margin-left:auto" onclick="vNoteOk('+String.fromCharCode(39)+mode+String.fromCharCode(39)+')">'+(mode==='approve'?'저장 후 승인 계속 &rarr;':'사유 저장')+'</button></div>');}
+async function vNoteOk(mode){var el=document.getElementById('vn_t');var t=(el&&el.value||'').trim();
+ if(!t){alert('수정 사유를 입력해 주세요. (NPC가 읽게 됩니다)');return;}
+ var dm=document.getElementById('dm');if(dm)dm.remove();
+ if(mode==='approve'){await approveV2(_vnId,t);return;}
+ if(LIVE){var r=await sbc.from('invoices').update({edit_note:t}).eq('id',_vnId);if(r.error){alert('저장 실패: '+r.error.message+'\n\n(컬럼이 없다면 invoice_edit_note_migration.sql 을 Supabase에서 먼저 실행하세요)');return;}try{await fetchAll();}catch(e){}}
+ else{var st=mL();var W=(st.invoices||[]).find(function(x){return x.id===_vnId});if(W)W.edit_note=t;mS(st);}
+ alert('수정 사유가 저장되었습니다. \u2714');scrMain();}
+async function approveV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;
+  if(vEdited(V)){vNoteOpen(id,'approve');return;}
+  await approveV2(id,null);}
+async function approveV2(id,note){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var no=prompt('인보이스 번호 (숫자)',nextNo(s.invoices||[]));if(no==null)return;var acct=prompt('납부 계좌번호 (Banking Information에 기재 · 기본값=관리 계좌)',bankS(s).account);if(acct==null)return;
+  var pay={no:no,account:acct,status:'approved',approved_at:today()};if(note!=null)pay.edit_note=note;
+  if(LIVE){var reg=await issueDocno('invoice',V.country,'CW26INV-'+no,'invoices',id);if(reg==null)return;pay.reg_no=reg;var r=await sbc.from('invoices').update(pay).eq('id',id);if(r&&r.error){alert('승인 실패: '+r.error.message+'\n\n(컬럼이 없다면 invoice_edit_note_migration.sql 을 Supabase에서 먼저 실행하세요)');return;}}
+  else{V.no=no;V.account=acct;V.reg_no=mockIssue(s,'invoice',V.country,'CW26INV-'+no,'invoices',id);V.status='approved';V.approved_at=today();if(note!=null)V.edit_note=note;mS(s);}scrMain();}
 async function revokeV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;if(!confirm('승인을 취소할까요?'))return;
   if(LIVE){await sbc.from('invoices').update({status:'pending',no:'',account:'',approved_at:''}).eq('id',id);}else{V.status='pending';V.no='';V.account='';V.approved_at='';mS(s);}scrMain();}
 async function issueF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');if(x.reg_no){alert('이미 발행됨: '+docNoFmt(x.reg_no));return;}if(!confirm('총기정보제출확인서를 발행하고 문서장부에 등재할까요?'))return;if(LIVE){var reg=await issueDocno('firearms',x.country,sc,'firearm_submissions',x.country+'/'+sc);if(reg==null)return;await sbc.from('firearm_submissions').update({reg_no:reg,issued_at:today()}).eq('country',x.country).eq('grp',x.grp);}else{x.reg_no=mockIssue(s,'firearms',x.country,sc,'firearm_submissions',x.country+'/'+sc);x.issued_at=today();mS(s);}scrMain();}
@@ -700,8 +722,8 @@ function edSet(i,k,v){if(_ed[i]){_ed[i][k]=v;edPrev();}}
 function edDel(i){_ed.splice(i,1);var el=document.getElementById('edrows');if(el)el.innerHTML=edRowsHtml();edPrev();}
 function edAdd(){_ed.push({sec:'Other',d:'',s:'',q:'',m:'',p:'',t:0});var el=document.getElementById('edrows');if(el){el.innerHTML=edRowsHtml();el.scrollTop=el.scrollHeight;}edPrev();}
 async function edSave(){
-  if(LIVE){var r=await sbc.from('invoices').update({items:_ed}).eq('id',_edId);if(r.error){alert('저장 실패: '+r.error.message);return;}}
-  else{var s=mL();var V=(s.invoices||[]).find(function(x){return x.id===_edId});if(V)V.items=_ed;mS(s);}
+  if(LIVE){var r=await sbc.from('invoices').update({items:_ed,edited_at:today()}).eq('id',_edId);if(r.error){alert('저장 실패: '+r.error.message);return;}}
+  else{var s=mL();var V=(s.invoices||[]).find(function(x){return x.id===_edId});if(V){V.items=_ed;V.edited_at=today();}mS(s);}
   var dm=document.getElementById('dm');if(dm)dm.remove();alert('인보이스 항목이 저장되었습니다.');scrMain();}
 /* ===== 초청장 내용 편집기 (승인 전 수정) ===== */
 var _let=null,_letId=0,_letL=null;
@@ -830,14 +852,14 @@ async function deSave(alsoIssue){if(!_DE)return;mdFullSync();
  var src=_DE.src,html=_DE.html,s=dataS();
  if(LIVE){var r=null;
   if(src.kind==='invitation'){r=await sbc.from('invitations').update({doc_html:html}).eq('id',src.id);}
-  else if(src.kind==='invoice'){r=await sbc.from('invoices').update({doc_html:html}).eq('id',src.id);}
+  else if(src.kind==='invoice'){r=await sbc.from('invoices').update({doc_html:html,edited_at:today()}).eq('id',src.id);}
   else if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];if(!x){alert('문서를 찾을 수 없습니다.');return;}r=await sbc.from('firearm_submissions').update({doc_html:html}).eq('country',x.country).eq('grp',x.grp);}
   else if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(y){return y.id===src.id});var p=Object.assign({},(m&&m.payload)||{},{fullEdit:true,fullhtml:html});r=await sbc.from('manual_docs').update({payload:p}).eq('id',src.id);}
   if(r&&r.error){alert('저장 실패: '+r.error.message+'\n\n(컬럼이 없다면 doc_html_migration.sql 을 Supabase에서 먼저 실행하세요)');return;}
   try{await fetchAll();}catch(e){}
  }else{var st=mL();
   if(src.kind==='invitation'){var L=(st.invitations||[]).find(function(y){return y.id===src.id});if(L)L.doc_html=html;}
-  else if(src.kind==='invoice'){var V=(st.invoices||[]).find(function(y){return y.id===src.id});if(V)V.doc_html=html;}
+  else if(src.kind==='invoice'){var V=(st.invoices||[]).find(function(y){return y.id===src.id});if(V){V.doc_html=html;V.edited_at=today();}}
   else if(src.kind==='firearms'){var f=st.firearm_submissions[src.i];if(f)f.doc_html=html;}
   else if(src.kind==='manual'){var mm=(st.manual_docs||[]).find(function(y){return y.id===src.id});if(mm){mm.payload=Object.assign({},mm.payload||{},{fullEdit:true,fullhtml:html});}}
   mS(st);}
@@ -884,8 +906,8 @@ function invoiceDocA(V,itemsOverride,idOpt){var s=dataS();var isA=V.status==='ap
   itemsToTableA(items)+
   (isA?'':'<p>This is a <b>draft invoice request</b>. Amounts and Banking Information are entered by the OC upon approval.</p>')+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(V.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'')})+'</div>';}
 function docV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var isA=V.status==='approved';
-  if(V.doc_html){var b0=bankS(s);_DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),'<div class="doc" id="adm_doc">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+V.doc_html+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b0.bank)+'<br>SWIFT Code: '+esc(b0.swift)+'<br>Account Holder: '+esc(b0.holder)+'<br>Account No.: '+esc(V.account||b0.account)+'<br>Address: '+esc(b0.addr)+'</div>':'')})+'</div>');return;}
-  _DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),invoiceDocA(V,null,'adm_doc'));}
+  if(V.doc_html){var b0=bankS(s);_DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),vNoteBox(V)+'<div class="doc" id="adm_doc">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+V.doc_html+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b0.bank)+'<br>SWIFT Code: '+esc(b0.swift)+'<br>Account Holder: '+esc(b0.holder)+'<br>Account No.: '+esc(V.account||b0.account)+'<br>Address: '+esc(b0.addr)+'</div>':'')})+'</div>');return;}
+  _DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),vNoteBox(V)+invoiceDocA(V,null,'adm_doc'));}
 function ammoOfA(s,c){try{var r=(s.invoice_addresses||[]).find(function(a){return a.country===c&&a.grp==='*AMMO*'});if(r&&r.addr)return JSON.parse(r.addr);}catch(e){}return null;}
 function ammoRowsA(a){var has=a&&(((+a.p)||0)>0||((+a.b)||0)>0);
  if(!has)return '<tr><td colspan="2" style="color:#888">No ammunition declared.</td></tr>';
