@@ -259,7 +259,7 @@ async function scrMain(){
   var fAllRows=s.firearms.map(function(g){return '<tr><td><b>'+esc(g.country)+'</b></td><td>'+esc(g.owner)+'</td><td>'+esc(g.manufacturer)+'</td><td>'+esc(g.model)+'</td><td>'+esc(g.serial)+'</td><td>'+esc(g.type)+'</td><td>'+esc(g.caliber)+'</td><td>'+((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2')+'</td></tr>';}).join('');
   var FSTAT='<div class="stats" style="margin-bottom:10px"><div class="stat"><b>'+s.firearms.length+'</b><span>총 등록 총기</span></div>'+Object.keys(ftypes).map(function(t){return '<div class="stat"><b>'+ftypes[t]+'</b><span>'+esc(t)+'</span></div>'}).join('')+'</div>'+
    '<div class="tbl" style="margin-bottom:12px"><table><thead><tr><th>NPC</th><th>총기</th><th>Air</th><th>.22</th><th>Shotgun</th><th>사진 완료</th></tr></thead><tbody>'+(fcRows||'<tr><td colspan="6" class="muted">None.</td></tr>')+'</tbody></table></div>'+
-   '<div class="edsec" style="margin:4px 0 4px">전체 총기 목록</div><div class="tbl"><table><thead><tr><th>NPC</th><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+(fAllRows||'<tr><td colspan="8" class="muted">None.</td></tr>')+'</tbody></table></div>';
+   '<div class="edsec" style="margin:4px 0 4px">전체 총기 목록 <button class="btn sec" style="padding:3px 10px;font-size:12px;margin-left:8px" onclick="fstatXls()">⬇ 엑셀 다운로드</button></div><div class="tbl"><table><thead><tr><th>NPC</th><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+(fAllRows||'<tr><td colspan="8" class="muted">None.</td></tr>')+'</tbody></table></div>';
   var revA=0,revP=0,revCols=[],revColIdx={},revRws=[];
   (s.invoices||[]).forEach(function(V){var items=invItemsOf(V,s).filter(function(b){return !isOnsite(b)});var t=items.reduce(function(a,b){return a+(+b.t||0)},0);var appr=V.status==='approved';
     if(appr)revA+=t;else revP+=t;
@@ -295,6 +295,28 @@ async function scrMain(){
   if(_openSec&&_SEC[_openSec])openSec(_openSec);
 }
 var _REGVIEW=[];
+function fstatXls(){
+ var s=dataS();var rows=(s.firearms||[]).slice().sort(function(a,b){return String(a.country+'|'+a.owner).localeCompare(String(b.country+'|'+b.owner));});
+ if(!rows.length){alert('등록된 총기가 없습니다.');return;}
+ var hdr=['No.','NPC','Owner','Manufacturer','Model','Serial No.','Type','Caliber','Photos','Photo (Full) URL','Photo (Serial) URL'];
+ var data=rows.map(function(g,i){return [i+1,g.country||'',g.owner||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||'',((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),g.photo_full||'',g.photo_num||''];});
+ var fn='Changwon2026_Firearms_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx';
+ function build(){
+  var ws=XLSX.utils.aoa_to_sheet([hdr].concat(data));
+  ws['!cols']=[{wch:5},{wch:6},{wch:26},{wch:18},{wch:16},{wch:16},{wch:12},{wch:9},{wch:7},{wch:46},{wch:46}];
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Firearms');
+  XLSX.writeFile(wb,fn);
+ }
+ if(window.XLSX){build();return;}
+ var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+ sc.onload=build;
+ sc.onerror=function(){
+  var q=function(v){v=String(v==null?'':v);return '"'+v.replace(/"/g,'""')+'"';};
+  var csv='\uFEFF'+[hdr].concat(data).map(function(r){return r.map(q).join(',');}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=fn.replace('.xlsx','.csv');a.click();
+ };
+ document.head.appendChild(sc);
+}
 function TNMANUAL(t){return ({invitation:'초청장',invitation_official:'초청장(사증)',invoice:'인보이스',firearms:'총기확인서',custom:'기타'})[t]||t;}
 var MD_TPL={
  invitation:{tbl:['Full Name','Position','Date of Birth','Period of Stay','Passport No.','Passport Expiry'],slots:[
