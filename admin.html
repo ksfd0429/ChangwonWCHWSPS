@@ -104,12 +104,12 @@ var SVC_KEY='';var sbAdmin=null; // service_role (런타임 입력, 메모리 �
 var _S=null;
 async function fetchAll(){
   if(!LIVE){_S=mL();return _S;}
-  var out={};var ts=['activation_requests','npc_directory','members','invitations','firearms','firearm_submissions','invoices','oc_settings','doc_register','manual_docs','invoice_addresses'];
+  var out={};var ts=['activation_requests','npc_directory','members','invitations','firearms','firearm_submissions','invoices','oc_settings','doc_register','manual_docs','invoice_addresses','ammo_products','ammo_survey','ammo_survey_meta'];
   pbStart(ts.length);
   for(var i=0;i<ts.length;i++){var r=await sbc.from(ts[i]).select('*');out[ts[i]]=r.data||[];pbStep();}
   out.npc_accounts=out.npc_directory;out.invoices=out.invoices||[];out.manual_docs=out.manual_docs||[];
   _S=out;return out;}
-function dataS(){return LIVE?(_S||{npc_accounts:[],activation_requests:[],members:[],invitations:[],firearms:[],firearm_submissions:[],invoices:[],oc_settings:[],manual_docs:[],invoice_addresses:[]}):mL();}
+function dataS(){var d=LIVE?(_S||{npc_accounts:[],activation_requests:[],members:[],invitations:[],firearms:[],firearm_submissions:[],invoices:[],oc_settings:[],manual_docs:[],invoice_addresses:[]}):mL();d.ammo_products=d.ammo_products||[];d.ammo_survey=d.ammo_survey||[];d.ammo_survey_meta=d.ammo_survey_meta||[];return d;}
 /* 관리자 인증 = Supabase Auth 계정(admins 테이블 등록자). service key는 계정 작업·비상 접속 시에만 입력. */
 var CUR_ADMIN=null;
 var PORTAL_BASE=(location.origin+location.pathname.replace(/[^/]*$/,'')); // 초대·리셋 링크가 되돌아올 포털 주소(하위 경로 포함)
@@ -275,13 +275,50 @@ async function scrMain(){
    '<div class="stat"><b style="color:#16456B">'+usdF(revA+revP)+'</b><span>총 예정 수입</span></div></div>'+
    (revRws.length?'<div class="tbl"><table class="rvt revm"><thead>'+revHead1+revHead2+'</thead><tbody>'+revBody+'</tbody></table></div>':'<p class="muted" style="font-size:12.5px">인보이스가 없습니다.</p>')+
    '<p class="muted" style="font-size:11px;margin:8px 0 0">행 = 인보이스 · 열 = 청구 항목 · 열 상단 = 항목별 합계. 노란 배경 행은 승인 대기. 금액은 항목 스냅샷(없으면 현재 단가 자동 계산) 기준.</p>';
-  _SEC={act:{t:'0. Account activation requests',h:ACT},inv:{t:'1. Invitation letters',h:INV},f:{t:'2. Firearm submission confirmations',h:FR},v:{t:'3. Invoices',h:VC},bank:{t:'Banking information (납부 계좌 관리)',h:BANK},price:{t:'Invoice pricing (단가 관리)',h:PRICE},acc:{t:'NPC accounts',h:ACC},roster:{t:'All delegations roster ('+s.members.length+')',h:ROSTER},pstat:{t:'참가자 총 현황',h:PSTAT},fstat:{t:'총기 총 현황',h:FSTAT},rev:{t:'수입 총현황 (예정 수입)',h:REV}};
+  var _amRows=s.ammo_survey||[],_amMeta=s.ammo_survey_meta||[],_amProd=s.ammo_products||[];
+  var pAM=_amMeta.filter(function(x){return x.status==='submitted';}).length;
+  var _amCfg={open:false,deadline:'',daily_cap:400,pack:250};
+  try{var _c=(s.oc_settings||[]).filter(function(x){return x.key==='ammo_survey';})[0];if(_c){_amCfg=Object.assign(_amCfg,(typeof _c.value==='string')?JSON.parse(_c.value):_c.value);}}catch(e){}
+  var _amP={};_amProd.forEach(function(p){_amP[p.id]=p;});
+  function _amUnit(id){var p=_amP[id];return p?(+p.price_eur)/((+p.pack)||250):0;}
+  function _amEur(n){return '€ '+(Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  var _amByC={};
+  _amRows.forEach(function(r){var o=_amByC[r.country]||(_amByC[r.country]={r:0,e:0,ath:{}});o.r+=(+r.rounds)||0;o.e+=((+r.rounds)||0)*_amUnit(r.product_id);o.ath[r.member_id]=1;});
+  _amMeta.forEach(function(m){_amByC[m.country]=_amByC[m.country]||{r:0,e:0,ath:{}};});
+  var _amCList=Object.keys(_amByC).sort();
+  var _amTotR=0,_amTotE=0;_amCList.forEach(function(c){_amTotR+=_amByC[c].r;_amTotE+=_amByC[c].e;});
+  var _amSubR=0;_amMeta.forEach(function(m){if(m.status==='submitted'&&_amByC[m.country])_amSubR+=_amByC[m.country].r;});
+  var _amProdAgg={};_amRows.forEach(function(r){_amProdAgg[r.product_id]=(_amProdAgg[r.product_id]||0)+((+r.rounds)||0);});
+  var AMMO='<div class="card"><div class="row"><b>산탄 실탄 수요조사 · Shotgun ammunition demand survey</b>'+
+   '<span class="tag '+(_amCfg.open?'g':'y')+'" style="margin-left:auto">'+(_amCfg.open?'각국 공개 중 (open)':'비공개 (closed)')+'</span>'+
+   '<button class="btn '+(_amCfg.open?'r':'g')+'" style="padding:5px 12px;font-size:12px;margin-left:8px" onclick="amToggle('+(_amCfg.open?'false':'true')+')">'+(_amCfg.open?'수요조사 닫기':'수요조사 열기')+'</button></div>'+
+   '<div class="stats" style="margin-top:10px">'+
+   '<div class="stat"><b>'+pAM+' / '+_amCList.length+'</b><span>제출 국가</span></div>'+
+   '<div class="stat"><b>'+_amSubR.toLocaleString()+'</b><span>제출분 발수</span></div>'+
+   '<div class="stat"><b>'+_amTotR.toLocaleString()+'</b><span>초안 포함 발수</span></div>'+
+   '<div class="stat"><b>'+_amEur(_amTotE)+'</b><span>탄약 금액만</span></div></div>'+
+   '<p class="muted" style="font-size:11.5px;margin:6px 0 0">금액은 <b>탄약 대금만</b>이며 <b>운송비는 미포함·미정</b>입니다. 발주 시 250발 케이스 단위 환산이 필요합니다. 마감 '+esc(_amCfg.deadline||'—')+'</p>'+
+   '<div class="row" style="margin-top:10px"><button class="btn sec" style="padding:4px 11px;font-size:12px" onclick="amXls()">⬇ 엑셀 다운로드</button></div></div>'+
+   '<div class="card"><b>국가별 제출 현황</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>NPC</th><th>선수</th><th>발수</th><th>케이스(250)</th><th>탄약 금액</th><th>상태</th><th>제출일</th><th>문서번호</th></tr></thead><tbody>'+
+   (_amCList.length?_amCList.map(function(c){
+     var o=_amByC[c];var m=_amMeta.filter(function(x){return x.country===c;})[0]||{};
+     var st=m.status==='submitted'?'<span class="tag g">제출</span>':(m.status==='received'?'<span class="tag b">접수</span>':'<span class="tag y">작성 중</span>');
+     return '<tr><td><b>'+esc(c)+'</b></td><td>'+Object.keys(o.ath).length+'</td><td><b>'+o.r.toLocaleString()+'</b></td><td>'+(o.r/((+_amCfg.pack)||250)).toFixed(1)+'</td><td>'+_amEur(o.e)+'</td><td>'+st+'</td><td>'+esc(String(m.submitted_at||'').slice(0,10))+'</td><td>'+esc(m.doc_no||m.remarks||'')+'</td></tr>';}).join('')
+    :'<tr><td colspan="8" class="muted">아직 제출된 수요조사가 없습니다.</td></tr>')+
+   '</tbody></table></div></div>'+
+   '<div class="card"><b>제품별 집계 (발주용)</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>제품</th><th>발수</th><th>케이스(250)</th><th>금액</th></tr></thead><tbody>'+
+   (Object.keys(_amProdAgg).length?Object.keys(_amProdAgg).sort(function(a,b){return _amProdAgg[b]-_amProdAgg[a];}).map(function(id){
+     var p=_amP[id]||{name:'?',price_eur:0,pack:250};var n=_amProdAgg[id];
+     return '<tr><td><b>'+esc(p.name)+'</b></td><td>'+n.toLocaleString()+'</td><td>'+(n/((+p.pack)||250)).toFixed(1)+'</td><td>'+_amEur(n*_amUnit(id))+'</td></tr>';}).join('')
+    :'<tr><td colspan="4" class="muted">집계할 내역이 없습니다.</td></tr>')+
+   '</tbody></table></div></div>';
+  _SEC={ammo:{t:'산탄 실탄 수요조사',h:AMMO},act:{t:'0. Account activation requests',h:ACT},inv:{t:'1. Invitation letters',h:INV},f:{t:'2. Firearm submission confirmations',h:FR},v:{t:'3. Invoices',h:VC},bank:{t:'Banking information (납부 계좌 관리)',h:BANK},price:{t:'Invoice pricing (단가 관리)',h:PRICE},acc:{t:'NPC accounts',h:ACC},roster:{t:'All delegations roster ('+s.members.length+')',h:ROSTER},pstat:{t:'참가자 총 현황',h:PSTAT},fstat:{t:'총기 총 현황',h:FSTAT},rev:{t:'수입 총현황 (예정 수입)',h:REV}};
   function navb(k,label,n){return '<button class="snb" onclick="openSec(\''+k+'\')"><span>'+label+'</span>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';}
   stage('<div class="alayout"><div class="snav">'+
    '<button class="snb" style="border-color:var(--acc);color:var(--acc)" onclick="scrMain()"><span>⟳ 대시보드 새로고침</span></button>'+
    '<div class="sngl">계정 관리</div>'+navb('act','활성화 요청',pA)+navb('acc','NPC 계정',0)+
    '<div class="sngl">문서 심사</div>'+navb('inv','초청장',pInv)+navb('f','총기 확인서',pF)+navb('v','인보이스',pV)+
-   '<div class="sngl">현황 · 통계</div>'+navb('pstat','참가자 총 현황',0)+navb('fstat','총기 총 현황',0)+navb('rev','수입 총현황',0)+navb('roster','전체 명단',0)+
+   '<div class="sngl">현황 · 통계</div>'+navb('pstat','참가자 총 현황',0)+navb('fstat','총기 총 현황',0)+navb('ammo','🧨 산탄 실탄 수요조사',pAM)+navb('rev','수입 총현황',0)+navb('roster','전체 명단',0)+
    '<div class="sngl">설정</div>'+navb('bank','납부 계좌',0)+navb('price','단가 관리',0)+
    '</div><div class="amain">'+
    '<div class="card"><h3>Overview</h3><div class="stats">'+
@@ -317,6 +354,34 @@ function fstatXls(){
  };
  document.head.appendChild(sc);
 }
+async function amToggle(open){
+ if(!confirm(open?'수요조사를 각국에 공개합니다. 계속할까요?':'수요조사를 비공개로 전환합니다. 계속할까요?'))return;
+ var s=dataS();var cur={open:false,deadline:'2026-08-17',currency:'EUR',daily_cap:400,step:25,pack:250};
+ try{var c=(s.oc_settings||[]).filter(function(x){return x.key==='ammo_survey';})[0];if(c)cur=Object.assign(cur,(typeof c.value==='string')?JSON.parse(c.value):c.value);}catch(e){}
+ cur.open=!!open;
+ if(!(await needSvc()))return;
+ var r=await sbAdmin.from('oc_settings').upsert({key:'ammo_survey',value:JSON.stringify(cur)},{onConflict:'key'});
+ if(r&&r.error){alert(r.error.message);return;}
+ await fetchAll();scrMain();openSec('ammo');}
+function amXls(){
+ var s=dataS();var P={};(s.ammo_products||[]).forEach(function(p){P[p.id]=p;});
+ var M={};(s.ammo_survey_meta||[]).forEach(function(m){M[m.country]=m;});
+ var mem={};(s.members||[]).forEach(function(m){mem[m.id]=((m.first_name||'')+' '+(m.last_name||'')).trim();});
+ var hdr=['NPC','Athlete','Member ID','Use date','Product','Rounds','Cases(250)','Amount (EUR)','Status','Submitted at'];
+ var rows=(s.ammo_survey||[]).slice().sort(function(a,b){return (a.country+a.use_date)<(b.country+b.use_date)?-1:1;}).map(function(r){
+  var p=P[r.product_id]||{name:'',price_eur:0,pack:250};var m=M[r.country]||{};
+  var amt=((+r.rounds)||0)*((+p.price_eur)/((+p.pack)||250));
+  return [r.country,mem[r.member_id]||'',r.member_id,r.use_date,p.name,r.rounds,((+r.rounds)/((+p.pack)||250)).toFixed(2),amt.toFixed(2),m.status||'draft',String(m.submitted_at||'').slice(0,10)];});
+ if(!rows.length){alert('내려받을 내역이 없습니다.');return;}
+ var fn='Changwon2026_AmmoSurvey_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx';
+ function build(){var ws=XLSX.utils.aoa_to_sheet([hdr].concat(rows));ws['!cols']=[{wch:6},{wch:26},{wch:10},{wch:12},{wch:22},{wch:9},{wch:11},{wch:13},{wch:11},{wch:12}];
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'AmmoSurvey');XLSX.writeFile(wb,fn);}
+ if(window.XLSX){build();return;}
+ var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';sc.onload=build;
+ sc.onerror=function(){var q=function(v){v=String(v==null?'':v);return '"'+v.replace(/"/g,'""')+'"';};
+  var csv='﻿'+[hdr].concat(rows).map(function(r){return r.map(q).join(',');}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=fn.replace('.xlsx','.csv');a.click();};
+ document.head.appendChild(sc);}
 function TNMANUAL(t){return ({invitation:'초청장',invitation_official:'초청장(사증)',invoice:'인보이스',firearms:'총기확인서',custom:'기타'})[t]||t;}
 var MD_TPL={
  invitation:{tbl:['Full Name','Position','Date of Birth','Period of Stay','Passport No.','Passport Expiry'],slots:[
