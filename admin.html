@@ -277,7 +277,7 @@ async function scrMain(){
    '<p class="muted" style="font-size:11px;margin:8px 0 0">행 = 인보이스 · 열 = 청구 항목 · 열 상단 = 항목별 합계. 노란 배경 행은 승인 대기. 금액은 항목 스냅샷(없으면 현재 단가 자동 계산) 기준.</p>';
   var _amRows=s.ammo_survey||[],_amMeta=s.ammo_survey_meta||[],_amProd=s.ammo_products||[];
   var pAM=_amMeta.filter(function(x){return x.status==='submitted';}).length;
-  var _amCfg={open:false,deadline:'',daily_cap:400,pack:250};
+  var _amCfg={open:false,deadline:'',pack:250};
   try{var _c=(s.oc_settings||[]).filter(function(x){return x.key==='ammo_survey';})[0];if(_c){_amCfg=Object.assign(_amCfg,(typeof _c.value==='string')?JSON.parse(_c.value):_c.value);}}catch(e){}
   var _amP={};_amProd.forEach(function(p){_amP[p.id]=p;});
   function _amUnit(id){var p=_amP[id];return p?(+p.price_eur)/((+p.pack)||250):0;}
@@ -356,7 +356,7 @@ function fstatXls(){
 }
 async function amToggle(open){
  if(!confirm(open?'수요조사를 각국에 공개합니다. 계속할까요?':'수요조사를 비공개로 전환합니다. 계속할까요?'))return;
- var s=dataS();var cur={open:false,deadline:'2026-08-17',currency:'EUR',daily_cap:400,step:25,pack:250};
+ var s=dataS();var cur={open:false,deadline:'2026-08-17',currency:'EUR',step:25,pack:250};
  try{var c=(s.oc_settings||[]).filter(function(x){return x.key==='ammo_survey';})[0];if(c)cur=Object.assign(cur,(typeof c.value==='string')?JSON.parse(c.value):c.value);}catch(e){}
  cur.open=!!open;
  if(!(await needSvc()))return;
@@ -367,14 +367,14 @@ function amXls(){
  var s=dataS();var P={};(s.ammo_products||[]).forEach(function(p){P[p.id]=p;});
  var M={};(s.ammo_survey_meta||[]).forEach(function(m){M[m.country]=m;});
  var mem={};(s.members||[]).forEach(function(m){mem[m.id]=((m.first_name||'')+' '+(m.last_name||'')).trim();});
- var hdr=['NPC','Athlete','Member ID','Use date','Product','Rounds','Cases(250)','Amount (EUR)','Status','Submitted at'];
- var rows=(s.ammo_survey||[]).slice().sort(function(a,b){return (a.country+a.use_date)<(b.country+b.use_date)?-1:1;}).map(function(r){
+ var hdr=['NPC','Athlete','Member ID','Product','Rounds','Cases(250)','Amount (EUR)','Status','Submitted at'];
+ var rows=(s.ammo_survey||[]).slice().sort(function(a,b){return (a.country+'|'+a.member_id+'|'+a.product_id)<(b.country+'|'+b.member_id+'|'+b.product_id)?-1:1;}).map(function(r){
   var p=P[r.product_id]||{name:'',price_eur:0,pack:250};var m=M[r.country]||{};
   var amt=((+r.rounds)||0)*((+p.price_eur)/((+p.pack)||250));
-  return [r.country,mem[r.member_id]||'',r.member_id,r.use_date,p.name,r.rounds,((+r.rounds)/((+p.pack)||250)).toFixed(2),amt.toFixed(2),m.status||'draft',String(m.submitted_at||'').slice(0,10)];});
+  return [r.country,mem[r.member_id]||'',r.member_id,p.name,r.rounds,((+r.rounds)/((+p.pack)||250)).toFixed(2),amt.toFixed(2),m.status||'draft',String(m.submitted_at||'').slice(0,10)];});
  if(!rows.length){alert('내려받을 내역이 없습니다.');return;}
  var fn='Changwon2026_AmmoSurvey_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx';
- function build(){var ws=XLSX.utils.aoa_to_sheet([hdr].concat(rows));ws['!cols']=[{wch:6},{wch:26},{wch:10},{wch:12},{wch:22},{wch:9},{wch:11},{wch:13},{wch:11},{wch:12}];
+ function build(){var ws=XLSX.utils.aoa_to_sheet([hdr].concat(rows));ws['!cols']=[{wch:6},{wch:26},{wch:10},{wch:22},{wch:9},{wch:11},{wch:13},{wch:11},{wch:12}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'AmmoSurvey');XLSX.writeFile(wb,fn);}
  if(window.XLSX){build();return;}
  var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';sc.onload=build;
