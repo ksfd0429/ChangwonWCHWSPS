@@ -111,6 +111,7 @@ th{background:var(--navy);color:#fff;font-weight:600}
 .l2{display:block;font-size:.78em;opacity:.7;font-weight:400;margin-top:1px}
 [dir=rtl] input,[dir=rtl] select{text-align:right}
 [dir=rtl] .l2{unicode-bidi:plaintext}
+.l2i{font-size:.82em;opacity:.62;font-weight:400;unicode-bidi:plaintext}
 .doc{direction:ltr;text-align:left}
 .ainote{background:#FFF9E8;border:1px solid #E8D48A;border-radius:10px;padding:8px 12px;font-size:11.5px;line-height:1.55;margin-bottom:10px;color:#7A6520}
 .ainote .l2{opacity:.65}
@@ -160,6 +161,24 @@ function cfgOk(){return sb && SUPABASE_URL.indexOf('YOUR-PROJECT')<0 && SUPABASE
 var NPC_LANG={ARG:'es',AUS:'en',AUT:'de',AZE:'az',BHU:'dz',BIH:'bs',BRA:'pt',BUL:'bg',CAN:'en',CHI:'es',CHN:'zh-CN',COL:'es',CRC:'es',CRO:'hr',CUB:'es',CYP:'el',CZE:'cs',DEN:'da',EGY:'ar',ESP:'es',FIN:'fi',FRA:'fr',GBR:'en',GEO:'ka',GER:'de',GRE:'el',HKG:'zh-HK',HUN:'hu',INA:'id',IND:'en',IRI:'fa',IRQ:'ar',ISL:'is',ISR:'he',ITA:'it',JPN:'ja',KAZ:'kk',KEN:'sw',KOR:'ko',KUW:'ar',LAT:'lv',LTU:'lt',LUX:'lb',MAS:'ms',MEX:'es',MGL:'mn',MKD:'mk',MLT:'mt',MNE:'cnr',NED:'nl',NGA:'en',NOR:'nb',NZL:'en',PAN:'es',PER:'es',POL:'pl',POR:'pt',PUR:'es',ROU:'ro',RSA:'en',RUS:'ru',SGP:'en',SLO:'sl',SRB:'sr',SRI:'en',SUI:'de',SVK:'sk',SWE:'sv',THA:'th',TPE:'zh-TW',TUR:'tr',UAE:'ar',UKR:'uk',URU:'es',USA:'en',UZB:'uz',VEN:'es'};
 var I18N={
  sw:{
+  "Change password":"Badilisha nenosiri",
+  "Confirm new password":"Thibitisha nenosiri jipya",
+  "At least 6 characters.":"Angalau herufi 6.",
+  "Save new password":"Hifadhi nenosiri jipya",
+  "Passwords do not match.":"Manenosiri hayalingani.",
+  "Saving…":"Inahifadhi…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Nenosiri lako limebadilishwa. Tafadhali tumia nenosiri jipya utakapoingia tena.",
+  "Note from the Organising Committee":"Taarifa kutoka Kamati ya Maandalizi",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Ankara hii ilirekebishwa na Kamati ya Maandalizi kabla ya kuidhinishwa. Kiasi kilichoonyeshwa hapa chini tayari kinaakisi mabadiliko hayo.",
+
+  "Product":"Bidhaa",
+  "Discipline":"Aina ya mchezo",
+  "Per case (250)":"Kwa kasha (250)",
+  "Per round":"Kwa risasi",
+  "No catalogue":"Hakuna katalogi",
+  "Some days exceed the daily limit.":"Baadhi ya siku zimezidi kikomo cha kila siku.",
+  "over limit":"imezidi kikomo",
+
   "The demand survey is not open yet.":"Utafiti wa mahitaji bado haujafunguliwa.",
   "Shotgun ammunition must be reserved in advance.":"Risasi za shotgun lazima zihifadhiwe mapema.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Kamati ya Maandalizi itaarifu NPC zote kwa barua pepe utafiti utakapofunguliwa.",
@@ -418,6 +437,24 @@ var I18N={
   'To':'Mpokeaji'
  },
  th:{
+  "Change password":"เปลี่ยนรหัสผ่าน",
+  "Confirm new password":"ยืนยันรหัสผ่านใหม่",
+  "At least 6 characters.":"ต้องมีอย่างน้อย 6 ตัวอักษร",
+  "Save new password":"บันทึกรหัสผ่านใหม่",
+  "Passwords do not match.":"รหัสผ่านไม่ตรงกัน",
+  "Saving…":"กำลังบันทึก…",
+  "Your password has been changed. Please use the new password the next time you log in.":"เปลี่ยนรหัสผ่านของท่านเรียบร้อยแล้ว กรุณาใช้รหัสผ่านใหม่ในการเข้าสู่ระบบครั้งถัดไป",
+  "Note from the Organising Committee":"หมายเหตุจากคณะกรรมการจัดการแข่งขัน",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"ใบแจ้งหนี้ฉบับนี้ได้รับการแก้ไขโดยคณะกรรมการจัดการแข่งขันก่อนได้รับการอนุมัติ จำนวนเงินที่แสดงด้านล่างนี้เป็นยอดที่ปรับแก้แล้ว",
+
+  "Product":"ผลิตภัณฑ์",
+  "Discipline":"ประเภทการแข่งขัน",
+  "Per case (250)":"ต่อกล่อง (250)",
+  "Per round":"ต่อนัด",
+  "No catalogue":"ไม่มีแคตตาล็อก",
+  "Some days exceed the daily limit.":"บางวันมีจำนวนเกินขีดจำกัดต่อวัน",
+  "over limit":"เกินขีดจำกัด",
+
   "The demand survey is not open yet.":"การสำรวจความต้องการยังไม่เปิด",
   "Shotgun ammunition must be reserved in advance.":"ต้องจองกระสุนปืนลูกซองล่วงหน้า",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"คณะกรรมการจัดการแข่งขันจะแจ้งให้ NPC ทุกแห่งทราบทางอีเมลเมื่อเปิดการสำรวจ",
@@ -676,6 +713,24 @@ var I18N={
   'To':'ผู้รับ'
  },
  mn:{
+  "Change password":"Нууц үг солих",
+  "Confirm new password":"Шинэ нууц үгээ баталгаажуулах",
+  "At least 6 characters.":"Дор хаяж 6 тэмдэгт байх ёстой.",
+  "Save new password":"Шинэ нууц үгийг хадгалах",
+  "Passwords do not match.":"Нууц үг таарахгүй байна.",
+  "Saving…":"Хадгалж байна…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Таны нууц үг солигдлоо. Дараагийн удаа нэвтрэхдээ шинэ нууц үгээ ашиглана уу.",
+  "Note from the Organising Committee":"Зохион байгуулах хорооны тэмдэглэл",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Энэ нэхэмжлэхийг батлахаас өмнө Зохион байгуулах хороо өөрчилсөн болно. Доор үзүүлсэн дүнд уг өөрчлөлт аль хэдийн тусгагдсан.",
+
+  "Product":"Бүтээгдэхүүн",
+  "Discipline":"Төрөл",
+  "Per case (250)":"Хайрцаг тутамд (250)",
+  "Per round":"Сум тутамд",
+  "No catalogue":"Каталог байхгүй",
+  "Some days exceed the daily limit.":"Зарим өдөр өдрийн хязгаараас хэтэрсэн байна.",
+  "over limit":"хязгаараас хэтэрсэн",
+
   "The demand survey is not open yet.":"Эрэлтийн судалгаа хараахан нээгдээгүй байна.",
   "Shotgun ammunition must be reserved in advance.":"Үрлэн бууны сумыг урьдчилан нөөцлөх шаардлагатай.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Судалгаа нээгдэх үед Зохион байгуулах хороо бүх NPC-д и-мэйлээр мэдэгдэнэ.",
@@ -934,6 +989,24 @@ var I18N={
   'To':'Хүлээн авагч'
  },
  ms:{
+  "Change password":"Tukar kata laluan",
+  "Confirm new password":"Sahkan kata laluan baharu",
+  "At least 6 characters.":"Sekurang-kurangnya 6 aksara.",
+  "Save new password":"Simpan kata laluan baharu",
+  "Passwords do not match.":"Kata laluan tidak sepadan.",
+  "Saving…":"Menyimpan…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Kata laluan anda telah ditukar. Sila gunakan kata laluan baharu pada kali seterusnya anda log masuk.",
+  "Note from the Organising Committee":"Catatan daripada Jawatankuasa Penganjur",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Invois ini telah dipinda oleh Jawatankuasa Penganjur sebelum ia diluluskan. Jumlah yang ditunjukkan di bawah telah mengambil kira perubahan tersebut.",
+
+  "Product":"Produk",
+  "Discipline":"Disiplin",
+  "Per case (250)":"Setiap kotak (250)",
+  "Per round":"Setiap das",
+  "No catalogue":"Tiada katalog",
+  "Some days exceed the daily limit.":"Sesetengah hari melebihi had harian.",
+  "over limit":"melebihi had",
+
   "The demand survey is not open yet.":"Kaji selidik permintaan belum dibuka.",
   "Shotgun ammunition must be reserved in advance.":"Peluru senapang patah mesti ditempah terlebih dahulu.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Jawatankuasa Penganjur akan memaklumkan semua NPC melalui e-mel apabila kaji selidik dibuka.",
@@ -1192,6 +1265,24 @@ var I18N={
   'To':'Penerima'
  },
  id:{
+  "Change password":"Ubah kata sandi",
+  "Confirm new password":"Konfirmasi kata sandi baru",
+  "At least 6 characters.":"Minimal 6 karakter.",
+  "Save new password":"Simpan kata sandi baru",
+  "Passwords do not match.":"Kata sandi tidak cocok.",
+  "Saving…":"Menyimpan…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Kata sandi Anda telah diubah. Silakan gunakan kata sandi baru pada saat masuk berikutnya.",
+  "Note from the Organising Committee":"Catatan dari Panitia Penyelenggara",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Faktur ini telah diubah oleh Panitia Penyelenggara sebelum disetujui. Jumlah yang ditampilkan di bawah ini sudah mencerminkan perubahan tersebut.",
+
+  "Product":"Produk",
+  "Discipline":"Disiplin",
+  "Per case (250)":"Per peti (250)",
+  "Per round":"Per butir",
+  "No catalogue":"Katalog tidak tersedia",
+  "Some days exceed the daily limit.":"Beberapa hari melebihi batas harian.",
+  "over limit":"melebihi batas",
+
   "The demand survey is not open yet.":"Survei kebutuhan belum dibuka.",
   "Shotgun ammunition must be reserved in advance.":"Amunisi shotgun harus dipesan terlebih dahulu.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Panitia Penyelenggara akan memberitahukan kepada seluruh NPC melalui e-mail ketika survei dibuka.",
@@ -1450,6 +1541,24 @@ var I18N={
   'To':'Penerima'
  },
  he:{
+  "Change password":"שינוי סיסמה",
+  "Confirm new password":"אישור הסיסמה החדשה",
+  "At least 6 characters.":"לפחות 6 תווים.",
+  "Save new password":"שמירת הסיסמה החדשה",
+  "Passwords do not match.":"הסיסמאות אינן תואמות.",
+  "Saving…":"שומר…",
+  "Your password has been changed. Please use the new password the next time you log in.":"הסיסמה שלך שונתה. יש להשתמש בסיסמה החדשה בהתחברות הבאה.",
+  "Note from the Organising Committee":"הודעה מהוועדה המארגנת",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"החשבונית תוקנה על ידי הוועדה המארגנת לפני אישורה. הסכומים המוצגים להלן כבר משקפים את השינוי.",
+
+  "Product":"מוצר",
+  "Discipline":"דיסציפלינה",
+  "Per case (250)":"למארז (250)",
+  "Per round":"לכדור",
+  "No catalogue":"אין קטלוג",
+  "Some days exceed the daily limit.":"ישנם ימים החורגים מהמגבלה היומית.",
+  "over limit":"מעל המגבלה",
+
   "The demand survey is not open yet.":"סקר הביקושים טרם נפתח.",
   "Shotgun ammunition must be reserved in advance.":"יש לשריין מראש תחמושת לרובי ציד.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"הוועדה המארגנת תודיע לכל ה-NPC בדואר אלקטרוני עם פתיחת הסקר.",
@@ -1708,6 +1817,24 @@ var I18N={
   'To':'נמען'
  },
  fa:{
+  "Change password":"تغییر گذرواژه",
+  "Confirm new password":"تأیید گذرواژه جدید",
+  "At least 6 characters.":"دست‌کم ۶ نویسه.",
+  "Save new password":"ذخیره گذرواژه جدید",
+  "Passwords do not match.":"گذرواژه‌ها یکسان نیستند.",
+  "Saving…":"در حال ذخیره…",
+  "Your password has been changed. Please use the new password the next time you log in.":"گذرواژه شما تغییر کرد. لطفاً در ورود بعدی از گذرواژه جدید استفاده کنید.",
+  "Note from the Organising Committee":"یادداشت کمیته برگزاری",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"این صورت‌حساب پیش از تأیید توسط کمیته برگزاری اصلاح شده است. مبالغ مندرج در زیر این تغییر را در بر دارد.",
+
+  "Product":"محصول",
+  "Discipline":"رشته",
+  "Per case (250)":"هر جعبه (250)",
+  "Per round":"هر فشنگ",
+  "No catalogue":"فهرستی موجود نیست",
+  "Some days exceed the daily limit.":"برخی روزها از سقف روزانه فراتر رفته‌اند.",
+  "over limit":"بیش از حد مجاز",
+
   "The demand survey is not open yet.":"نظرسنجی نیاز هنوز باز نشده است.",
   "Shotgun ammunition must be reserved in advance.":"مهمات تفنگ ساچمه‌ای باید از پیش رزرو شود.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"کمیته برگزاری هنگام باز شدن نظرسنجی، مراتب را از طریق ایمیل به همه NPCها اطلاع خواهد داد.",
@@ -1966,6 +2093,24 @@ var I18N={
   'To':'گیرنده'
  },
  uz:{
+  "Change password":"Parolni oʻzgartirish",
+  "Confirm new password":"Yangi parolni tasdiqlang",
+  "At least 6 characters.":"Kamida 6 ta belgi.",
+  "Save new password":"Yangi parolni saqlash",
+  "Passwords do not match.":"Parollar mos kelmadi.",
+  "Saving…":"Saqlanmoqda…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Parolingiz oʻzgartirildi. Keyingi safar tizimga kirishda yangi paroldan foydalaning.",
+  "Note from the Organising Committee":"Tashkiliy qoʻmita izohi",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Ushbu hisob-faktura tasdiqlanishidan oldin Tashkiliy qoʻmita tomonidan oʻzgartirilgan. Quyida koʻrsatilgan summalarda ushbu oʻzgarish allaqachon hisobga olingan.",
+
+  "Product":"Mahsulot",
+  "Discipline":"Musobaqa turi",
+  "Per case (250)":"Quti uchun (250)",
+  "Per round":"Patron uchun",
+  "No catalogue":"Katalog mavjud emas",
+  "Some days exceed the daily limit.":"Ayrim kunlarda kunlik chegara oshib ketgan.",
+  "over limit":"chegaradan oshgan",
+
   "The demand survey is not open yet.":"Ehtiyoj soʻrovi hali ochilmagan.",
   "Shotgun ammunition must be reserved in advance.":"Ov miltigʻi patronlarini oldindan band qilish shart.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Soʻrov ochilganda Tashkiliy qoʻmita barcha NPClarga elektron pochta orqali xabar beradi.",
@@ -2224,6 +2369,24 @@ var I18N={
   'To':'Qabul qiluvchi'
  },
  kk:{
+  "Change password":"Құпия сөзді өзгерту",
+  "Confirm new password":"Жаңа құпия сөзді растаңыз",
+  "At least 6 characters.":"Кемінде 6 таңба.",
+  "Save new password":"Жаңа құпия сөзді сақтау",
+  "Passwords do not match.":"Құпия сөздер сәйкес келмейді.",
+  "Saving…":"Сақталуда…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Құпия сөзіңіз өзгертілді. Келесі жолы кірген кезде жаңа құпия сөзді пайдаланыңыз.",
+  "Note from the Organising Committee":"Ұйымдастыру комитетінің ескертпесі",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Бұл шот-фактураны бекітілмес бұрын Ұйымдастыру комитеті өзгертті. Төменде көрсетілген сомаларда бұл өзгеріс ескерілген.",
+
+  "Product":"Өнім",
+  "Discipline":"Жарыс түрі",
+  "Per case (250)":"Бір қорап үшін (250)",
+  "Per round":"Бір оқ үшін",
+  "No catalogue":"Каталог жоқ",
+  "Some days exceed the daily limit.":"Кейбір күндер тәуліктік шектеуден асып кеткен.",
+  "over limit":"шектеуден асқан",
+
   "The demand survey is not open yet.":"Қажеттілік сауалнамасы әлі ашылған жоқ.",
   "Shotgun ammunition must be reserved in advance.":"Тегіс ұңғылы мылтыққа арналған оқтарды алдын ала брондау қажет.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Сауалнама ашылған кезде Ұйымдастыру комитеті барлық NPC-ге электрондық пошта арқылы хабарлайды.",
@@ -2482,6 +2645,24 @@ var I18N={
   'To':'Алушы'
  },
  ka:{
+  "Change password":"პაროლის შეცვლა",
+  "Confirm new password":"ახალი პაროლის დადასტურება",
+  "At least 6 characters.":"მინიმუმ 6 სიმბოლო.",
+  "Save new password":"ახალი პაროლის შენახვა",
+  "Passwords do not match.":"პაროლები არ ემთხვევა.",
+  "Saving…":"ინახება…",
+  "Your password has been changed. Please use the new password the next time you log in.":"თქვენი პაროლი შეიცვალა. გთხოვთ, შემდეგი შესვლისას გამოიყენოთ ახალი პაროლი.",
+  "Note from the Organising Committee":"შენიშვნა საორგანიზაციო კომიტეტისგან",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"ეს ინვოისი დამტკიცებამდე შეიცვალა საორგანიზაციო კომიტეტის მიერ. ქვემოთ მითითებული თანხები უკვე ასახავს ამ ცვლილებას.",
+
+  "Product":"პროდუქტი",
+  "Discipline":"დისციპლინა",
+  "Per case (250)":"ერთ ყუთზე (250)",
+  "Per round":"ერთ ვაზნაზე",
+  "No catalogue":"კატალოგი არ არის",
+  "Some days exceed the daily limit.":"ზოგიერთ დღეს დღიური ლიმიტი გადაჭარბებულია.",
+  "over limit":"ლიმიტზე მეტი",
+
   "The demand survey is not open yet.":"მოთხოვნის კვლევა ჯერ არ არის გახსნილი.",
   "Shotgun ammunition must be reserved in advance.":"გლუვლულიანი თოფის ვაზნები წინასწარ უნდა დაიჯავშნოს.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"საორგანიზაციო კომიტეტი კვლევის გახსნისთანავე ყველა NPC-ს ელფოსტით შეატყობინებს.",
@@ -2740,6 +2921,24 @@ var I18N={
   'To':'მიმღები'
  },
  az:{
+  "Change password":"Şifrəni dəyişdir",
+  "Confirm new password":"Yeni şifrəni təsdiqləyin",
+  "At least 6 characters.":"Ən azı 6 simvol.",
+  "Save new password":"Yeni şifrəni yadda saxla",
+  "Passwords do not match.":"Şifrələr uyğun gəlmir.",
+  "Saving…":"Yadda saxlanılır…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Şifrəniz dəyişdirildi. Növbəti dəfə sistemə daxil olarkən yeni şifrədən istifadə edin.",
+  "Note from the Organising Committee":"Təşkilat Komitəsinin qeydi",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Bu hesab-faktura təsdiqlənməzdən əvvəl Təşkilat Komitəsi tərəfindən dəyişdirilib. Aşağıda göstərilən məbləğlər artıq bu dəyişikliyi əks etdirir.",
+
+  "Product":"Məhsul",
+  "Discipline":"Fənn",
+  "Per case (250)":"Qutu başına (250)",
+  "Per round":"Patron başına",
+  "No catalogue":"Kataloq yoxdur",
+  "Some days exceed the daily limit.":"Bəzi günlər gündəlik həddi aşır.",
+  "over limit":"həddi aşır",
+
   "The demand survey is not open yet.":"Tələbat sorğusu hələ açıq deyil.",
   "Shotgun ammunition must be reserved in advance.":"Şotqan patronları əvvəlcədən rezerv edilməlidir.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Sorğu açıldıqda Təşkilat Komitəsi bütün NPC-ləri e-poçt vasitəsilə məlumatlandıracaq.",
@@ -2998,6 +3197,24 @@ var I18N={
   'To':'Alıcı'
  },
  lb:{
+  "Change password":"Passwuert änneren",
+  "Confirm new password":"Neit Passwuert bestätegen",
+  "At least 6 characters.":"Mindestens 6 Zeechen.",
+  "Save new password":"Neit Passwuert späicheren",
+  "Passwords do not match.":"D'Passwierder stëmmen net iwwereneen.",
+  "Saving…":"Gëtt gespäichert…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Äert Passwuert gouf geännert. Benotzt w.e.g. dat neit Passwuert beim nächste Login.",
+  "Note from the Organising Committee":"Bemierkung vum Organisatiounskomitee",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Dës Rechnung gouf vum Organisatiounskomitee virun der Genehmegung ugepasst. D'Beträg hei ënnen beruecksichtege schonn dës Ännerung.",
+
+  "Product":"Produkt",
+  "Discipline":"Disziplin",
+  "Per case (250)":"Pro Këscht (250)",
+  "Per round":"Pro Patroun",
+  "No catalogue":"Kee Katalog",
+  "Some days exceed the daily limit.":"E puer Deeg iwwerschreiden d'Dageslimitt.",
+  "over limit":"iwwer der Limitt",
+
   "The demand survey is not open yet.":"D'Bedarfsëmfro ass nach net op.",
   "Shotgun ammunition must be reserved in advance.":"Munitioun fir Flinte muss am Viraus reservéiert ginn.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"D'Organisatiounskomitee informéiert all NPCs per E-Mail, wann d'Ëmfro opgeet.",
@@ -3256,6 +3473,24 @@ var I18N={
   'To':'Un'
  },
  mt:{
+  "Change password":"Ibdel il-password",
+  "Confirm new password":"Ikkonferma l-password il-ġdida",
+  "At least 6 characters.":"Mill-inqas 6 karattri.",
+  "Save new password":"Issejvja l-password il-ġdida",
+  "Passwords do not match.":"Il-passwords ma jaqblux.",
+  "Saving…":"Qed jiġi ssejvjat…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Il-password tiegħek inbidlet. Jekk jogħġbok uża l-password il-ġdida d-darba li jmiss li tidħol.",
+  "Note from the Organising Committee":"Nota mill-Kumitat Organizzattiv",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Din il-fattura ġiet emendata mill-Kumitat Organizzattiv qabel ma ġiet approvata. L-ammonti murija hawn taħt diġà jirriflettu l-bidla.",
+
+  "Product":"Prodott",
+  "Discipline":"Dixxiplina",
+  "Per case (250)":"Kull kaxxa (250)",
+  "Per round":"Kull skartoċċ",
+  "No catalogue":"L-ebda katalgu",
+  "Some days exceed the daily limit.":"Xi jiem jaqbżu l-limitu ta' kuljum.",
+  "over limit":"aktar mil-limitu",
+
   "The demand survey is not open yet.":"L-istħarriġ tad-domanda għadu ma nfetaħx.",
   "Shotgun ammunition must be reserved in advance.":"Il-munizzjon għax-xkubetti għandu jiġi rriżervat minn qabel.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Il-Kumitat Organizzattiv se jinnotifika lill-NPCs kollha bl-e-mail meta jinfetaħ l-istħarriġ.",
@@ -3514,6 +3749,24 @@ var I18N={
   'To':'Lil'
  },
  mk:{
+  "Change password":"Промена на лозинка",
+  "Confirm new password":"Потврдете ја новата лозинка",
+  "At least 6 characters.":"Најмалку 6 знаци.",
+  "Save new password":"Зачувај ја новата лозинка",
+  "Passwords do not match.":"Лозинките не се совпаѓаат.",
+  "Saving…":"Се зачувува…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Вашата лозинка е променета. Ве молиме користете ја новата лозинка при следното најавување.",
+  "Note from the Organising Committee":"Забелешка од Организацискиот комитет",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Оваа фактура беше изменета од Организацискиот комитет пред да биде одобрена. Износите прикажани подолу веќе ја одразуваат промената.",
+
+  "Product":"Производ",
+  "Discipline":"Дисциплина",
+  "Per case (250)":"По кутија (250)",
+  "Per round":"По патрон",
+  "No catalogue":"Нема каталог",
+  "Some days exceed the daily limit.":"Некои денови го надминуваат дневното ограничување.",
+  "over limit":"над ограничувањето",
+
   "The demand survey is not open yet.":"Анкетата за потреби сè уште не е отворена.",
   "Shotgun ammunition must be reserved in advance.":"Муницијата за сачмарки мора да се резервира однапред.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Организацискиот комитет ќе ги извести сите NPC по е-пошта кога ќе се отвори анкетата.",
@@ -3772,6 +4025,24 @@ var I18N={
   'To':'До'
  },
  is:{
+  "Change password":"Breyta lykilorði",
+  "Confirm new password":"Staðfestu nýja lykilorðið",
+  "At least 6 characters.":"Að minnsta kosti 6 stafir.",
+  "Save new password":"Vista nýtt lykilorð",
+  "Passwords do not match.":"Lykilorðin eru ekki eins.",
+  "Saving…":"Vistar…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Lykilorði þínu hefur verið breytt. Notaðu nýja lykilorðið næst þegar þú skráir þig inn.",
+  "Note from the Organising Committee":"Athugasemd frá skipulagsnefndinni",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Skipulagsnefndin breytti þessum reikningi áður en hann var samþykktur. Fjárhæðirnar hér að neðan endurspegla þessa breytingu nú þegar.",
+
+  "Product":"Vara",
+  "Discipline":"Grein",
+  "Per case (250)":"Á kassa (250)",
+  "Per round":"Á skot",
+  "No catalogue":"Enginn skotfæralisti",
+  "Some days exceed the daily limit.":"Sumir dagar fara yfir daglegt hámark.",
+  "over limit":"yfir hámarki",
+
   "The demand survey is not open yet.":"Þarfakönnunin er ekki opin enn.",
   "Shotgun ammunition must be reserved in advance.":"Panta þarf haglaskot fyrir fram.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Skipulagsnefndin tilkynnir öllum NPC með tölvupósti þegar könnunin opnar.",
@@ -4030,6 +4301,24 @@ var I18N={
   'To':'Til'
  },
  lv:{
+  "Change password":"Mainīt paroli",
+  "Confirm new password":"Apstipriniet jauno paroli",
+  "At least 6 characters.":"Vismaz 6 rakstzīmes.",
+  "Save new password":"Saglabāt jauno paroli",
+  "Passwords do not match.":"Paroles nesakrīt.",
+  "Saving…":"Notiek saglabāšana…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Jūsu parole ir nomainīta. Nākamreiz piesakoties, lūdzu, izmantojiet jauno paroli.",
+  "Note from the Organising Committee":"Piezīme no Organizācijas komitejas",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Šo rēķinu Organizācijas komiteja pirms apstiprināšanas grozīja. Zemāk norādītās summas jau atspoguļo šīs izmaiņas.",
+
+  "Product":"Produkts",
+  "Discipline":"Disciplīna",
+  "Per case (250)":"Par kasti (250)",
+  "Per round":"Par patronu",
+  "No catalogue":"Nav kataloga",
+  "Some days exceed the daily limit.":"Dažās dienās ir pārsniegts dienas limits.",
+  "over limit":"pārsniegts limits",
+
   "The demand survey is not open yet.":"Pieprasījuma aptauja vēl nav atvērta.",
   "Shotgun ammunition must be reserved in advance.":"Gludstobra šautenes patronas ir jārezervē iepriekš.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizācijas komiteja pa e-pastu informēs visas NPC, tiklīdz aptauja tiks atvērta.",
@@ -4288,6 +4577,24 @@ var I18N={
   'To':'Kam'
  },
  lt:{
+  "Change password":"Keisti slaptažodį",
+  "Confirm new password":"Patvirtinkite naują slaptažodį",
+  "At least 6 characters.":"Bent 6 simboliai.",
+  "Save new password":"Išsaugoti naują slaptažodį",
+  "Passwords do not match.":"Slaptažodžiai nesutampa.",
+  "Saving…":"Išsaugoma…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Jūsų slaptažodis pakeistas. Kitą kartą prisijungdami naudokite naują slaptažodį.",
+  "Note from the Organising Committee":"Organizacinio komiteto pastaba",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Šią sąskaitą faktūrą prieš ją patvirtinant pakeitė Organizacinis komitetas. Toliau nurodytos sumos jau atspindi šį pakeitimą.",
+
+  "Product":"Produktas",
+  "Discipline":"Rungtis",
+  "Per case (250)":"Už dėžę (250)",
+  "Per round":"Už šovinį",
+  "No catalogue":"Katalogo nėra",
+  "Some days exceed the daily limit.":"Kai kuriomis dienomis viršijama dienos riba.",
+  "over limit":"viršyta riba",
+
   "The demand survey is not open yet.":"Poreikio apklausa dar neatidaryta.",
   "Shotgun ammunition must be reserved in advance.":"Lygiavamzdžių šautuvų šovinius būtina rezervuoti iš anksto.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizacinis komitetas el. paštu praneš visiems NPC, kai apklausa bus atidaryta.",
@@ -4546,6 +4853,24 @@ var I18N={
   'To':'Kam'
  },
  sl:{
+  "Change password":"Spremeni geslo",
+  "Confirm new password":"Potrdite novo geslo",
+  "At least 6 characters.":"Najmanj 6 znakov.",
+  "Save new password":"Shrani novo geslo",
+  "Passwords do not match.":"Gesli se ne ujemata.",
+  "Saving…":"Shranjevanje…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Vaše geslo je bilo spremenjeno. Pri naslednji prijavi uporabite novo geslo.",
+  "Note from the Organising Committee":"Obvestilo organizacijskega odbora",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Organizacijski odbor je ta račun pred odobritvijo spremenil. Spodaj prikazani zneski to spremembo že upoštevajo.",
+
+  "Product":"Izdelek",
+  "Discipline":"Disciplina",
+  "Per case (250)":"Na zaboj (250)",
+  "Per round":"Na naboj",
+  "No catalogue":"Ni kataloga",
+  "Some days exceed the daily limit.":"Nekateri dnevi presegajo dnevno omejitev.",
+  "over limit":"nad omejitvijo",
+
   "The demand survey is not open yet.":"Anketa o potrebah še ni odprta.",
   "Shotgun ammunition must be reserved in advance.":"Strelivo za šibrovke je treba rezervirati vnaprej.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizacijski odbor bo ob odprtju ankete vse NPC obvestil po e-pošti.",
@@ -4804,6 +5129,24 @@ var I18N={
   'To':'Za'
  },
  sk:{
+  "Change password":"Zmeniť heslo",
+  "Confirm new password":"Potvrdiť nové heslo",
+  "At least 6 characters.":"Najmenej 6 znakov.",
+  "Save new password":"Uložiť nové heslo",
+  "Passwords do not match.":"Heslá sa nezhodujú.",
+  "Saving…":"Ukladá sa…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Vaše heslo bolo zmenené. Pri ďalšom prihlásení použite nové heslo.",
+  "Note from the Organising Committee":"Poznámka organizačného výboru",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Túto faktúru organizačný výbor pred schválením upravil. Sumy uvedené nižšie už túto zmenu zohľadňujú.",
+
+  "Product":"Produkt",
+  "Discipline":"Disciplína",
+  "Per case (250)":"Za balenie (250)",
+  "Per round":"Za náboj",
+  "No catalogue":"Žiadny katalóg",
+  "Some days exceed the daily limit.":"Niektoré dni prekračujú denný limit.",
+  "over limit":"nad limit",
+
   "The demand survey is not open yet.":"Prieskum dopytu zatiaľ nie je otvorený.",
   "Shotgun ammunition must be reserved in advance.":"Brokové strelivo je potrebné rezervovať vopred.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizačný výbor upovedomí všetky NPC e-mailom, keď sa prieskum otvorí.",
@@ -5062,6 +5405,24 @@ var I18N={
   'To':'Komu'
  },
  sr:{
+  "Change password":"Промена лозинке",
+  "Confirm new password":"Потврдите нову лозинку",
+  "At least 6 characters.":"Најмање 6 карактера.",
+  "Save new password":"Сачувај нову лозинку",
+  "Passwords do not match.":"Лозинке се не подударају.",
+  "Saving…":"Чување…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Ваша лозинка је промењена. Молимо вас да приликом следеће пријаве користите нову лозинку.",
+  "Note from the Organising Committee":"Напомена Организационог комитета",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Ову фактуру је Организациони комитет изменио пре него што је одобрена. Износи приказани испод већ садрже ту измену.",
+
+  "Product":"Производ",
+  "Discipline":"Дисциплина",
+  "Per case (250)":"По кутији (250)",
+  "Per round":"По метку",
+  "No catalogue":"Нема каталога",
+  "Some days exceed the daily limit.":"Поједини дани прелазе дневно ограничење.",
+  "over limit":"изнад ограничења",
+
   "The demand survey is not open yet.":"Анкета о потребама још није отворена.",
   "Shotgun ammunition must be reserved in advance.":"Муниција за сачмарице мора да се резервише унапред.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Организациони комитет ће обавестити све NPC е-поштом када анкета буде отворена.",
@@ -5320,6 +5681,24 @@ var I18N={
   'To':'Прима'
  },
  cnr:{
+  "Change password":"Promijeni lozinku",
+  "Confirm new password":"Potvrdite novu lozinku",
+  "At least 6 characters.":"Najmanje 6 karaktera.",
+  "Save new password":"Sačuvaj novu lozinku",
+  "Passwords do not match.":"Lozinke se ne poklapaju.",
+  "Saving…":"Čuvanje…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Vaša lozinka je promijenjena. Molimo da pri sljedećoj prijavi koristite novu lozinku.",
+  "Note from the Organising Committee":"Napomena Organizacionog odbora",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Ovu fakturu je Organizacioni odbor izmijenio prije nego što je odobrena. Iznosi prikazani ispod već uključuju tu izmjenu.",
+
+  "Product":"Proizvod",
+  "Discipline":"Disciplina",
+  "Per case (250)":"Po kutiji (250)",
+  "Per round":"Po metku",
+  "No catalogue":"Nema kataloga",
+  "Some days exceed the daily limit.":"Neki dani prelaze dnevno ograničenje.",
+  "over limit":"preko ograničenja",
+
   "The demand survey is not open yet.":"Anketa o potrebama još nije otvorena.",
   "Shotgun ammunition must be reserved in advance.":"Municija za sačmarice mora se rezervisati unaprijed.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizacioni odbor će obavijestiti sve NPC e-poštom kada se anketa otvori.",
@@ -5578,6 +5957,24 @@ var I18N={
   'To':'Prima'
  },
  bs:{
+  "Change password":"Promjena lozinke",
+  "Confirm new password":"Potvrdite novu lozinku",
+  "At least 6 characters.":"Najmanje 6 znakova.",
+  "Save new password":"Sačuvaj novu lozinku",
+  "Passwords do not match.":"Lozinke se ne podudaraju.",
+  "Saving…":"Čuvanje…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Vaša lozinka je promijenjena. Molimo Vas da pri sljedećoj prijavi koristite novu lozinku.",
+  "Note from the Organising Committee":"Napomena Organizacionog odbora",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Ovu fakturu je Organizacioni odbor izmijenio prije odobrenja. Iznosi prikazani u nastavku već odražavaju tu izmjenu.",
+
+  "Product":"Proizvod",
+  "Discipline":"Disciplina",
+  "Per case (250)":"Po kutiji (250)",
+  "Per round":"Po metku",
+  "No catalogue":"Nema kataloga",
+  "Some days exceed the daily limit.":"Pojedini dani premašuju dnevni limit.",
+  "over limit":"iznad limita",
+
   "The demand survey is not open yet.":"Anketa o potrebama još nije otvorena.",
   "Shotgun ammunition must be reserved in advance.":"Municija za sačmarice mora se rezervisati unaprijed.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizacioni komitet će e-poštom obavijestiti sve NPC kada se anketa otvori.",
@@ -5836,6 +6233,24 @@ var I18N={
   'To':'Prima'
  },
  hr:{
+  "Change password":"Promijeni lozinku",
+  "Confirm new password":"Potvrdite novu lozinku",
+  "At least 6 characters.":"Najmanje 6 znakova.",
+  "Save new password":"Spremi novu lozinku",
+  "Passwords do not match.":"Lozinke se ne podudaraju.",
+  "Saving…":"Spremanje…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Vaša lozinka je promijenjena. Pri sljedećoj prijavi upotrijebite novu lozinku.",
+  "Note from the Organising Committee":"Napomena Organizacijskog odbora",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Ovaj je račun Organizacijski odbor izmijenio prije odobrenja. Iznosi prikazani u nastavku već uključuju tu izmjenu.",
+
+  "Product":"Proizvod",
+  "Discipline":"Disciplina",
+  "Per case (250)":"Po kutiji (250)",
+  "Per round":"Po metku",
+  "No catalogue":"Nema kataloga",
+  "Some days exceed the daily limit.":"Neki dani premašuju dnevno ograničenje.",
+  "over limit":"iznad limita",
+
   "The demand survey is not open yet.":"Anketa o potrebama još nije otvorena.",
   "Shotgun ammunition must be reserved in advance.":"Streljivo za sačmarice mora se rezervirati unaprijed.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizacijski odbor obavijestit će sve NPC-e e-poštom kada se anketa otvori.",
@@ -6094,6 +6509,24 @@ var I18N={
   'To':'Prima'
  },
  bg:{
+  "Change password":"Смяна на паролата",
+  "Confirm new password":"Потвърдете новата парола",
+  "At least 6 characters.":"Най-малко 6 знака.",
+  "Save new password":"Запазване на новата парола",
+  "Passwords do not match.":"Паролите не съвпадат.",
+  "Saving…":"Запазване…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Вашата парола беше променена. Моля, използвайте новата парола при следващото влизане.",
+  "Note from the Organising Committee":"Бележка от Организационния комитет",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Тази фактура беше коригирана от Организационния комитет преди одобряването ѝ. Показаните по-долу суми вече отразяват промяната.",
+
+  "Product":"Продукт",
+  "Discipline":"Дисциплина",
+  "Per case (250)":"За кашон (250)",
+  "Per round":"За патрон",
+  "No catalogue":"Няма каталог",
+  "Some days exceed the daily limit.":"Някои дни надвишават дневния лимит.",
+  "over limit":"над лимита",
+
   "The demand survey is not open yet.":"Проучването на потребностите още не е отворено.",
   "Shotgun ammunition must be reserved in advance.":"Боеприпасите за гладкоцевни пушки трябва да се резервират предварително.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Организационният комитет ще уведоми всички NPC по електронна поща, когато проучването бъде отворено.",
@@ -6352,6 +6785,24 @@ var I18N={
   'To':'До'
  },
  ro:{
+  "Change password":"Schimbă parola",
+  "Confirm new password":"Confirmă parola nouă",
+  "At least 6 characters.":"Cel puțin 6 caractere.",
+  "Save new password":"Salvează parola nouă",
+  "Passwords do not match.":"Parolele nu coincid.",
+  "Saving…":"Se salvează…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Parola dumneavoastră a fost schimbată. Vă rugăm să folosiți parola nouă la următoarea autentificare.",
+  "Note from the Organising Committee":"Notă din partea Comitetului de Organizare",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Această factură a fost modificată de Comitetul de Organizare înainte de a fi aprobată. Sumele afișate mai jos reflectă deja modificarea.",
+
+  "Product":"Produs",
+  "Discipline":"Disciplină",
+  "Per case (250)":"Per cutie (250)",
+  "Per round":"Per cartuș",
+  "No catalogue":"Niciun catalog",
+  "Some days exceed the daily limit.":"Unele zile depășesc limita zilnică.",
+  "over limit":"peste limită",
+
   "The demand survey is not open yet.":"Sondajul de necesar nu este încă deschis.",
   "Shotgun ammunition must be reserved in advance.":"Muniția pentru pușcă cu alice trebuie rezervată în avans.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Comitetul de Organizare va înștiința toate NPC-urile prin e-mail la deschiderea sondajului.",
@@ -6610,6 +7061,24 @@ var I18N={
   'To':'Către'
  },
  hu:{
+  "Change password":"Jelszó módosítása",
+  "Confirm new password":"Új jelszó megerősítése",
+  "At least 6 characters.":"Legalább 6 karakter.",
+  "Save new password":"Új jelszó mentése",
+  "Passwords do not match.":"A jelszavak nem egyeznek.",
+  "Saving…":"Mentés…",
+  "Your password has been changed. Please use the new password the next time you log in.":"A jelszava módosult. A következő bejelentkezéskor kérjük, az új jelszót használja.",
+  "Note from the Organising Committee":"A Szervezőbizottság megjegyzése",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Ezt a számlát a Szervezőbizottság a jóváhagyás előtt módosította. Az alább látható összegek már tartalmazzák a módosítást.",
+
+  "Product":"Termék",
+  "Discipline":"Versenyszám",
+  "Per case (250)":"Ládánként (250)",
+  "Per round":"Töltényenként",
+  "No catalogue":"Nincs katalógus",
+  "Some days exceed the daily limit.":"Egyes napok meghaladják a napi korlátot.",
+  "over limit":"korlát felett",
+
   "The demand survey is not open yet.":"Az igényfelmérés még nem nyílt meg.",
   "Shotgun ammunition must be reserved in advance.":"A sörétes lőszert előre le kell foglalni.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"A Szervezőbizottság e-mailben értesíti az összes NPC-t, amikor a felmérés megnyílik.",
@@ -6868,6 +7337,24 @@ var I18N={
   'To':'Címzett'
  },
  fi:{
+  "Change password":"Vaihda salasana",
+  "Confirm new password":"Vahvista uusi salasana",
+  "At least 6 characters.":"Vähintään 6 merkkiä.",
+  "Save new password":"Tallenna uusi salasana",
+  "Passwords do not match.":"Salasanat eivät täsmää.",
+  "Saving…":"Tallennetaan…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Salasanasi on vaihdettu. Käytä uutta salasanaa seuraavalla kirjautumiskerralla.",
+  "Note from the Organising Committee":"Järjestelytoimikunnan huomautus",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Järjestelytoimikunta muutti tätä laskua ennen sen hyväksymistä. Alla näkyvissä summissa muutos on jo otettu huomioon.",
+
+  "Product":"Tuote",
+  "Discipline":"Laji",
+  "Per case (250)":"Laatikolta (250)",
+  "Per round":"Patruunalta",
+  "No catalogue":"Ei luetteloa",
+  "Some days exceed the daily limit.":"Joinakin päivinä päivittäinen enimmäismäärä ylittyy.",
+  "over limit":"yli rajan",
+
   "The demand survey is not open yet.":"Tarvekysely ei ole vielä auki.",
   "Shotgun ammunition must be reserved in advance.":"Haulikkopatruunat on varattava etukäteen.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Järjestelytoimikunta ilmoittaa kaikille NPC:ille sähköpostitse, kun kysely avautuu.",
@@ -7126,6 +7613,24 @@ var I18N={
   'To':'Vastaanottaja'
  },
  nb:{
+  "Change password":"Endre passord",
+  "Confirm new password":"Bekreft nytt passord",
+  "At least 6 characters.":"Minst 6 tegn.",
+  "Save new password":"Lagre nytt passord",
+  "Passwords do not match.":"Passordene er ikke like.",
+  "Saving…":"Lagrer…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Passordet ditt er endret. Bruk det nye passordet neste gang du logger inn.",
+  "Note from the Organising Committee":"Merknad fra arrangørkomiteen",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Denne fakturaen ble endret av arrangørkomiteen før den ble godkjent. Beløpene som vises nedenfor, gjenspeiler allerede endringen.",
+
+  "Product":"Produkt",
+  "Discipline":"Gren",
+  "Per case (250)":"Per kasse (250)",
+  "Per round":"Per skudd",
+  "No catalogue":"Ingen katalog",
+  "Some days exceed the daily limit.":"Enkelte dager overskrider den daglige grensen.",
+  "over limit":"over grensen",
+
   "The demand survey is not open yet.":"Behovsundersøkelsen er ikke åpnet ennå.",
   "Shotgun ammunition must be reserved in advance.":"Hagleammunisjon må reserveres på forhånd.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organisasjonskomiteen varsler alle NPC-er på e-post når undersøkelsen åpner.",
@@ -7384,6 +7889,24 @@ var I18N={
   'To':'Til'
  },
  da:{
+  "Change password":"Skift adgangskode",
+  "Confirm new password":"Bekræft ny adgangskode",
+  "At least 6 characters.":"Mindst 6 tegn.",
+  "Save new password":"Gem ny adgangskode",
+  "Passwords do not match.":"Adgangskoderne er ikke ens.",
+  "Saving…":"Gemmer…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Din adgangskode er ændret. Brug den nye adgangskode, næste gang du logger ind.",
+  "Note from the Organising Committee":"Bemærkning fra organisationskomitéen",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Denne faktura blev ændret af organisationskomitéen, før den blev godkendt. Beløbene nedenfor afspejler allerede ændringen.",
+
+  "Product":"Produkt",
+  "Discipline":"Disciplin",
+  "Per case (250)":"Pr. kasse (250)",
+  "Per round":"Pr. patron",
+  "No catalogue":"Intet katalog",
+  "Some days exceed the daily limit.":"Nogle dage overskrider den daglige grænse.",
+  "over limit":"over grænsen",
+
   "The demand survey is not open yet.":"Behovsundersøgelsen er endnu ikke åben.",
   "Shotgun ammunition must be reserved in advance.":"Haglammunition skal reserveres på forhånd.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organisationskomitéen underretter alle NPC'er pr. e-mail, når undersøgelsen åbner.",
@@ -7642,6 +8165,24 @@ var I18N={
   'To':'Til'
  },
  sv:{
+  "Change password":"Byt lösenord",
+  "Confirm new password":"Bekräfta nytt lösenord",
+  "At least 6 characters.":"Minst 6 tecken.",
+  "Save new password":"Spara nytt lösenord",
+  "Passwords do not match.":"Lösenorden stämmer inte överens.",
+  "Saving…":"Sparar…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Ditt lösenord har ändrats. Använd det nya lösenordet nästa gång du loggar in.",
+  "Note from the Organising Committee":"Meddelande från organisationskommittén",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Denna faktura ändrades av organisationskommittén innan den godkändes. Beloppen nedan återspeglar redan ändringen.",
+
+  "Product":"Produkt",
+  "Discipline":"Gren",
+  "Per case (250)":"Per kartong (250)",
+  "Per round":"Per skott",
+  "No catalogue":"Ingen katalog",
+  "Some days exceed the daily limit.":"Vissa dagar överskrider dagsgränsen.",
+  "over limit":"över gränsen",
+
   "The demand survey is not open yet.":"Behovsundersökningen är inte öppen ännu.",
   "Shotgun ammunition must be reserved in advance.":"Hagelammunition måste reserveras i förväg.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organisationskommittén meddelar alla NPC via e-post när undersökningen öppnar.",
@@ -7900,6 +8441,24 @@ var I18N={
   'To':'Till'
  },
  cs:{
+  "Change password":"Změnit heslo",
+  "Confirm new password":"Potvrdit nové heslo",
+  "At least 6 characters.":"Nejméně 6 znaků.",
+  "Save new password":"Uložit nové heslo",
+  "Passwords do not match.":"Hesla se neshodují.",
+  "Saving…":"Ukládá se…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Vaše heslo bylo změněno. Při příštím přihlášení použijte nové heslo.",
+  "Note from the Organising Committee":"Poznámka organizačního výboru",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Tuto fakturu organizační výbor před schválením upravil. Částky uvedené níže již tuto změnu zohledňují.",
+
+  "Product":"Produkt",
+  "Discipline":"Disciplína",
+  "Per case (250)":"Za balení (250)",
+  "Per round":"Za náboj",
+  "No catalogue":"Žádný katalog",
+  "Some days exceed the daily limit.":"Některé dny překračují denní limit.",
+  "over limit":"nad limit",
+
   "The demand survey is not open yet.":"Průzkum poptávky zatím není otevřen.",
   "Shotgun ammunition must be reserved in advance.":"Brokové střelivo je nutné rezervovat předem.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizační výbor vyrozumí všechny NPC e-mailem, jakmile bude průzkum otevřen.",
@@ -8158,6 +8717,24 @@ var I18N={
   'To':'Komu'
  },
  el:{
+  "Change password":"Αλλαγή κωδικού πρόσβασης",
+  "Confirm new password":"Επιβεβαίωση νέου κωδικού πρόσβασης",
+  "At least 6 characters.":"Τουλάχιστον 6 χαρακτήρες.",
+  "Save new password":"Αποθήκευση νέου κωδικού",
+  "Passwords do not match.":"Οι κωδικοί δεν ταιριάζουν.",
+  "Saving…":"Αποθήκευση…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Ο κωδικός πρόσβασής σας άλλαξε. Παρακαλούμε χρησιμοποιήστε τον νέο κωδικό κατά την επόμενη σύνδεσή σας.",
+  "Note from the Organising Committee":"Σημείωση από την Οργανωτική Επιτροπή",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Το παρόν τιμολόγιο τροποποιήθηκε από την Οργανωτική Επιτροπή πριν από την έγκρισή του. Τα ποσά που εμφανίζονται παρακάτω περιλαμβάνουν ήδη τη μεταβολή.",
+
+  "Product":"Προϊόν",
+  "Discipline":"Αγώνισμα",
+  "Per case (250)":"Ανά κιβώτιο (250)",
+  "Per round":"Ανά φυσίγγιο",
+  "No catalogue":"Δεν υπάρχει κατάλογος",
+  "Some days exceed the daily limit.":"Ορισμένες ημέρες υπερβαίνουν το ημερήσιο όριο.",
+  "over limit":"άνω του ορίου",
+
   "The demand survey is not open yet.":"Η έρευνα ζήτησης δεν έχει ανοίξει ακόμη.",
   "Shotgun ammunition must be reserved in advance.":"Τα φυσίγγια κυνηγετικού όπλου πρέπει να κρατηθούν εκ των προτέρων.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Η Οργανωτική Επιτροπή θα ενημερώσει όλες τις NPC μέσω e-mail όταν ανοίξει η έρευνα.",
@@ -8416,6 +8993,24 @@ var I18N={
   'To':'Προς'
  },
  uk:{
+  "Change password":"Змінити пароль",
+  "Confirm new password":"Підтвердьте новий пароль",
+  "At least 6 characters.":"Щонайменше 6 символів.",
+  "Save new password":"Зберегти новий пароль",
+  "Passwords do not match.":"Паролі не збігаються.",
+  "Saving…":"Збереження…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Ваш пароль змінено. Будь ласка, використовуйте новий пароль під час наступного входу.",
+  "Note from the Organising Committee":"Примітка Організаційного комітету",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Цей рахунок було змінено Організаційним комітетом до його затвердження. Суми, наведені нижче, вже враховують цю зміну.",
+
+  "Product":"Продукт",
+  "Discipline":"Дисципліна",
+  "Per case (250)":"За ящик (250)",
+  "Per round":"За набій",
+  "No catalogue":"Каталог відсутній",
+  "Some days exceed the daily limit.":"Деякі дні перевищують денний ліміт.",
+  "over limit":"понад ліміт",
+
   "The demand survey is not open yet.":"Опитування щодо потреби ще не відкрито.",
   "Shotgun ammunition must be reserved in advance.":"Набої для гладкоствольної зброї потрібно бронювати заздалегідь.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Організаційний комітет повідомить усі NPC електронною поштою, щойно опитування буде відкрито.",
@@ -8674,6 +9269,24 @@ var I18N={
   'To':'Кому'
  },
  tr:{
+  "Change password":"Parola değiştir",
+  "Confirm new password":"Yeni parolayı onaylayın",
+  "At least 6 characters.":"En az 6 karakter.",
+  "Save new password":"Yeni parolayı kaydet",
+  "Passwords do not match.":"Parolalar eşleşmiyor.",
+  "Saving…":"Kaydediliyor…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Parolanız değiştirildi. Bir sonraki girişinizde lütfen yeni parolanızı kullanın.",
+  "Note from the Organising Committee":"Organizasyon Komitesi'nden not",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Bu fatura, onaylanmadan önce Organizasyon Komitesi tarafından değiştirilmiştir. Aşağıda gösterilen tutarlar bu değişikliği hâlihazırda yansıtmaktadır.",
+
+  "Product":"Ürün",
+  "Discipline":"Branş",
+  "Per case (250)":"Koli başına (250)",
+  "Per round":"Fişek başına",
+  "No catalogue":"Katalog yok",
+  "Some days exceed the daily limit.":"Bazı günler günlük limiti aşıyor.",
+  "over limit":"limit aşımı",
+
   "The demand survey is not open yet.":"Talep anketi henüz açılmadı.",
   "Shotgun ammunition must be reserved in advance.":"Av tüfeği fişekleri önceden rezerve edilmelidir.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Organizasyon Komitesi, anket açıldığında tüm NPC'lere e-posta ile bilgi verecektir.",
@@ -8932,6 +9545,24 @@ var I18N={
   'To':'Alıcı'
  },
  pl:{
+  "Change password":"Zmień hasło",
+  "Confirm new password":"Potwierdź nowe hasło",
+  "At least 6 characters.":"Co najmniej 6 znaków.",
+  "Save new password":"Zapisz nowe hasło",
+  "Passwords do not match.":"Hasła nie są zgodne.",
+  "Saving…":"Zapisywanie…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Hasło zostało zmienione. Przy następnym logowaniu należy użyć nowego hasła.",
+  "Note from the Organising Committee":"Uwaga Komitetu Organizacyjnego",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Ta faktura została zmieniona przez Komitet Organizacyjny przed zatwierdzeniem. Kwoty podane poniżej uwzględniają już tę zmianę.",
+
+  "Product":"Produkt",
+  "Discipline":"Konkurencja",
+  "Per case (250)":"Za karton (250)",
+  "Per round":"Za nabój",
+  "No catalogue":"Brak katalogu",
+  "Some days exceed the daily limit.":"W niektórych dniach przekroczono dzienny limit.",
+  "over limit":"ponad limit",
+
   "The demand survey is not open yet.":"Badanie zapotrzebowania nie zostało jeszcze otwarte.",
   "Shotgun ammunition must be reserved in advance.":"Amunicję śrutową należy zarezerwować z wyprzedzeniem.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Komitet Organizacyjny powiadomi wszystkie NPC pocztą elektroniczną, gdy badanie zostanie otwarte.",
@@ -9190,6 +9821,24 @@ var I18N={
   'To':'Do'
  },
  nl:{
+  "Change password":"Wachtwoord wijzigen",
+  "Confirm new password":"Nieuw wachtwoord bevestigen",
+  "At least 6 characters.":"Minimaal 6 tekens.",
+  "Save new password":"Nieuw wachtwoord opslaan",
+  "Passwords do not match.":"De wachtwoorden komen niet overeen.",
+  "Saving…":"Bezig met opslaan…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Uw wachtwoord is gewijzigd. Gebruik het nieuwe wachtwoord bij uw volgende aanmelding.",
+  "Note from the Organising Committee":"Opmerking van het organisatiecomité",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Deze factuur is door het organisatiecomité aangepast voordat deze werd goedgekeurd. De hieronder getoonde bedragen houden al rekening met deze wijziging.",
+
+  "Product":"Product",
+  "Discipline":"Discipline",
+  "Per case (250)":"Per doos (250)",
+  "Per round":"Per patroon",
+  "No catalogue":"Geen catalogus",
+  "Some days exceed the daily limit.":"Sommige dagen overschrijden de daglimiet.",
+  "over limit":"boven de limiet",
+
   "The demand survey is not open yet.":"Het behoefteonderzoek is nog niet geopend.",
   "Shotgun ammunition must be reserved in advance.":"Munitie voor hagelgeweren moet vooraf worden gereserveerd.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Het organisatiecomité stelt alle NPC's per e-mail op de hoogte zodra het onderzoek opengaat.",
@@ -9448,6 +10097,24 @@ var I18N={
   'To':'Aan'
  },
  it:{
+  "Change password":"Cambia password",
+  "Confirm new password":"Conferma la nuova password",
+  "At least 6 characters.":"Almeno 6 caratteri.",
+  "Save new password":"Salva la nuova password",
+  "Passwords do not match.":"Le password non coincidono.",
+  "Saving…":"Salvataggio in corso…",
+  "Your password has been changed. Please use the new password the next time you log in.":"La password è stata modificata. Utilizzare la nuova password al prossimo accesso.",
+  "Note from the Organising Committee":"Nota del Comitato Organizzatore",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"La presente fattura è stata modificata dal Comitato Organizzatore prima dell'approvazione. Gli importi indicati di seguito tengono già conto della modifica.",
+
+  "Product":"Prodotto",
+  "Discipline":"Disciplina",
+  "Per case (250)":"Per scatola (250)",
+  "Per round":"Per cartuccia",
+  "No catalogue":"Nessun catalogo",
+  "Some days exceed the daily limit.":"Alcuni giorni superano il limite giornaliero.",
+  "over limit":"oltre il limite",
+
   "The demand survey is not open yet.":"L'indagine sul fabbisogno non è ancora aperta.",
   "Shotgun ammunition must be reserved in advance.":"Le munizioni per fucile a canna liscia devono essere prenotate in anticipo.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Il Comitato Organizzatore informerà tutti gli NPC via e-mail all'apertura dell'indagine.",
@@ -9706,6 +10373,24 @@ var I18N={
   'To':'A'
  },
  ko:{
+  "Change password":"비밀번호 변경",
+  "Confirm new password":"새 비밀번호 확인",
+  "At least 6 characters.":"6자 이상이어야 합니다.",
+  "Save new password":"새 비밀번호 저장",
+  "Passwords do not match.":"비밀번호가 일치하지 않습니다.",
+  "Saving…":"저장 중…",
+  "Your password has been changed. Please use the new password the next time you log in.":"비밀번호가 변경되었습니다. 다음 로그인 시 새 비밀번호를 사용해 주십시오.",
+  "Note from the Organising Committee":"조직위원회 안내",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"본 청구서는 승인 전에 조직위원회가 수정하였습니다. 아래에 표시된 금액에는 해당 수정 사항이 이미 반영되어 있습니다.",
+
+  "Product":"제품",
+  "Discipline":"종목",
+  "Per case (250)":"케이스당 (250)",
+  "Per round":"1발당",
+  "No catalogue":"카탈로그 없음",
+  "Some days exceed the daily limit.":"일일 한도를 초과한 날이 있습니다.",
+  "over limit":"한도 초과",
+
   "The demand survey is not open yet.":"수요조사가 아직 개시되지 않았습니다.",
   "Shotgun ammunition must be reserved in advance.":"산탄 실탄은 사전에 예약해야 합니다.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"조사가 개시되면 조직위원회가 모든 NPC에 이메일로 안내합니다.",
@@ -9964,6 +10649,24 @@ var I18N={
   'To':'수취인'
  },
  ja:{
+  "Change password":"パスワードの変更",
+  "Confirm new password":"新しいパスワード（確認）",
+  "At least 6 characters.":"6文字以上で入力してください。",
+  "Save new password":"新しいパスワードを保存",
+  "Passwords do not match.":"パスワードが一致しません。",
+  "Saving…":"保存中…",
+  "Your password has been changed. Please use the new password the next time you log in.":"パスワードを変更しました。次回のログインからは新しいパスワードをご使用ください。",
+  "Note from the Organising Committee":"組織委員会からのお知らせ",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"この請求書は、承認前に組織委員会によって修正されました。以下に表示されている金額には、その修正がすでに反映されています。",
+
+  "Product":"製品",
+  "Discipline":"種目",
+  "Per case (250)":"1ケースあたり（250）",
+  "Per round":"1発あたり",
+  "No catalogue":"カタログがありません",
+  "Some days exceed the daily limit.":"1日の上限を超える日があります。",
+  "over limit":"上限超過",
+
   "The demand survey is not open yet.":"需要調査はまだ開始されていません。",
   "Shotgun ammunition must be reserved in advance.":"散弾銃の弾薬は事前に予約する必要があります。",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"調査が開始されましたら、組織委員会からすべてのNPCへ電子メールでお知らせします。",
@@ -10222,6 +10925,24 @@ var I18N={
   'To':'宛先'
  },
  ru:{
+  "Change password":"Изменить пароль",
+  "Confirm new password":"Подтвердите новый пароль",
+  "At least 6 characters.":"Не менее 6 символов.",
+  "Save new password":"Сохранить новый пароль",
+  "Passwords do not match.":"Пароли не совпадают.",
+  "Saving…":"Сохранение…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Ваш пароль изменён. При следующем входе используйте новый пароль.",
+  "Note from the Organising Committee":"Примечание Организационного комитета",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Этот счёт был изменён Организационным комитетом до его утверждения. Указанные ниже суммы уже учитывают это изменение.",
+
+  "Product":"Товар",
+  "Discipline":"Дисциплина",
+  "Per case (250)":"За ящик (250)",
+  "Per round":"За патрон",
+  "No catalogue":"Каталог отсутствует",
+  "Some days exceed the daily limit.":"В некоторые дни превышен дневной лимит.",
+  "over limit":"превышен лимит",
+
   "The demand survey is not open yet.":"Опрос потребности ещё не открыт.",
   "Shotgun ammunition must be reserved in advance.":"Патроны для гладкоствольного оружия необходимо забронировать заранее.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Оргкомитет уведомит все NPC по электронной почте, когда опрос откроется.",
@@ -10480,6 +11201,24 @@ var I18N={
   'To':'Кому'
  },
  fr:{
+  "Change password":"Modifier le mot de passe",
+  "Confirm new password":"Confirmer le nouveau mot de passe",
+  "At least 6 characters.":"Au moins 6 caractères.",
+  "Save new password":"Enregistrer le nouveau mot de passe",
+  "Passwords do not match.":"Les mots de passe ne correspondent pas.",
+  "Saving…":"Enregistrement…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Votre mot de passe a été modifié. Veuillez utiliser le nouveau mot de passe lors de votre prochaine connexion.",
+  "Note from the Organising Committee":"Note du Comité d’organisation",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Cette facture a été modifiée par le Comité d’organisation avant son approbation. Les montants indiqués ci-dessous tiennent déjà compte de cette modification.",
+
+  "Product":"Produit",
+  "Discipline":"Discipline",
+  "Per case (250)":"Par caisse (250)",
+  "Per round":"Par cartouche",
+  "No catalogue":"Aucun catalogue",
+  "Some days exceed the daily limit.":"Certains jours dépassent la limite quotidienne.",
+  "over limit":"limite dépassée",
+
   "The demand survey is not open yet.":"L'enquête de besoins n'est pas encore ouverte.",
   "Shotgun ammunition must be reserved in advance.":"Les munitions de fusil de chasse doivent être réservées à l'avance.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Le Comité d'organisation informera tous les NPC par e-mail de l'ouverture de l'enquête.",
@@ -10738,6 +11477,24 @@ var I18N={
   'To':'À'
  },
  'zh-TW':{
+  "Change password":"變更密碼",
+  "Confirm new password":"確認新密碼",
+  "At least 6 characters.":"至少 6 個字元。",
+  "Save new password":"儲存新密碼",
+  "Passwords do not match.":"兩次輸入的密碼不一致。",
+  "Saving…":"儲存中…",
+  "Your password has been changed. Please use the new password the next time you log in.":"您的密碼已變更。下次登入時請使用新密碼。",
+  "Note from the Organising Committee":"組織委員會備註",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"本發票於核准前已由組織委員會修改。以下顯示之金額已反映該項變更。",
+
+  "Product":"產品",
+  "Discipline":"項目",
+  "Per case (250)":"每箱（250）",
+  "Per round":"每發",
+  "No catalogue":"無型錄",
+  "Some days exceed the daily limit.":"部分日期超過每日上限。",
+  "over limit":"超過上限",
+
   "The demand survey is not open yet.":"需求調查尚未開放。",
   "Shotgun ammunition must be reserved in advance.":"霰彈槍彈藥必須事先預留。",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"調查開放時，組織委員會將以電子郵件通知所有 NPC。",
@@ -10996,6 +11753,24 @@ var I18N={
   'To':'收件人'
  },
  'zh-CN':{
+  "Change password":"修改密码",
+  "Confirm new password":"确认新密码",
+  "At least 6 characters.":"至少 6 个字符。",
+  "Save new password":"保存新密码",
+  "Passwords do not match.":"两次输入的密码不一致。",
+  "Saving…":"正在保存…",
+  "Your password has been changed. Please use the new password the next time you log in.":"您的密码已修改。请在下次登录时使用新密码。",
+  "Note from the Organising Committee":"组委会说明",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"本发票在获批之前已由组委会作出修改。以下所列金额已反映该项修改。",
+
+  "Product":"产品",
+  "Discipline":"项目",
+  "Per case (250)":"每箱（250）",
+  "Per round":"每发",
+  "No catalogue":"无目录",
+  "Some days exceed the daily limit.":"部分日期超出每日上限。",
+  "over limit":"超出上限",
+
   "The demand survey is not open yet.":"需求调查尚未开放。",
   "Shotgun ammunition must be reserved in advance.":"霰弹枪弹药须提前预留。",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"调查开放时，组委会将通过电子邮件通知所有 NPC。",
@@ -11254,6 +12029,24 @@ var I18N={
   'To':'收件人'
  },
  pt:{
+  "Change password":"Alterar palavra-passe",
+  "Confirm new password":"Confirmar a nova palavra-passe",
+  "At least 6 characters.":"Pelo menos 6 caracteres.",
+  "Save new password":"Guardar a nova palavra-passe",
+  "Passwords do not match.":"As palavras-passe não coincidem.",
+  "Saving…":"A guardar…",
+  "Your password has been changed. Please use the new password the next time you log in.":"A sua palavra-passe foi alterada. Utilize a nova palavra-passe no próximo início de sessão.",
+  "Note from the Organising Committee":"Nota do Comité Organizador",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Esta fatura foi alterada pelo Comité Organizador antes de ser aprovada. Os montantes apresentados abaixo já refletem essa alteração.",
+
+  "Product":"Produto",
+  "Discipline":"Disciplina",
+  "Per case (250)":"Por caixa (250)",
+  "Per round":"Por cartucho",
+  "No catalogue":"Sem catálogo",
+  "Some days exceed the daily limit.":"Alguns dias excedem o limite diário.",
+  "over limit":"acima do limite",
+
   "The demand survey is not open yet.":"O inquérito de necessidades ainda não está aberto.",
   "Shotgun ammunition must be reserved in advance.":"As munições de espingarda têm de ser reservadas antecipadamente.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"A Comissão Organizadora informará todos os NPC por e-mail quando o inquérito abrir.",
@@ -11512,6 +12305,24 @@ var I18N={
   'To':'Para'
  },
  de:{
+  "Change password":"Passwort ändern",
+  "Confirm new password":"Neues Passwort bestätigen",
+  "At least 6 characters.":"Mindestens 6 Zeichen.",
+  "Save new password":"Neues Passwort speichern",
+  "Passwords do not match.":"Die Passwörter stimmen nicht überein.",
+  "Saving…":"Wird gespeichert…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Ihr Passwort wurde geändert. Bitte verwenden Sie bei der nächsten Anmeldung das neue Passwort.",
+  "Note from the Organising Committee":"Hinweis des Organisationskomitees",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Diese Rechnung wurde vom Organisationskomitee vor der Genehmigung geändert. Die unten aufgeführten Beträge berücksichtigen diese Änderung bereits.",
+
+  "Product":"Produkt",
+  "Discipline":"Disziplin",
+  "Per case (250)":"Pro Karton (250)",
+  "Per round":"Pro Patrone",
+  "No catalogue":"Kein Katalog vorhanden",
+  "Some days exceed the daily limit.":"An einigen Tagen wird das Tageslimit überschritten.",
+  "over limit":"über Limit",
+
   "The demand survey is not open yet.":"Die Bedarfsabfrage ist noch nicht geöffnet.",
   "Shotgun ammunition must be reserved in advance.":"Flintenmunition muss im Voraus reserviert werden.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"Das Organisationskomitee informiert alle NPCs per E-Mail, sobald die Abfrage geöffnet ist.",
@@ -11770,6 +12581,24 @@ var I18N={
   'To':'An'
  },
  ar:{
+  "Change password":"تغيير كلمة المرور",
+  "Confirm new password":"تأكيد كلمة المرور الجديدة",
+  "At least 6 characters.":"6 أحرف على الأقل.",
+  "Save new password":"حفظ كلمة المرور الجديدة",
+  "Passwords do not match.":"كلمتا المرور غير متطابقتين.",
+  "Saving…":"جارٍ الحفظ…",
+  "Your password has been changed. Please use the new password the next time you log in.":"تم تغيير كلمة المرور الخاصة بك. يُرجى استخدام كلمة المرور الجديدة عند تسجيل الدخول في المرة القادمة.",
+  "Note from the Organising Committee":"ملاحظة من اللجنة المنظمة",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"تم تعديل هذه الفاتورة من قبل اللجنة المنظمة قبل اعتمادها. والمبالغ الموضحة أدناه تعكس هذا التعديل بالفعل.",
+
+  "Product":"المنتج",
+  "Discipline":"المسابقة",
+  "Per case (250)":"لكل صندوق (250)",
+  "Per round":"لكل طلقة",
+  "No catalogue":"لا يوجد كتالوج",
+  "Some days exceed the daily limit.":"بعض الأيام تتجاوز الحد اليومي.",
+  "over limit":"تجاوز الحد",
+
   "The demand survey is not open yet.":"استبيان الاحتياج لم يُفتح بعد.",
   "Shotgun ammunition must be reserved in advance.":"يجب حجز ذخيرة بنادق الخرطوش مسبقًا.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"ستُرسل اللجنة المنظِّمة إشعارًا بالبريد الإلكتروني إلى جميع الـ NPC عند فتح الاستبيان.",
@@ -12028,6 +12857,24 @@ var I18N={
   'To':'إلى'
  },
  es:{
+  "Change password":"Cambiar contraseña",
+  "Confirm new password":"Confirmar la nueva contraseña",
+  "At least 6 characters.":"Al menos 6 caracteres.",
+  "Save new password":"Guardar la nueva contraseña",
+  "Passwords do not match.":"Las contraseñas no coinciden.",
+  "Saving…":"Guardando…",
+  "Your password has been changed. Please use the new password the next time you log in.":"Su contraseña se ha cambiado. Utilice la nueva contraseña la próxima vez que inicie sesión.",
+  "Note from the Organising Committee":"Nota del Comité Organizador",
+  "This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.":"Esta factura fue modificada por el Comité Organizador antes de su aprobación. Los importes que se muestran a continuación ya reflejan el cambio.",
+
+  "Product":"Producto",
+  "Discipline":"Disciplina",
+  "Per case (250)":"Por caja (250)",
+  "Per round":"Por cartucho",
+  "No catalogue":"No hay catálogo",
+  "Some days exceed the daily limit.":"Algunos días superan el límite diario.",
+  "over limit":"supera el límite",
+
   "The demand survey is not open yet.":"La encuesta de demanda aún no está abierta.",
   "Shotgun ammunition must be reserved in advance.":"La munición de escopeta debe reservarse con antelación.",
   "The Organising Committee will notify all NPCs by e-mail when the survey opens.":"El Comité Organizador informará por correo electrónico a todos los NPC cuando se abra la encuesta.",
@@ -12213,7 +13060,8 @@ function trS(en){var d=I18N[curLang()];return d?(d[en]||null):null;}
 function L(en){var loc=trS(en);return loc?'<span class="l1">'+esc(loc)+'</span><span class="l2">'+esc(en)+'</span>':esc(en);}
 function T(en){var loc=trS(en);return loc?(loc+' — '+en):en;}
 function tl(en){return esc(trS(en)||en);}
-function applyDir(){try{document.documentElement.dir=isRTL()?'rtl':'ltr';var b=document.getElementById('lgbtn');if(b){b.textContent=trS('Logout')||'Logout';b.title='Logout';}}catch(e){}}
+function Li(en){var loc=trS(en);return loc?esc(loc)+' <span class="l2i">'+esc(en)+'</span>':esc(en);}
+function applyDir(){try{document.documentElement.dir=isRTL()?'rtl':'ltr';var b=document.getElementById('lgbtn');if(b){b.textContent=T('Logout');b.title='Logout';}}catch(e){}}
 /* ============ DB layer (Supabase) ============ */
 var sbDb={
   dirGet:async function(c){var r=await sb.rpc('dir_lookup',{p_country:c});var d=(r.data&&r.data[0])||null;return d?{country:c,email:d.email,active:d.active}:null;},
@@ -12318,7 +13166,7 @@ function scrActivate(){
   $('#app').innerHTML=authBox(authHead(L('This delegation account is not activated yet'))+
     '<div class="f"><label>'+L('Official NPC contact email')+'</label><input id="em" type="email" placeholder="name@federation.org"></div>'+
     '<p class="muted" style="font-size:11.5px;line-height:1.5">'+L('The Organizing Committee will review your request. Once approved, a password setup link will be sent to this email address. Please use your federation’s official contact email.')+'</p>'+
-    '<button class="btn g" style="width:100%;margin-top:6px" onclick="doActivate()">'+L('Request account activation')+'</button>'+
+    '<button class="btn g" style="width:100%;margin-top:6px" onclick="doActivate()">'+Li('Request account activation')+'</button>'+
     '<div class="row" style="margin-top:12px"><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Country</button></div>'+
     '<div class="err" id="er"></div>');
 }
@@ -12339,7 +13187,7 @@ function scrAwaitSetup(rq){
   $('#app').innerHTML=authBox(authHead(L('Approved — set your password'))+
     '<p style="font-size:13px;line-height:1.6;text-align:center">'+L('Your activation request has been approved.')+L('A password setup link was sent to')+'<b>'+esc(maskEmail(rq.email))+'</b>'+L('Follow the link in that email to set your password.')+'</p>'+'<p class="muted" style="font-size:11.5px;text-align:center">'+L('Using Gmail? If the email is not in your inbox, please also check the Updates tab.')+'</p>'+
     (MOCK?'<p class="muted" style="font-size:11.5px;text-align:center">MOCK: open <b>Inbox (demo)</b> on the country screen to use the link.</p>':'')+
-    '<div class="row" style="margin-top:10px;justify-content:center"><button class="btn" style="padding:7px 11px" onclick="scrLogin()">'+L('Already set a password? Log in')+'</button><button class="btn y" style="padding:7px 11px" onclick="resendSetupMail()">'+L('Resend email')+'</button><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Country</button></div>');
+    '<div class="row" style="margin-top:10px;justify-content:center"><button class="btn" style="padding:7px 11px" onclick="scrLogin()">'+Li('Already set a password? Log in')+'</button><button class="btn y" style="padding:7px 11px" onclick="resendSetupMail()">'+Li('Resend email')+'</button><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Country</button></div>');
 }
 async function resendSetupMail(){var rq=await db.reqLatest(S.country);if(!rq||!rq.email){alert('No approved request found for this delegation.');return;}
   if(!confirm('Send a new password link to '+maskEmail(rq.email)+'?'))return;
@@ -12353,8 +13201,8 @@ async function resendSetupMail(){var rq=await db.reqLatest(S.country);if(!rq||!r
 function scrLogin(){
   $('#app').innerHTML=authBox(authHead(L('Enter your delegation password'))+
     '<div class="f"><label>'+L('Password')+'</label><input id="pw" type="password" autofocus></div>'+
-    '<button class="btn" style="width:100%" onclick="doLogin()">'+L('Log in')+'</button>'+
-    '<div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Country</button><button class="btn sec" style="padding:7px 11px" onclick="scrForgot()">'+L('Forgot password?')+'</button></div>'+
+    '<button class="btn" style="width:100%" onclick="doLogin()">'+Li('Log in')+'</button>'+
+    '<div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Country</button><button class="btn sec" style="padding:7px 11px" onclick="scrForgot()">'+Li('Forgot password?')+'</button></div>'+
     '<div class="err" id="er"></div>');
   var i=$('#pw');i.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
 }
@@ -12369,8 +13217,8 @@ async function doLogin(){var pw=$('#pw').value;pbStart(2);var a=await db.dirGet(
 function scrForgot(){
   $('#app').innerHTML=authBox(authHead(L('Reset your password'))+
     '<p class="muted" style="font-size:12px;line-height:1.5;text-align:center">'+L('A password reset link will be sent to the registered contact email of your delegation.')+'</p>'+
-    '<button class="btn y" style="width:100%;margin-top:10px" onclick="doForgot()">'+L('Send reset link')+'</button>'+
-    '<div class="row" style="margin-top:12px"><button class="btn sec" style="padding:7px 11px" onclick="scrLogin()">&larr; '+tl('Back')+'</button></div>'+
+    '<button class="btn y" style="width:100%;margin-top:10px" onclick="doForgot()">'+Li('Send reset link')+'</button>'+
+    '<div class="row" style="margin-top:12px"><button class="btn sec" style="padding:7px 11px" onclick="scrLogin()">&larr; '+Li('Back')+'</button></div>'+
     '<div class="err" id="er"></div>');
 }
 async function doForgot(){var a=await db.dirGet(S.country);
@@ -12386,7 +13234,7 @@ function scrSetPw(){
   $('#app').innerHTML=authBox(sub+
     '<div class="f"><label>'+L('New password')+'</label><input id="p1" type="password"></div>'+
     '<div class="f"><label>'+L('Confirm password')+'</label><input id="p2" type="password"></div>'+
-    '<button class="btn g" style="width:100%" onclick="doSetPw()">'+L('Set password & enter')+'</button>'+
+    '<button class="btn g" style="width:100%" onclick="doSetPw()">'+Li('Set password & enter')+'</button>'+
     '<div class="row" style="margin-top:12px"><button class="btn sec" style="padding:7px 11px" onclick="scrCountry()">&larr; Cancel</button></div>'+
     '<div class="err" id="er"></div>');
 }
@@ -12409,14 +13257,14 @@ async function scrMain(){applyDir();
   var _ovC={open:false,deadline:''},_ovM=null;
   try{var _ovS=await db.getSetting('ammo_survey');_ovC=Object.assign(_ovC,(typeof _ovS==='string')?JSON.parse(_ovS):(_ovS||{}));if(_ovC.open)_ovM=await db.asMeta(S.country);}catch(e){}
   var locked=!_mem.length,LC=locked?' locked':'';
-  function tagOf(x){return x.status==='approved'?'<span class="tag g">'+tl('approved')+'</span>':'<span class="tag y">'+tl('pending approval')+'</span>';}
-  function cnt(arr){var p=arr.filter(function(x){return x.status!=='approved'}).length,a=arr.length-p;return ' <span class="muted" style="font-weight:400">· '+arr.length+'</span>'+(p?' <span class="tag y">'+p+' '+tl('pending')+'</span>':'')+(a?' <span class="tag g">'+a+' '+tl('approved')+'</span>':'');}
+  function tagOf(x){return x.status==='approved'?'<span class="tag g">'+Li('approved')+'</span>':'<span class="tag y">'+Li('pending approval')+'</span>';}
+  function cnt(arr){var p=arr.filter(function(x){return x.status!=='approved'}).length,a=arr.length-p;return ' <span class="muted" style="font-weight:400">· '+arr.length+'</span>'+(p?' <span class="tag y">'+p+' '+Li('pending')+'</span>':'')+(a?' <span class="tag g">'+a+' '+Li('approved')+'</span>':'');}
   function ovTbl(heads,rows){return '<div class="tbl" style="margin:2px 0 10px"><table><thead><tr>'+heads.map(function(x){return '<th>'+(x?L(x):'')+'</th>'}).join('')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+heads.length+'" class="muted">'+L('None yet.')+'</td></tr>')+'</tbody></table></div>';}
   function ovSect(title,badge,inner){return '<details open><summary style="cursor:pointer;padding:8px 0;font-size:13px;font-weight:600">'+title+badge+'</summary>'+inner+'</details>';}
   var ov='<div class="card"><h3>'+L('Status overview')+'</h3>'+
    ovSect(L('1. Invitation letters'),cnt(_inv),ovTbl(['Title','Members','Status','No.'],_inv.map(function(L){return '<tr onclick="modInvite()" style="cursor:pointer"><td>'+esc(L.title)+'</td><td>'+(L.member_ids||[]).length+'</td><td>'+tagOf(L)+'</td><td>'+(L.status==='approved'&&L.no?esc(L.no):'—')+'</td></tr>'}).join('')))+
    ovSect(L('2. Firearm submission confirmations'),cnt(_fsubs),ovTbl(['Scope','Submitted','Status','No.'],_fsubs.map(function(x){var sc=(x.grp||'*ALL*');return '<tr onclick="modFirearm()" style="cursor:pointer"><td>'+esc(sc==='*ALL*'?'Entire delegation':sc)+'</td><td>'+esc(x.submitted_at||'')+'</td><td>'+tagOf(x)+'</td><td>'+(x.status==='approved'&&x.no?esc(x.no):'—')+'</td></tr>'}).join('')))+
-   ovSect(L('3. Shotgun ammunition'),'',ovTbl(['Item','Status'],(!_ovC.open?'<tr onclick="modAmmo()" style="cursor:pointer"><td>'+L('The demand survey is not open yet.')+'</td><td><span class="tag y">'+tl('Preparing')+'</span></td></tr>':((_ovM&&(_ovM.status==='submitted'||_ovM.status==='received'))?'<tr onclick="modAmmo()" style="cursor:pointer"><td>'+L('Shotgun ammunition — Demand survey')+'</td><td><span class="tag g">'+tl('Survey submitted')+'</span></td></tr>':'<tr onclick="modAmmo()" style="cursor:pointer"><td>'+L('Shotgun ammunition — Demand survey')+(_ovC.deadline?' <span class="muted" style="font-size:12px">· '+tl('Survey deadline')+' '+esc(_ovC.deadline)+'</span>':'')+'</td><td><span class="tag y">'+tl('Draft')+'</span></td></tr>'))))+
+   ovSect(L('3. Shotgun ammunition'),'',ovTbl(['Item','Status'],(!_ovC.open?'<tr onclick="modAmmo()" style="cursor:pointer"><td>'+L('The demand survey is not open yet.')+'</td><td><span class="tag y">'+Li('Preparing')+'</span></td></tr>':((_ovM&&(_ovM.status==='submitted'||_ovM.status==='received'))?'<tr onclick="modAmmo()" style="cursor:pointer"><td>'+L('Shotgun ammunition — Demand survey')+'</td><td><span class="tag g">'+Li('Survey submitted')+'</span></td></tr>':'<tr onclick="modAmmo()" style="cursor:pointer"><td>'+L('Shotgun ammunition — Demand survey')+(_ovC.deadline?' <span class="muted" style="font-size:12px">· '+Li('Survey deadline')+' '+esc(_ovC.deadline)+'</span>':'')+'</td><td><span class="tag y">'+Li('Draft')+'</span></td></tr>'))))+
    ovSect(L('4. Invoices'),cnt(_invc),ovTbl(['To','Members','Status','No.'],_invc.map(function(V){return '<tr onclick="modInvoice()" style="cursor:pointer"><td>'+esc(V.title)+'</td><td>'+(V.member_ids||[]).length+'</td><td>'+tagOf(V)+'</td><td>'+(V.status==='approved'&&V.no?esc(V.no):'—')+'</td></tr>'}).join('')))+
    '</div>';
   var _ai=trS('Translations on this portal are AI-generated. If a translation differs from the English original, please follow the English original.')?'<div class="ainote">'+L('Translations on this portal are AI-generated. If a translation differs from the English original, please follow the English original.')+'</div>':'';stage(_ai+ov+'<div class="card"><h3>'+L('Submissions')+'</h3><p class="muted" style="font-size:12px">'+L('Start with your delegation roster — invitation letters, firearm forms and invoices are all linked to it.')+'</p>'+
@@ -12434,17 +13282,17 @@ function scrChangePw(){
   '<div class="f"><label>'+L('New password')+'</label><input id="cpw1" type="password" autocomplete="new-password"></div>'+
   '<div class="f"><label>'+L('Confirm new password')+'</label><input id="cpw2" type="password" autocomplete="new-password"></div>'+
   '<p class="muted" style="font-size:11.5px">'+L('At least 6 characters.')+'</p>'+
-  '<button class="btn g" style="width:100%;margin-top:6px" onclick="doChangePw()">'+L('Save new password')+'</button>'+
+  '<button class="btn g" style="width:100%;margin-top:6px" onclick="doChangePw()">'+Li('Save new password')+'</button>'+
   '<div class="err" id="cpwerr" style="margin-top:8px"></div></div></div>';
   document.body.insertAdjacentHTML('beforeend',h);var e=document.getElementById('cpw1');if(e)e.focus();
 }
 function closeCpw(){var e=document.getElementById('cpw');if(e)e.remove();}
 async function doChangePw(){
   var p1=($('#cpw1')&&$('#cpw1').value)||'',p2=($('#cpw2')&&$('#cpw2').value)||'',er=$('#cpwerr');if(er){er.style.color='#A93226';er.textContent='';}
-  if(p1.length<6){if(er)er.textContent=tl('At least 6 characters.');return;}
-  if(p1!==p2){if(er)er.textContent=tl('Passwords do not match.');return;}
+  if(p1.length<6){if(er)er.textContent=T('At least 6 characters.');return;}
+  if(p1!==p2){if(er)er.textContent=T('Passwords do not match.');return;}
   if(MOCK){alert('MOCK: password change simulated.');closeCpw();return;}
-  if(er){er.style.color='#555';er.textContent=tl('Saving…');}
+  if(er){er.style.color='#555';er.textContent=T('Saving…');}
   var r=await sb.auth.updateUser({password:p1});
   if(r.error){if(er){er.style.color='#A93226';er.textContent='Error: '+r.error.message;}return;}
   closeCpw();alert(T('Your password has been changed. Please use the new password the next time you log in.'));
@@ -12474,18 +13322,18 @@ var _mem=[],_inv=[],_fg=[],_fsubs=[],_invc=[],_iaddr=[],_gp={},_gf=[],_gfGroups=
 function mName(m){var fn=(m.first_name||'').trim(),l=(m.last_name||'').trim();if(fn||l)return (l.toUpperCase()+' '+fn).trim();return m.name||'';}
 function grpOf(m){return (m.sub_group&&m.sub_group.trim())||'(Ungrouped)';}
 function groupsOf(){var g=[];_mem.forEach(function(m){var s=grpOf(m);if(g.indexOf(s)<0)g.push(s)});g.sort();return g;}
-function grpOptions(){return '<option value="*ALL*">'+tl('All (entire delegation)')+'</option>'+groupsOf().filter(function(g){return g!=='(Ungrouped)'}).map(function(g){return '<option value="'+esc(g)+'">'+esc(g)+'</option>'}).join('');}
+function grpOptions(){return '<option value="*ALL*">'+T('All (entire delegation)')+'</option>'+groupsOf().filter(function(g){return g!=='(Ungrouped)'}).map(function(g){return '<option value="'+esc(g)+'">'+esc(g)+'</option>'}).join('');}
 function scopeMembers(g){return _mem.filter(function(m){return g==='*ALL*'||grpOf(m)===g});}
 function grpOfOwner(o){var m=_mem.find(function(x){return mName(x)===o||x.name===o});return m?grpOf(m):'(Ungrouped)';}
 function nights(a,d){if(!a||!d)return '';var n=Math.round((new Date(d)-new Date(a))/86400000);return n>0?n:'';}
 function sdmsNotice(){return '<div style="background:#FBE8D8;border:1px solid #E87722;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.65"><b style="color:#B4550E">SDMS NOTICE</b><br>'+L('This list will be overwritten by the accredited list from SDMS after Final Entry & Accreditation on SDMS closes.')+''+L('Until the SDMS delegation list is applied to this portal, any NPC wishing to obtain an invitation letter or invoice, or to submit firearm information, in advance is kindly asked to enter its delegation members manually.')+'</div>';}
 
 /* ============ Module 0: Delegation info ============ */
-async function modTeam(){stage('<div class="card"><span class="muted">'+tl('Loading…')+'</span></div>');pbStart(2);_mem=await db.members(S.country);pbStep();_gf=await db.gFlights(S.country);pbStep();renderTeam();}
+async function modTeam(){stage('<div class="card"><span class="muted">'+L('Loading…')+'</span></div>');pbStart(2);_mem=await db.members(S.country);pbStep();_gf=await db.gFlights(S.country);pbStep();renderTeam();}
 function renderTeam(){
   var rows=_mem.map(function(m,i){return '<tr onclick="mEdit('+i+')" style="cursor:pointer"><td><b>'+esc(mName(m)||'(new member)')+'</b></td><td>'+esc(m.position||'')+'</td><td>'+esc(m.dob||'')+'</td><td>'+esc(m.passport||'')+'</td><td>'+esc(m.sub_group||'')+'</td><td>'+esc(m.arrive||'')+(m.arr_flight?' · '+esc(m.arr_flight):'')+(m.arr_time?' '+esc(m.arr_time):'')+'</td><td>'+esc(m.depart||'')+(m.dep_flight?' · '+esc(m.dep_flight):'')+(m.dep_time?' '+esc(m.dep_time):'')+'</td><td>'+esc(m.room||'')+'</td><td>'+esc(m.wheelchair||'')+'</td><td><button class="btn r" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();mDel('+m.id+')">×</button></td></tr>';}).join('');
-  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+tl('Back')+'</button><b style="margin-left:6px">'+L('Delegation info')+'</b></div><div style="margin-top:10px">'+sdmsNotice()+'</div></div>'+
-   '<div class="card"><b>'+L('Roster')+'</b><span class="muted" style="font-size:12px"> — '+_mem.length+' member(s)</span><p class="muted" style="font-size:12px;margin:6px 0 8px">'+L('Click a row to open the editor. Use ‹ › at the top to move between members (auto-saved on switch).')+'</p><div class="tbl"><table><thead><tr><th>'+L('Name')+'</th><th>'+L('Position')+'</th><th>'+L('Date of Birth')+'</th><th>'+L('Passport')+'</th><th>'+L('Group')+'</th><th>'+L('Arrival')+'</th><th>'+L('Departure')+'</th><th>'+L('Room')+'</th><th>'+L('Wheelchair')+'</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="10" class="muted">'+L('No members yet.')+'</td></tr>')+'</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn g" onclick="mAdd()">'+L('+ Add member')+'</button></div></div>'+
+  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">'+L('Delegation info')+'</b></div><div style="margin-top:10px">'+sdmsNotice()+'</div></div>'+
+   '<div class="card"><b>'+L('Roster')+'</b><span class="muted" style="font-size:12px"> — '+_mem.length+' member(s)</span><p class="muted" style="font-size:12px;margin:6px 0 8px">'+L('Click a row to open the editor. Use ‹ › at the top to move between members (auto-saved on switch).')+'</p><div class="tbl"><table><thead><tr><th>'+L('Name')+'</th><th>'+L('Position')+'</th><th>'+L('Date of Birth')+'</th><th>'+L('Passport')+'</th><th>'+L('Group')+'</th><th>'+L('Arrival')+'</th><th>'+L('Departure')+'</th><th>'+L('Room')+'</th><th>'+L('Wheelchair')+'</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="10" class="muted">'+L('No members yet.')+'</td></tr>')+'</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn g" onclick="mAdd()">'+Li('+ Add member')+'</button></div></div>'+
    gfCardHtml());
 }
 
@@ -12500,12 +13348,12 @@ function gfInputs(sfx,gf){gf=gf||{};
    '<td><input id="gfdt'+sfx+'" inputmode="numeric" maxlength="5" placeholder="10:05" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(gf.dep_time||'')+'" style="width:66px"></td>';}
 function gfCardHtml(){_gfGroups=groupsOf();
   if(!_mem.length)return '';
-  var rows=_gfGroups.map(function(g,i){return '<tr><td style="white-space:nowrap"><b>'+(g==='(Ungrouped)'?tl('Ungrouped'):esc(g))+'</b><span class="muted" style="display:block;font-size:10.5px">'+scopeMembers(g).length+' member(s)</span></td>'+gfInputs(i,gfOf(g))+'<td><button class="btn g" style="padding:4px 10px;font-size:11px" onclick="gfSave('+i+')">'+tl('Save')+'</button></td></tr>';}).join('');
+  var rows=_gfGroups.map(function(g,i){return '<tr><td style="white-space:nowrap"><b>'+(g==='(Ungrouped)'?Li('Ungrouped'):esc(g))+'</b><span class="muted" style="display:block;font-size:10.5px">'+scopeMembers(g).length+' member(s)</span></td>'+gfInputs(i,gfOf(g))+'<td><button class="btn g" style="padding:4px 10px;font-size:11px" onclick="gfSave('+i+')">'+Li('Save')+'</button></td></tr>';}).join('');
   return '<div class="card"><b>'+L('Group flight schedules')+'</b>'+
    '<p class="muted" style="font-size:12px;margin:6px 0 8px">'+L('Saving a group schedule automatically applies it to every member with "Use group flight schedule" checked.')+'</p>'+
    '<div class="tbl"><table><thead><tr><th>'+L('Group')+'</th><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
    '<div class="msec" style="margin-top:14px">'+L('UNIFY ALL GROUPS')+'</div>'+
-   '<div class="tbl" style="margin-top:6px;border-color:var(--y)"><table><thead><tr><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th></tr></thead><tbody><tr>'+gfInputs('_all',null)+'<td><button class="btn y" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="gfSaveAll()">'+L('Apply one schedule to ALL groups')+'</button></td></tr></tbody></table></div></div>';}
+   '<div class="tbl" style="margin-top:6px;border-color:var(--y)"><table><thead><tr><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th></tr></thead><tbody><tr>'+gfInputs('_all',null)+'<td><button class="btn y" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="gfSaveAll()">'+Li('Apply one schedule to ALL groups')+'</button></td></tr></tbody></table></div></div>';}
 function gfCollect(sfx){var ids=['gfa','gfaf','gfat','gfd','gfdf','gfdt'];var ks=['arrive','arr_flight','arr_time','depart','dep_flight','dep_time'];var o={};var bad=0;
   for(var j=0;j<6;j++){var el=document.getElementById(ids[j]+sfx);var v=el?(el.value||'').trim():'';var ok=v!==''&&((ids[j]!=='gfat'&&ids[j]!=='gfdt')||timeOk(v));if(el)el.classList.toggle('fmiss',!ok);if(!ok)bad++;o[ks[j]]=v;}
   return bad?null:o;}
@@ -12534,11 +13382,11 @@ function memListHtml(){var q=(_msq||'').toLowerCase();var groups={};
   keys.forEach(function(g){
     var items=groups[g].filter(function(x){var n=(mName(x.m)||'').toLowerCase();return !q||n.indexOf(q)>=0;});
     if(!items.length)return;
-    h+='<div class="mgl">'+(g==='(Ungrouped)'?tl('Ungrouped'):esc(g))+' <span style="font-weight:400">('+items.length+')</span></div>';
+    h+='<div class="mgl">'+(g==='(Ungrouped)'?Li('Ungrouped'):esc(g))+' <span style="font-weight:400">('+items.length+')</span></div>';
     items.forEach(function(x){h+='<div class="mli'+(x.i===_emIdx?' on':'')+'" onclick="memJump('+x.i+')">'+esc(mName(x.m)||'(new member)')+'<span class="muted" style="font-size:10.5px;display:block;font-weight:400">'+esc(x.m.position||'')+(x.m.passport?' · '+esc(x.m.passport):'')+'</span></div>';});
   });
   return h||'<div class="muted" style="font-size:12px;padding:6px 2px">'+L('No match.')+'</div>';}
-function memSideHtml(){return '<div class="mside"><input id="msq" placeholder="'+tl('Search name…')+'" value="'+esc(_msq)+'" oninput="msqChg(this.value)"><div class="mlist" id="mlistwrap">'+memListHtml()+'</div></div>';}
+function memSideHtml(){return '<div class="mside"><input id="msq" placeholder="'+T('Search name…')+'" value="'+esc(_msq)+'" oninput="msqChg(this.value)"><div class="mlist" id="mlistwrap">'+memListHtml()+'</div></div>';}
 function msqChg(v){_msq=v;var w=document.getElementById('mlistwrap');if(w)w.innerHTML=memListHtml();}
 async function memJump(i){if(i===_emIdx)return;if(!await memSave(false))return;_emIdx=i;openMemModal();var sq=document.getElementById('msq');if(sq){sq.focus();var vl=sq.value;sq.value='';sq.value=vl;}}
 function memModalHtml(m,i){
@@ -12546,7 +13394,7 @@ function memModalHtml(m,i){
   function inp(id,v,t){if(t==='time')return '<input id="'+id+'" inputmode="numeric" maxlength="5" placeholder="14:30" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(v||'')+'">';return '<input id="'+id+'"'+(t?' type="'+t+'"':'')+(t==='date'?' min="1900-01-01" max="2099-12-31"':'')+' value="'+esc(v||'')+'">';}
   function sel(id,v,opts){return '<select id="'+id+'">'+opts.map(function(o){return '<option'+(v===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select>';}
   return '<div class="mback" id="mm" onclick="if(event.target===this)closeMemModal()"><div class="modal mwide"><div class="mwrap">'+memSideHtml()+'<div class="mmain">'+
-  '<div class="mtop"><button class="mnav" onclick="memNav(-1)"'+(i>0?'':' disabled')+'>&lsaquo;</button><button class="btn g" id="msv" style="flex:1" onclick="memSave(true)">'+tl('Save')+'</button><button class="btn sec" style="min-height:0;padding:8px 12px" onclick="memCancel()">'+tl('Cancel')+'</button><button class="mnav" onclick="memNav(1)"'+(i<_mem.length-1?'':' disabled')+'>&rsaquo;</button><button class="mnav" style="color:#2E8B57" title="Add member" onclick="memAddFromModal()">+</button><button class="mnav" style="color:#C94A3D" onclick="closeMemModal()">×</button></div>'+
+  '<div class="mtop"><button class="mnav" onclick="memNav(-1)"'+(i>0?'':' disabled')+'>&lsaquo;</button><button class="btn g" id="msv" style="flex:1" onclick="memSave(true)">'+Li('Save')+'</button><button class="btn sec" style="min-height:0;padding:8px 12px" onclick="memCancel()">'+Li('Cancel')+'</button><button class="mnav" onclick="memNav(1)"'+(i<_mem.length-1?'':' disabled')+'>&rsaquo;</button><button class="mnav" style="color:#2E8B57" title="Add member" onclick="memAddFromModal()">+</button><button class="mnav" style="color:#C94A3D" onclick="closeMemModal()">×</button></div>'+
   '<p class="muted" style="font-size:12px;text-align:center;margin:8px 0">'+(i+1)+' / '+_mem.length+' · '+L('All fields are required to save/move · Use Cancel to leave unfinished')+'</p>'+
   '<div class="row" style="gap:8px">'+fld(L('First name'),inp('ef_first',m.first_name))+fld(L('Family name'),inp('ef_last',m.last_name))+'</div>'+
   '<div class="row" style="gap:8px">'+fld(L('Position'),sel('ef_pos',m.position,['Athlete','Official']))+fld(L('Group (sub-team)'),inp('ef_grp',m.sub_group))+'</div>'+
@@ -12575,7 +13423,7 @@ function tBlur(el){var v=el.value.trim();var m=v.match(/^(\d{1,2}):(\d{1,2})$/);
   if(el.value&&!timeOk(el.value))el.classList.add('fmiss');}
 var REQ_EF=['ef_first','ef_last','ef_grp','ef_dob','ef_pass','ef_pexp','ef_arr','ef_arrf','ef_arrt','ef_dep','ef_depf','ef_dept'];
 function memValidate(){var miss=[];var _fl=document.getElementById('ef_follow');var _skip=(_fl&&_fl.checked)?{ef_arr:1,ef_arrf:1,ef_arrt:1,ef_dep:1,ef_depf:1,ef_dept:1}:{};REQ_EF.forEach(function(id){if(_skip[id])return;var el=document.getElementById(id);if(!el)return;var v=(el.value||'').trim();var ok=v!==''&&((id!=='ef_arrt'&&id!=='ef_dept')||timeOk(v));el.classList.toggle('fmiss',!ok);if(!ok)miss.push(el);});
-  if(miss.length){var b=$('#msv');if(b){b.textContent=tl('Fill the empty fields')+' ('+miss.length+')';b.style.background='#C94A3D';setTimeout(function(){var b2=$('#msv');if(b2){b2.textContent=tl('Save');b2.style.background='';}},1300);}miss[0].focus();return false;}return true;}
+  if(miss.length){var b=$('#msv');if(b){b.textContent=T('Fill the empty fields')+' ('+miss.length+')';b.style.background='#C94A3D';setTimeout(function(){var b2=$('#msv');if(b2){b2.textContent=T('Save');b2.style.background='';}},1300);}miss[0].focus();return false;}return true;}
 async function memSave(flash){var m=_mem[_emIdx];if(!m||!document.getElementById('mm'))return true;
   if(!memValidate())return false;
   var p=collectMem();
@@ -12583,7 +13431,7 @@ async function memSave(flash){var m=_mem[_emIdx];if(!m||!document.getElementById
     if(gfr){p.arrive=gfr.arrive;p.arr_flight=gfr.arr_flight;p.arr_time=gfr.arr_time;p.depart=gfr.depart;p.dep_flight=gfr.dep_flight;p.dep_time=gfr.dep_time;}}
   Object.assign(m,p);pbStart(1);var r=await db.updMember(m.id,p);pbStep();
   if(r&&r.error){alert(r.error.message);return false;}
-  if(flash){var b=$('#msv');if(b){b.textContent=tl('Saved')+' ✓';setTimeout(function(){var b2=$('#msv');if(b2)b2.textContent=tl('Save');},900);}}
+  if(flash){var b=$('#msv');if(b){b.textContent=T('Saved')+' ✓';setTimeout(function(){var b2=$('#msv');if(b2)b2.textContent=T('Save');},900);}}
   return true;}
 async function memCancel(){var m=_mem[_emIdx];var el=document.getElementById('mm');if(el)el.remove();
   if(m&&!(m.first_name||'').trim()&&!(m.last_name||'').trim()){
@@ -12625,7 +13473,7 @@ function asDateOpts(sel){var out='';var y=[];
  return out;}
 
 async function modAmmo(){
-  stage('<div class="card"><span class="muted">'+tl('Loading…')+'</span></div>');
+  stage('<div class="card"><span class="muted">'+L('Loading…')+'</span></div>');
   pbStart(5);
   var cfg=await db.getSetting('ammo_survey');pbStep();
   try{_asCfg=Object.assign(_asCfg,(typeof cfg==='string')?JSON.parse(cfg):(cfg||{}));}catch(e){}
@@ -12637,7 +13485,7 @@ async function modAmmo(){
   renderAmmo();
 }
 function asClosed(){
-  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+tl('Back')+'</button><b style="margin-left:6px">'+L('Shotgun ammunition')+'</b><span class="tag y" style="margin-left:auto">'+tl('Preparing')+'</span></div></div>'+
+  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">'+L('Shotgun ammunition')+'</b><span class="tag y" style="margin-left:auto">'+Li('Preparing')+'</span></div></div>'+
    '<div class="card" style="text-align:center;padding:36px 20px">'+
    '<h3 style="margin:0 0 6px;font-size:17px">'+L('The demand survey is not open yet.')+'</h3>'+
    '<p style="font-size:14px;line-height:1.7;margin:0">'+L('Ammunition will NOT be sold on site.')+L('Shotgun ammunition must be reserved in advance.')+'</p>'+
@@ -12647,27 +13495,26 @@ function renderAmmo(){
   var sh=asShooters();
   var totR=0,totE=0;sh.forEach(function(s){if(s.mid){totR+=asTotR(s.mid);totE+=asTotE(s.mid);}});
   var bad=asBad(),lk=asLocked();
-  var badge=lk?'<span class="tag b">'+tl('Survey submitted')+'</span>':'<span class="tag y">'+tl('Draft')+'</span>';
-  var h='<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+tl('Back')+'</button>'+
+  var badge=lk?'<span class="tag b">'+Li('Survey submitted')+'</span>':'<span class="tag y">'+Li('Draft')+'</span>';
+  var h='<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+Li('Back')+'</button>'+
     '<b style="margin-left:6px">'+L('Shotgun ammunition — Demand survey')+'</b>'+
     '<span style="margin-left:auto">'+badge+'</span></div></div>';
   h+='<div class="card"><div class="ainote" style="background:#EAF1F9;border:2px solid #1B6FA8;color:#13314C;font-size:12.5px;line-height:1.75">'+
-    '<b>'+tl('THIS IS A DEMAND SURVEY ONLY — IT IS NOT AN ORDER.')+'</b><br><span class="muted">THIS IS A DEMAND SURVEY ONLY — IT IS NOT AN ORDER.</span><br>'+
-    '<span style="font-size:11.5px">'+tl('Nothing is purchased and nothing is charged at this stage.')+'</span><br>'+
-    '<b>'+tl('A separate purchase notice will follow after this survey closes.')+'</b><br>'+
-    '<b>'+tl('At the time of the actual purchase two invoices will be issued — one for the ammunition and one for transport. The transport cost is not yet determined and is NOT included in the prices shown here.')+'</b><br>'+
-    '<span class="muted" style="font-size:11px">At the time of the actual purchase two invoices will be issued — one for the ammunition and one for transport. The transport cost is not yet determined and is NOT included in the prices shown here.</span></div>'+
+    '<b>'+L('THIS IS A DEMAND SURVEY ONLY — IT IS NOT AN ORDER.')+'</b><br>'+
+    '<span style="font-size:11.5px">'+L('Nothing is purchased and nothing is charged at this stage.')+'</span><br>'+
+    '<b>'+L('A separate purchase notice will follow after this survey closes.')+'</b><br>'+
+    '<b>'+L('At the time of the actual purchase two invoices will be issued — one for the ammunition and one for transport. The transport cost is not yet determined and is NOT included in the prices shown here.')+'</b></div>'+
     '<div style="background:#FDECEA;border:1px solid #E9B7B0;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;color:#96382C;margin-top:10px">'+
-    '<b>'+tl('Ammunition is not sold on site without an order.')+'</b><br>'+
-    '<b>'+tl('Maximum 400 rounds per athlete per day.')+'</b> <span class="muted">Maximum '+asCap()+' rounds per athlete per day.</span><br>'+
-    '<b>'+tl('Athletes only.')+'</b> <span class="muted">Athletes only.</span><br>'+
-    '<b>'+tl('Survey deadline')+' / Survey deadline: '+esc(_asCfg.deadline||'')+'</b></div></div>';
+    '<b>'+L('Ammunition is not sold on site without an order.')+'</b><br>'+
+    '<b>'+L('Maximum 400 rounds per athlete per day.')+'</b><br>'+
+    '<b>'+L('Athletes only.')+'</b><br>'+
+    '<b>'+L('Survey deadline')+'</b><b style="font-size:13px">'+esc(_asCfg.deadline||'')+'</b></div></div>';
   h+='<div class="card"><b>'+L('Survey summary')+'</b><div class="stats" style="margin:10px 0">'+
-    '<div class="stat"><b>'+sh.filter(function(s){return s.mid&&asTotR(s.mid)>0;}).length+' / '+sh.length+'</b><span>'+tl('athletes')+'</span></div>'+
-    '<div class="stat"><b>'+totR.toLocaleString()+'</b><span>'+tl('rounds')+'</span></div>'+
-    '<div class="stat"><b>'+asEur(totE)+'</b><span>'+tl('ammunition only')+'</span></div></div>'+
-    '<div class="muted" style="font-size:11.5px">'+tl('The amounts above cover the ammunition only. Transport is charged separately and has not yet been determined.')+'</div>'+
-    (bad.length?'<div style="background:#FDECEA;border:1px solid #E9B7B0;border-radius:10px;padding:9px 12px;font-size:12px;color:#96382C;margin-top:8px"><b>'+bad.length+' day(s) exceed the '+asCap()+'-round daily limit.</b> '+bad.map(function(x){return esc(x[0])+' · '+x[1]+' — '+x[2];}).join(' | ')+'</div>':'')+'</div>';
+    '<div class="stat"><b>'+sh.filter(function(s){return s.mid&&asTotR(s.mid)>0;}).length+' / '+sh.length+'</b><span>'+L('athletes')+'</span></div>'+
+    '<div class="stat"><b>'+totR.toLocaleString()+'</b><span>'+L('rounds')+'</span></div>'+
+    '<div class="stat"><b>'+asEur(totE)+'</b><span>'+L('ammunition only')+'</span></div></div>'+
+    '<div class="muted" style="font-size:11.5px">'+L('The amounts above cover the ammunition only. Transport is charged separately and has not yet been determined.')+'</div>'+
+    (bad.length?'<div style="background:#FDECEA;border:1px solid #E9B7B0;border-radius:10px;padding:9px 12px;font-size:12px;color:#96382C;margin-top:8px"><b>'+Li('Some days exceed the daily limit.')+' ('+bad.length+')</b> '+bad.map(function(x){return esc(x[0])+' · '+x[1]+' — '+x[2];}).join(' | ')+'</div>':'')+'</div>';
   h+='<div class="card"><b>'+L('Expected daily use by athlete')+'</b>'+
     '<p class="muted" style="font-size:12px;margin:4px 0 10px">'+L('Only athletes with a registered shotgun are listed.')+'</p>';
   if(!sh.length)h+='<p class="muted" style="font-size:12.5px">'+L('No shotgun has been registered yet. Please register firearms first.')+'</p>';
@@ -12678,53 +13525,53 @@ function renderAmmo(){
       '<div class="row" style="padding:11px 13px;cursor:pointer;background:'+(op?'#E9F2F9':'#F7FAFD')+'" onclick="asTog('+(i+1)+')">'+
       '<span style="font-size:15px;color:var(--acc)">'+(op?'▾':'▸')+'</span>'+
       '<div><div style="font-weight:700;font-size:13.5px">'+esc(s.name)+'</div>'+
-      '<div class="muted" style="font-size:11.5px">'+esc(s.gun)+(s.cal?' · '+esc(s.cal):'')+(s.mid?'':' · <span style="color:#C94A3D">'+tl('not linked to roster')+'</span>')+'</div></div>'+
-      '<div style="margin-left:auto;text-align:right">'+(r?('<b>'+r.toLocaleString()+'</b> <span class="muted" style="font-size:11px">rds</span>'):'<span class="muted" style="font-size:12px">'+tl('not declared')+'</span>')+
-      (over?' <span class="tag r">over limit</span>':(r?' <span class="tag g">OK</span>':''))+'</div></div>';
+      '<div class="muted" style="font-size:11.5px">'+esc(s.gun)+(s.cal?' · '+esc(s.cal):'')+(s.mid?'':' · <span style="color:#C94A3D">'+Li('not linked to roster')+'</span>')+'</div></div>'+
+      '<div style="margin-left:auto;text-align:right">'+(r?('<b>'+r.toLocaleString()+'</b> <span class="muted" style="font-size:11px">'+Li('rounds')+'</span>'):'<span class="muted" style="font-size:12px">'+Li('not declared')+'</span>')+
+      (over?' <span class="tag r">'+Li('over limit')+'</span>':(r?' <span class="tag g">OK</span>':''))+'</div></div>';
     if(op&&mid){
       h+='<div style="padding:12px 13px;border-top:1px solid var(--line)">';
       var ds=asDays(mid);
-      if(!ds.length)h+='<p class="muted" style="font-size:12.5px;margin:0 0 8px">'+tl('No day declared yet.')+'</p>';
+      if(!ds.length)h+='<p class="muted" style="font-size:12.5px;margin:0 0 8px">'+L('No day declared yet.')+'</p>';
       ds.forEach(function(d){
         var dt=asDayTot(mid,d),ov=dt>asCap(),pct=Math.min(100,Math.round(dt/asCap()*100));
         h+='<div class="row" style="margin:10px 0 4px"><span style="display:inline-flex;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700;background:'+(ov?'#FBE3E0':'#EAF4EE')+';border:1px solid '+(ov?'#E9B7B0':'#A8CDB4')+';color:'+(ov?'#A93226':'#1F6B42')+'">'+d+'</span>'+
           '<div style="height:6px;border-radius:4px;background:#E3EBF2;overflow:hidden;flex:1;min-width:80px;max-width:160px"><div style="height:100%;width:'+pct+'%;background:'+(ov?'var(--r)':'var(--g)')+'"></div></div>'+
           '<b style="font-size:12.5px'+(ov?';color:var(--r)':'')+'">'+dt+' / '+asCap()+'</b>'+
-          (lk?'':'<button class="btn sec" style="margin-left:auto;padding:4px 10px;font-size:12px;min-height:0" onclick="asAddLine('+mid+',\''+d+'\')">+ '+tl('product')+'</button>')+'</div>';
+          (lk?'':'<button class="btn sec" style="margin-left:auto;padding:4px 10px;font-size:12px;min-height:0" onclick="asAddLine('+mid+',\''+d+'\')">+ '+L('product')+'</button>')+'</div>';
         _asR.forEach(function(rw){ if(rw.member_id!==mid||rw.use_date!==d)return;
           h+='<div class="row" style="padding:7px 0;border-bottom:1px solid var(--panel2);gap:8px">'+
             '<select style="min-height:34px;padding:6px 8px;font-size:12.5px;width:auto" '+(lk?'disabled':'onchange="asSetP('+rw.id+',this.value)"')+'>'+
             _asP.map(function(p){return '<option value="'+p.id+'"'+(p.id===rw.product_id?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select>'+
             '<input type="number" step="'+asStep()+'" min="0" value="'+rw.rounds+'" style="width:88px;min-height:34px;padding:6px 8px;text-align:right;font-weight:700" '+(lk?'disabled':'onchange="asSetR('+rw.id+',this.value)"')+'>'+
-            '<span class="muted" style="font-size:11.5px">rds · '+asEur(asUnit(rw.product_id))+'/rd</span>'+
+            '<span class="muted" style="font-size:11.5px">'+Li('rounds')+' · '+asEur(asUnit(rw.product_id))+' / '+Li('Per round')+'</span>'+
             '<b style="font-size:12.5px;margin-left:auto">'+asEur(rw.rounds*asUnit(rw.product_id))+'</b>'+
             (lk?'':'<button class="btn sec" style="padding:4px 9px;font-size:12px;min-height:0" onclick="asDelLine('+rw.id+')">✕</button>')+'</div>';});
       });
       if(!lk)h+='<div class="row" style="margin-top:12px;gap:8px"><select id="asnd'+mid+'" style="min-height:34px;padding:6px 8px;font-size:12.5px;width:auto">'+asDateOpts('')+'</select>'+
-        '<button class="btn g" style="padding:6px 12px;font-size:12px;min-height:0" onclick="asAddDay('+mid+')">+ '+tl('add day')+'</button>'+
-        '<span style="margin-left:auto;font-size:12.5px">'+tl('Athlete total')+' <b>'+asTotR(mid).toLocaleString()+'</b> rds · <b>'+asEur(asTotE(mid))+'</b></span></div>';
+        '<button class="btn g" style="padding:6px 12px;font-size:12px;min-height:0" onclick="asAddDay('+mid+')">+ '+Li('add day')+'</button>'+
+        '<span style="margin-left:auto;font-size:12.5px">'+L('Athlete total')+' <b>'+asTotR(mid).toLocaleString()+'</b> <span class="muted" style="font-size:11px">'+Li('rounds')+'</span> · <b>'+asEur(asTotE(mid))+'</b></span></div>';
       h+='</div>';
     }
     h+='</div>';});
   h+='</div>';
   h+='<div class="card"><b>'+L('Ammunition catalogue — reference prices')+'</b>'+
     '<p class="muted" style="font-size:12px;margin:4px 0 8px">'+L('Reference prices for planning. Transport is not included.')+'</p>'+
-    '<div class="tbl"><table><thead><tr><th>Product</th><th>Discipline</th><th>Per case (250)</th><th>Per round</th></tr></thead><tbody>'+
+    '<div class="tbl"><table><thead><tr><th>'+L('Product')+'</th><th>'+L('Discipline')+'</th><th>'+L('Per case (250)')+'</th><th>'+L('Per round')+'</th></tr></thead><tbody>'+
     _asP.map(function(p){return '<tr><td><b>'+esc(p.name)+'</b></td><td>'+esc(p.discipline)+'</td><td>€ '+(+p.price_eur)+'</td><td>'+asEur((+p.price_eur)/(+p.pack||250))+'</td></tr>';}).join('')+
     '</tbody></table></div></div>';
   h+='<div class="card"><b>'+L('Submit survey')+'</b>'+
     '<p class="muted" style="font-size:12px;margin:4px 0 10px">'+L('Submitting does not place an order and creates no payment obligation. You may edit until the deadline.')+'</p><div class="row">'+
-    (lk? '<button class="btn" onclick="asDocView()">🧾 '+tl('Confirmation of submission')+' (PDF)</button>'+
-         '<button class="btn sec" onclick="asWithdraw()">'+tl('Withdraw & edit')+'</button>'+
+    (lk? '<button class="btn" onclick="asDocView()">🧾 '+Li('Confirmation of submission')+' (PDF)</button>'+
+         '<button class="btn sec" onclick="asWithdraw()">'+Li('Withdraw & edit')+'</button>'+
          '<span class="muted" style="font-size:12px">'+esc((_asM&&_asM.submitted_at||'').slice(0,10))+'</span>'
-       : '<button class="btn g" onclick="asSubmit()"'+(bad.length?' disabled':'')+'>'+tl('Submit survey')+'</button>'+
-         (bad.length?'<span class="muted" style="font-size:12px">'+tl('Correct the days over the limit first.')+'</span>':''))+
+       : '<button class="btn g" onclick="asSubmit()"'+(bad.length?' disabled':'')+'>'+Li('Submit survey')+'</button>'+
+         (bad.length?'<span class="muted" style="font-size:12px">'+L('Correct the days over the limit first.')+'</span>':''))+
     '</div></div>';
   h+='<div class="card" id="aspv"></div>';
   stage(h);
 }
 function asTog(i){_asOpen=(_asOpen===i?0:i);renderAmmo();}
-async function asAddLine(mid,d){ if(asLocked())return; if(!_asP.length){alert('No catalogue');return;}
+async function asAddLine(mid,d){ if(asLocked())return; if(!_asP.length){alert(T('No catalogue'));return;}
  var r=await db.asAdd({country:S.country,member_id:mid,use_date:d,product_id:_asP[0].id,rounds:asStep()});
  if(r&&r.error){alert(r.error.message);return;} _asR=await db.asRows(S.country);renderAmmo();}
 async function asAddDay(mid){ if(asLocked())return; var el=document.getElementById('asnd'+mid); if(!el)return; var d=el.value;
@@ -12770,23 +13617,23 @@ function asDoc(){
   '</div><div class="dfoot"><div class="dsign"><p style="margin-top:30px">With best regards,</p><p style="margin-top:14px"><b>Changwon 2026 WSPS World Championships</b><br>Organising Committee</p></div>'+
   '<div class="dft"><div class="dftrow1"><span class="docno">'+esc(asDocNo())+'</span><span class="dftaddr">ZIP 61998&nbsp;&nbsp;&nbsp;&nbsp;8F, Mareukbokgar-ro 154, Seo-gu, Gwangju, Republic of Korea</span></div><div class="dftrow2">PHONE +82 62 710 5391 / FAX +82 62 710 9851 / Email(ksfd0427@hanmail.net) / http://www.ksfd.kosad.kr</div></div></div></div>';}
 function asDocView(){var box=document.getElementById('aspv');if(!box)return;
- box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+tl('Confirmation of submission')+'</b><button class="btn" style="margin-left:auto" onclick="printEl(\'asd\')">Print / PDF</button></div>'+asDoc();
+ box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+L('Confirmation of submission')+'</b><button class="btn" style="margin-left:auto" onclick="printEl(\'asd\')">Print / PDF</button></div>'+asDoc();
  box.scrollIntoView({behavior:'smooth',block:'start'});}
 
 /* ============ Module 1: Invitation ============ */
-async function modInvite(){stage('<div class="card"><span class="muted">'+tl('Loading…')+'</span></div>');pbStart(2);_mem=await db.members(S.country);pbStep();_inv=await db.invites(S.country);pbStep();renderInvite();}
+async function modInvite(){stage('<div class="card"><span class="muted">'+L('Loading…')+'</span></div>');pbStart(2);_mem=await db.members(S.country);pbStep();_inv=await db.invites(S.country);pbStep();renderInvite();}
 function renderInvite(){
-  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+tl('Back')+'</button><b style="margin-left:6px">'+L('Invitation letter')+'</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">'+tl('Manage roster')+' &rarr;</button></div><p class="muted" style="font-size:12px">'+L('Linked to your Delegation info roster — request for the entire delegation or per group.')+' ('+_mem.length+' members)</p></div>'+
-  '<div class="card"><b>'+L('Request invitation letter')+'</b><div class="row" style="gap:8px;align-items:flex-end"><div class="f" style="margin:0;flex:1"><label>'+L('Scope')+'</label><select id="ig" onchange="invPreviewDraft()">'+grpOptions()+'</select></div><div class="f" style="margin:0;flex:1"><label>'+L('Letter title (optional)')+'</label><input id="it" placeholder="'+tl('defaults to group')+'" oninput="invPreviewDraft()"></div><button class="btn g" onclick="reqInvite()">'+L('Request')+'</button></div></div>'+
+  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">'+L('Invitation letter')+'</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">'+Li('Manage roster')+' &rarr;</button></div><p class="muted" style="font-size:12px">'+L('Linked to your Delegation info roster — request for the entire delegation or per group.')+' ('+_mem.length+' members)</p></div>'+
+  '<div class="card"><b>'+L('Request invitation letter')+'</b><div class="row" style="gap:8px;align-items:flex-end"><div class="f" style="margin:0;flex:1"><label>'+L('Scope')+'</label><select id="ig" onchange="invPreviewDraft()">'+grpOptions()+'</select></div><div class="f" style="margin:0;flex:1"><label>'+L('Letter title (optional)')+'</label><input id="it" placeholder="'+T('defaults to group')+'" oninput="invPreviewDraft()"></div><button class="btn g" onclick="reqInvite()">'+Li('Request')+'</button></div></div>'+
   '<div class="card"><b>'+L('Requested letters')+'</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>'+L('No.')+'</th><th>'+L('Title')+'</th><th>'+L('Members')+'</th><th>'+L('Status')+'</th><th></th></tr></thead><tbody>'+
-   (_inv.length?_inv.map(function(L){var n=(L.member_ids||[]).length;return '<tr><td>'+(L.no?'<b>'+esc(L.no)+'</b>':'<span class="muted">— '+tl('pending')+'</span>')+'</td><td>'+esc(L.title)+'</td><td>'+n+'</td><td>'+(L.status==='approved'?'<span class="tag g">'+tl('approved')+'</span>':'<span class="tag y">'+tl('pending approval')+'</span>')+'</td><td><button class="btn sec" style="padding:3px 8px" onclick="prevInvite('+L.id+')">'+tl('Preview')+'</button>'+(L.status==='approved'?'':' <button class="btn r" style="padding:3px 8px" onclick="withdrawInvite('+L.id+')">'+tl('Withdraw')+'</button>')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">'+L('No letters requested yet.')+'</td></tr>')+
+   (_inv.length?_inv.map(function(L){var n=(L.member_ids||[]).length;return '<tr><td>'+(L.no?'<b>'+esc(L.no)+'</b>':'<span class="muted">— '+Li('pending')+'</span>')+'</td><td>'+esc(L.title)+'</td><td>'+n+'</td><td>'+(L.status==='approved'?'<span class="tag g">'+Li('approved')+'</span>':'<span class="tag y">'+Li('pending approval')+'</span>')+'</td><td><button class="btn sec" style="padding:3px 8px" onclick="prevInvite('+L.id+')">'+Li('Preview')+'</button>'+(L.status==='approved'?'':' <button class="btn r" style="padding:3px 8px" onclick="withdrawInvite('+L.id+')">'+Li('Withdraw')+'</button>')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">'+L('No letters requested yet.')+'</td></tr>')+
    '</tbody></table></div></div>'+
   '<div class="card" id="ipv"></div>');
   invPreviewDraft();
 }
 async function reqInvite(){var g=$('#ig').value,t=$('#it').value.trim();var mem=scopeMembers(g);if(!mem.length){alert(T('No members in that scope.'));return;}if(!t)t=(g==='*ALL*'?'Entire delegation':g);var r=await db.addInvite({country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:''});if(r.error){alert(r.error.message);return;}_inv=await db.invites(S.country);renderInvite();}
 async function withdrawInvite(id){var L=_inv.find(function(x){return x.id===id});if(!L||L.status==='approved')return;if(!confirm(T('Withdraw this letter?')))return;await db.delInvite(id);_inv=await db.invites(S.country);renderInvite();}
-function invPreviewDraft(){var box=$('#ipv');if(!box)return;var g=$('#ig')?$('#ig').value:'*ALL*';var t=($('#it')&&$('#it').value.trim())||(g==='*ALL*'?'Entire delegation':g);var mem=scopeMembers(g);var L={country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:''};box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+tl('Live preview')+' — '+esc(t)+'</b><span class="tag y" style="margin-left:auto">'+tl('PENDING APPROVAL — issued on approval')+'</span></div>'+inviteDoc(L);}
+function invPreviewDraft(){var box=$('#ipv');if(!box)return;var g=$('#ig')?$('#ig').value:'*ALL*';var t=($('#it')&&$('#it').value.trim())||(g==='*ALL*'?'Entire delegation':g);var mem=scopeMembers(g);var L={country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:''};box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+L('Live preview')+' — '+esc(t)+'</b><span class="tag y" style="margin-left:auto">'+Li('PENDING APPROVAL — issued on approval')+'</span></div>'+inviteDoc(L);}
 function inviteDoc(L){var isA=L.status==='approved';var wm=isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>';var mem=_mem.filter(function(m){return (L.member_ids||[]).indexOf(m.id)>=0});
   return '<div class="doc" id="di">'+wm+'<div class="dhead"><div class="lh"><img src="assets/logo.png" style="height:68px"><div style="flex:1;text-align:center;font-weight:bold;font-size:16px;line-height:1.4;color:#16456B">Korea Shooting Federation for Disabled<br>Changwon 2026 WSPS World Championships Organising Committee</div><img src="assets/ksfd.png" onerror="this.remove()" style="height:68px"></div></div><div class="dbody">'+(L.doc_html?L.doc_html:(
    '<p style="font-size:13px;margin:10px 0 2px"><b>TO:</b> To Whom It May Concern</p>'+
@@ -12798,22 +13645,22 @@ function inviteDoc(L){var isA=L.status==='approved';var wm=isA?'':'<div class="w
    '</div><div class="dfoot"><div class="dsign"><p style="margin-top:44px">With best regards,</p>'+(isA?'<div class="sigwrap"><p class="signame"><b>Korea Shooting Federation for Disabled</b></p><div class="sigcluster"><span class="sigrole">President</span><span class="sigbar"></span><img class="sigimg" src="assets/Signature.png" alt="" onerror="this.style.display=\'none\'"><img class="sealimg" src="assets/Stamp.png" alt="" onerror="this.style.display=\'none\'"></div></div>':'<p style="margin-top:14px"><b>President</b><br>Korea Shooting Federation for Disabled</p>')+'</div>'+
    '<div class="dft"><div class="dftrow1"><span class="docno">'+(isA?'Changwon 2026 WSPS World Championships-'+('000'+String(L.reg_no||'').replace(/\D/g,'')).slice(-3)+' ('+esc(L.approved_at||'')+')':'')+'</span><span class="dftaddr">ZIP 61998&nbsp;&nbsp;&nbsp;&nbsp;8F, Mareukbokgar-ro 154, Seo-gu, Gwangju, Republic of Korea</span></div><div class="dftrow2">PHONE +82 62 710 5391 / FAX +82 62 710 9851 / Email(ksfd0427@hanmail.net) / http://www.ksfd.kosad.kr</div></div></div></div>';}
 
-function prevInvite(id){var L=_inv.find(function(x){return x.id===id});if(!L)return;var box=$('#ipv');var isA=L.status==='approved';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+(L.no?esc(L.no)+' · ':'')+esc(L.title)+'</b>'+(isA?'<button class="btn" style="margin-left:auto" onclick="printEl(\'di\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">'+tl('Preview only — issued on approval')+'</span>')+'</div>'+inviteDoc(L);}
+function prevInvite(id){var L=_inv.find(function(x){return x.id===id});if(!L)return;var box=$('#ipv');var isA=L.status==='approved';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+(L.no?esc(L.no)+' · ':'')+esc(L.title)+'</b>'+(isA?'<button class="btn" style="margin-left:auto" onclick="printEl(\'di\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">'+Li('Preview only — issued on approval')+'</span>')+'</div>'+inviteDoc(L);}
 
 
 /* ============ Module 2: Firearm ============ */
 var GTYPES=['Air Rifle','Air Pistol','Rifle','Pistol','Shotgun'];
 function calOf(t){return (t==='Air Rifle'||t==='Air Pistol')?'.177':((t==='Rifle'||t==='Pistol')?'.22':(t==='Shotgun'?'12ga':''))}
 var _ammo=null;
-async function modFirearm(){stage('<div class="card"><span class="muted">'+tl('Loading…')+'</span></div>');pbStart(4);_fg=await db.firearms(S.country);pbStep();_mem=await db.members(S.country);pbStep();_fsubs=await db.fsubs(S.country);pbStep();_ammo=await db.ammoGet(S.country);pbStep();renderFirearm();}
+async function modFirearm(){stage('<div class="card"><span class="muted">'+L('Loading…')+'</span></div>');pbStart(4);_fg=await db.firearms(S.country);pbStep();_mem=await db.members(S.country);pbStep();_fsubs=await db.fsubs(S.country);pbStep();_ammo=await db.ammoGet(S.country);pbStep();renderFirearm();}
 function subFor(g){return _fsubs.find(function(x){return (x.grp||'*ALL*')===g})||null;}
 function scopeFirearms(g){return _fg.filter(function(f){return g==='*ALL*'||grpOfOwner(f.owner)===g});}
 function renderFirearm(){
-  var rows=_fg.map(function(g){var ok=g.photo_full&&g.photo_num;return '<tr><td>'+esc(g.owner)+'</td><td>'+esc(grpOfOwner(g.owner))+'</td><td>'+esc(g.manufacturer)+'</td><td>'+esc(g.model)+'</td><td><b>'+esc(g.serial)+'</b></td><td>'+esc(g.type)+'</td><td>'+esc(g.caliber)+'</td><td>'+(ok?'<span class="tag g">2/2</span>':'<span class="tag r">'+((g.photo_full?1:0)+(g.photo_num?1:0))+'/2</span>')+'</td><td style="white-space:nowrap">'+(ok?'':'<button class="btn" style="padding:3px 8px;font-size:11px;background:#B4550E" onclick="fPhotoForm('+g.id+')">📷 '+tl('Add photos')+'</button> ')+'<button class="btn r" style="padding:3px 8px;font-size:11px" onclick="fDel('+g.id+')">×</button></td></tr>'}).join('');
-  var subRows=_fsubs.map(function(x){var sc=(x.grp||'*ALL*');var label=sc==='*ALL*'?'Entire delegation':sc;return '<tr><td>'+esc(label)+'</td><td>'+esc(x.submitted_at||'')+'</td><td><span class="tag g">submitted</span></td><td style="font-size:11px">OC-F-'+esc(S.country)+'-'+esc(String(x.submitted_at||'').replace(/-/g,''))+'</td><td><button class="btn sec" style="padding:3px 8px" onclick="fCert(\''+esc(sc)+'\')">'+tl('View')+'</button></td></tr>'}).join('');
-  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+tl('Back')+'</button><b style="margin-left:6px">'+L('Firearm import / export')+'</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">'+tl('Manage roster')+' &rarr;</button></div><p class="muted" style="font-size:12px">'+L('Owners are linked to the roster. Submit and receive confirmations for the entire delegation or per group. Each firearm needs 2 photos (full view + serial number).')+'</p><div class="row" style="gap:8px"><button class="btn g" onclick="fForm()">'+L('+ Add firearm')+'</button><button class="btn" style="background:#5B3E8E" onclick="fAmmoForm()">'+L('+ Add ammunition')+'</button></div></div>'+
+  var rows=_fg.map(function(g){var ok=g.photo_full&&g.photo_num;return '<tr><td>'+esc(g.owner)+'</td><td>'+esc(grpOfOwner(g.owner))+'</td><td>'+esc(g.manufacturer)+'</td><td>'+esc(g.model)+'</td><td><b>'+esc(g.serial)+'</b></td><td>'+esc(g.type)+'</td><td>'+esc(g.caliber)+'</td><td>'+(ok?'<span class="tag g">2/2</span>':'<span class="tag r">'+((g.photo_full?1:0)+(g.photo_num?1:0))+'/2</span>')+'</td><td style="white-space:nowrap">'+(ok?'':'<button class="btn" style="padding:3px 8px;font-size:11px;background:#B4550E" onclick="fPhotoForm('+g.id+')">📷 '+Li('Add photos')+'</button> ')+'<button class="btn r" style="padding:3px 8px;font-size:11px" onclick="fDel('+g.id+')">×</button></td></tr>'}).join('');
+  var subRows=_fsubs.map(function(x){var sc=(x.grp||'*ALL*');var label=sc==='*ALL*'?'Entire delegation':sc;return '<tr><td>'+esc(label)+'</td><td>'+esc(x.submitted_at||'')+'</td><td><span class="tag g">submitted</span></td><td style="font-size:11px">OC-F-'+esc(S.country)+'-'+esc(String(x.submitted_at||'').replace(/-/g,''))+'</td><td><button class="btn sec" style="padding:3px 8px" onclick="fCert(\''+esc(sc)+'\')">'+Li('View')+'</button></td></tr>'}).join('');
+  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">'+L('Firearm import / export')+'</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">'+Li('Manage roster')+' &rarr;</button></div><p class="muted" style="font-size:12px">'+L('Owners are linked to the roster. Submit and receive confirmations for the entire delegation or per group. Each firearm needs 2 photos (full view + serial number).')+'</p><div class="row" style="gap:8px"><button class="btn g" onclick="fForm()">'+Li('+ Add firearm')+'</button><button class="btn" style="background:#5B3E8E" onclick="fAmmoForm()">'+Li('+ Add ammunition')+'</button></div></div>'+
    '<div class="card">'+ammoSummaryHtml()+'<div class="tbl"><table><thead><tr><th>'+L('Owner')+'</th><th>'+L('Group')+'</th><th>'+L('Manufacturer')+'</th><th>'+L('Model')+'</th><th>'+L('Serial')+'</th><th>'+L('Type')+'</th><th>'+L('Caliber')+'</th><th>'+L('Photos')+'</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="9" class="muted">'+L('No firearms yet.')+'</td></tr>')+'</tbody></table></div></div>'+
-   '<div class="card"><b>'+L('Submit & confirmation')+'</b><div class="row" style="gap:8px;align-items:flex-end;margin-top:8px"><div class="f" style="margin:0;flex:1"><label>'+L('Scope')+'</label><select id="fsg" onchange="fCertSel()">'+grpOptions()+'</select></div><button class="btn g" onclick="fSubmit()">'+L('Submit firearm form')+'</button></div>'+
+   '<div class="card"><b>'+L('Submit & confirmation')+'</b><div class="row" style="gap:8px;align-items:flex-end;margin-top:8px"><div class="f" style="margin:0;flex:1"><label>'+L('Scope')+'</label><select id="fsg" onchange="fCertSel()">'+grpOptions()+'</select></div><button class="btn g" onclick="fSubmit()">'+Li('Submit firearm form')+'</button></div>'+
    '<div class="tbl" style="margin-top:10px"><table><thead><tr><th>'+L('Scope')+'</th><th>'+L('Submitted')+'</th><th>'+L('Status')+'</th><th>'+L('No.')+'</th><th></th></tr></thead><tbody>'+(subRows||'<tr><td colspan="5" class="muted">'+L('No submissions yet.')+'</td></tr>')+'</tbody></table></div></div>'+
    '<div class="card" id="fpv"></div>');
   fCertSel();
@@ -12821,14 +13668,14 @@ function renderFirearm(){
 function fCertSel(){var g=$('#fsg')?$('#fsg').value:'*ALL*';fCert(g);}
 var _photo={full:'',num:''};
 function fForm(){_photo={full:'',num:''};var ppl=_mem.map(function(m){return '<option value="'+esc(mName(m))+'">'}).join('');
-  stage('<div class="card"><div class="row"><button class="btn sec" onclick="modFirearm()">&larr; '+tl('Back')+'</button><b style="margin-left:6px">'+L('Add firearm')+'</b></div>'+
+  stage('<div class="card"><div class="row"><button class="btn sec" onclick="modFirearm()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">'+L('Add firearm')+'</b></div>'+
     '<div class="f"><label>'+L('Owner')+'</label><input id="f_owner" list="ppl">'+'<datalist id="ppl">'+ppl+'</datalist></div>'+
     '<div class="row" style="gap:8px"><div class="f" style="flex:1"><label>'+L('Manufacturer')+'</label><input id="f_man"></div><div class="f" style="flex:1"><label>'+L('Model')+'</label><input id="f_mod"></div></div>'+
-    '<div class="row" style="gap:8px"><div class="f" style="flex:1"><label>'+L('Serial number')+'</label><input id="f_ser"></div><div class="f" style="flex:1"><label>'+L('Type')+'</label><select id="f_type" onchange="fTypeChg()"><option value="">'+tl('— select —')+'</option>'+GTYPES.map(function(t){return '<option>'+t+'</option>'}).join('')+'</select></div><div class="f" style="flex:1"><label>'+L('Caliber')+'</label><div id="f_cal"><input value="" placeholder="select Type" readonly></div></div></div>'+
-    '<div class="row" style="gap:10px"><div class="f" style="flex:1"><label>'+L('Full firearm photo (required)')+'</label><input id="ph_full" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_full" class="muted" style="font-size:11px;margin-top:4px">'+tl('No photo')+'</div></div>'+
-    '<div class="f" style="flex:1"><label>'+L('Serial-number close-up (required)')+'</label><input id="ph_num" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_num" class="muted" style="font-size:11px;margin-top:4px">'+tl('No photo')+'</div></div></div>'+
+    '<div class="row" style="gap:8px"><div class="f" style="flex:1"><label>'+L('Serial number')+'</label><input id="f_ser"></div><div class="f" style="flex:1"><label>'+L('Type')+'</label><select id="f_type" onchange="fTypeChg()"><option value="">'+T('— select —')+'</option>'+GTYPES.map(function(t){return '<option>'+t+'</option>'}).join('')+'</select></div><div class="f" style="flex:1"><label>'+L('Caliber')+'</label><div id="f_cal"><input value="" placeholder="select Type" readonly></div></div></div>'+
+    '<div class="row" style="gap:10px"><div class="f" style="flex:1"><label>'+L('Full firearm photo (required)')+'</label><input id="ph_full" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_full" class="muted" style="font-size:11px;margin-top:4px">'+L('No photo')+'</div></div>'+
+    '<div class="f" style="flex:1"><label>'+L('Serial-number close-up (required)')+'</label><input id="ph_num" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_num" class="muted" style="font-size:11px;margin-top:4px">'+L('No photo')+'</div></div></div>'+
     '<p class="muted" style="font-size:11px;margin:2px 0 0">'+L('JPG · PNG · WebP · HEIC — max 15MB per photo. Automatically converted to 1024px JPG on upload.')+'</p>'+
-    '<div class="row" style="margin-top:8px"><button class="btn g" onclick="fSave()">'+tl('Save')+'</button><button class="btn sec" onclick="modFirearm()">'+tl('Cancel')+'</button></div></div>');
+    '<div class="row" style="margin-top:8px"><button class="btn g" onclick="fSave()">'+Li('Save')+'</button><button class="btn sec" onclick="modFirearm()">'+Li('Cancel')+'</button></div></div>');
   bindPhoto('full');bindPhoto('num');
 }
 function fTypeChg(){var t=$('#f_type').value;var box=$('#f_cal');if(t==='Shotgun'){box.innerHTML='<select id="f_shsel" onchange="fShCal()"><option value="12ga">12ga</option><option value="__c">Custom…</option></select> <input id="f_shc" placeholder="e.g. 20ga" style="display:none;margin-top:4px">';}else{box.innerHTML='<input value="'+(calOf(t)||'')+'" readonly>';}}
@@ -12860,12 +13707,12 @@ async function fDel(id){if(!confirm(T('Delete this firearm?')))return;var fg0=_f
 async function fSubmit(){var g=$('#fsg').value;var list=scopeFirearms(g);if(!list.length){alert('No firearms in that scope.');return;}var bad=list.filter(function(x){return !x.photo_full||!x.photo_num});if(bad.length){alert(T('The following firearms are missing photos:')+'\n\n'+bad.map(function(x){return '\u00b7 '+x.owner+' \u2014 '+x.manufacturer+' '+x.model+' (SN '+x.serial+')'}).join('\n'));return;}await db.setFsub(S.country,g,new Date().toISOString().slice(0,10));alert(T('Firearm form submitted — confirmation issued (no approval required). Open View to print.'));modFirearm();}
 var _phTarget=0;
 function fPhotoForm(id){var g=_fg.find(function(x){return x.id===id});if(!g)return;_photo={full:'',num:''};_phTarget=id;
- stage('<div class="card"><div class="row"><button class="btn sec" onclick="modFirearm()">&larr; '+tl('Back')+'</button><b style="margin-left:6px">📷 '+L('Add photos')+'</b></div>'+
+ stage('<div class="card"><div class="row"><button class="btn sec" onclick="modFirearm()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">📷 '+L('Add photos')+'</b></div>'+
   '<p class="muted" style="font-size:12px">'+esc(g.owner)+' — '+esc(g.manufacturer)+' '+esc(g.model)+' · SN <b>'+esc(g.serial)+'</b> · '+esc(g.type)+' '+esc(g.caliber)+'</p>'+
-  '<div class="row" style="gap:10px"><div class="f" style="flex:1"><label>'+L('Full firearm photo (required)')+'</label><input id="ph_full" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_full" class="muted" style="font-size:11px;margin-top:4px">'+(g.photo_full?'<img src="'+esc(g.photo_full)+'" style="max-height:90px;border-radius:6px">':tl('No photo'))+'</div></div>'+
-  '<div class="f" style="flex:1"><label>'+L('Serial-number close-up (required)')+'</label><input id="ph_num" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_num" class="muted" style="font-size:11px;margin-top:4px">'+(g.photo_num?'<img src="'+esc(g.photo_num)+'" style="max-height:90px;border-radius:6px">':tl('No photo'))+'</div></div></div>'+
+  '<div class="row" style="gap:10px"><div class="f" style="flex:1"><label>'+L('Full firearm photo (required)')+'</label><input id="ph_full" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_full" class="muted" style="font-size:11px;margin-top:4px">'+(g.photo_full?'<img src="'+esc(g.photo_full)+'" style="max-height:90px;border-radius:6px">':L('No photo'))+'</div></div>'+
+  '<div class="f" style="flex:1"><label>'+L('Serial-number close-up (required)')+'</label><input id="ph_num" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment"><div id="pv_num" class="muted" style="font-size:11px;margin-top:4px">'+(g.photo_num?'<img src="'+esc(g.photo_num)+'" style="max-height:90px;border-radius:6px">':L('No photo'))+'</div></div></div>'+
   '<p class="muted" style="font-size:11px;margin:2px 0 0">'+L('JPG · PNG · WebP · HEIC — max 15MB per photo. Automatically converted to 1024px JPG on upload.')+'</p>'+
-  '<div class="row" style="margin-top:8px"><button class="btn g" onclick="fPhotoSave()">'+tl('Save')+'</button><button class="btn sec" onclick="modFirearm()">'+tl('Cancel')+'</button></div></div>');
+  '<div class="row" style="margin-top:8px"><button class="btn g" onclick="fPhotoSave()">'+Li('Save')+'</button><button class="btn sec" onclick="modFirearm()">'+Li('Cancel')+'</button></div></div>');
  bindPhoto('full');bindPhoto('num');}
 async function fPhotoSave(){var g=_fg.find(function(x){return x.id===_phTarget});if(!g)return;var o={};
  pbStart(3);
@@ -12874,14 +13721,14 @@ async function fPhotoSave(){var g=_fg.find(function(x){return x.id===_phTarget})
  if(!Object.keys(o).length){pbStep();alert(T('No photo'));return;}
  var r=await db.updFirearm(_phTarget,o);pbStep();if(r&&r.error){alert(r.error.message);return;}modFirearm();}
 function ammoSummaryHtml(){var a=_ammo;var has=a&&(((+a.p)||0)>0||((+a.b)||0)>0);
- if(!has)return '<p class="muted" style="font-size:12px;margin:0 0 8px">🎯 '+tl('Ammunition')+' — '+tl('No ammunition declared.')+'</p>';
- return '<p style="font-size:12.5px;margin:0 0 8px">🎯 <b>'+tl('Ammunition')+'</b> — '+tl('Air pellets (4.5mm)')+': <b>'+((+a.p)||0)+'</b> · '+tl('Cartridges (.22 LR)')+': <b>'+((+a.b)||0)+'</b></p>';}
+ if(!has)return '<p class="muted" style="font-size:12px;margin:0 0 8px">🎯 '+Li('Ammunition')+' — '+Li('No ammunition declared.')+'</p>';
+ return '<p style="font-size:12.5px;margin:0 0 8px">🎯 <b>'+Li('Ammunition')+'</b> — '+Li('Air pellets (4.5mm)')+': <b>'+((+a.p)||0)+'</b> · '+Li('Cartridges (.22 LR)')+': <b>'+((+a.b)||0)+'</b></p>';}
 function fAmmoForm(){var a=_ammo||{};
- stage('<div class="card"><div class="row"><button class="btn sec" onclick="modFirearm()">&larr; '+tl('Back')+'</button><b style="margin-left:6px">'+L('Ammunition')+'</b></div>'+
+ stage('<div class="card"><div class="row"><button class="btn sec" onclick="modFirearm()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">'+L('Ammunition')+'</b></div>'+
  '<p class="muted" style="font-size:12px">'+L('Enter only the total quantity for each ammunition type.')+'</p>'+
  '<div class="row" style="gap:10px;flex-wrap:wrap"><div class="f" style="flex:1;min-width:200px"><label>'+L('Air pellets (4.5mm)')+'</label><input id="am_p" type="number" min="0" step="1" value="'+esc(a.p!=null?String(a.p):'')+'" placeholder="0"><p class="muted" style="font-size:11px;margin:3px 0 0">'+L('Total quantity')+'</p></div>'+
  '<div class="f" style="flex:1;min-width:200px"><label>'+L('Cartridges (.22 LR)')+'</label><input id="am_b" type="number" min="0" step="1" value="'+esc(a.b!=null?String(a.b):'')+'" placeholder="0"><p class="muted" style="font-size:11px;margin:3px 0 0">'+L('Total quantity')+'</p></div></div>'+
- '<div class="row" style="margin-top:8px"><button class="btn g" onclick="fAmmoSave()">'+tl('Save')+'</button><button class="btn sec" onclick="modFirearm()">'+tl('Cancel')+'</button></div></div>');}
+ '<div class="row" style="margin-top:8px"><button class="btn g" onclick="fAmmoSave()">'+Li('Save')+'</button><button class="btn sec" onclick="modFirearm()">'+Li('Cancel')+'</button></div></div>');}
 async function fAmmoSave(){var p=parseInt($('#am_p').value,10)||0,b=parseInt($('#am_b').value,10)||0;var r=await db.ammoSet(S.country,{p:p,b:b});if(r&&r.error){alert(r.error.message);return;}modFirearm();}
 function ammoDocRows(a){var has=a&&(((+a.p)||0)>0||((+a.b)||0)>0);
  if(!has)return '<tr><td colspan="2" style="color:#888">No ammunition declared.</td></tr>';
@@ -12896,20 +13743,20 @@ function fCertDoc(s,g){var sub=s&&s.submitted_at;var ref=sub?('OC-F-'+S.country+
    (list.length?list.map(function(g2){return '<tr><td>'+esc(g2.owner)+'</td><td>'+esc(g2.manufacturer)+'</td><td>'+esc(g2.model)+'</td><td>'+esc(g2.serial)+'</td><td>'+esc(g2.type)+'</td><td>'+esc(g2.caliber)+'</td><td>'+((g2.photo_full&&g2.photo_num)?'2/2':((g2.photo_full?1:0)+(g2.photo_num?1:0))+'/2')+'</td></tr>'}).join(''):'<tr><td colspan="7" style="color:#888">No firearms in this scope.</td></tr>')+'</tbody></table>'+
    '<p style="margin:12px 0 2px;font-weight:bold">Ammunition</p><table style="width:100%;margin:4px 0 14px"><thead><tr><th>Type</th><th>Total Quantity</th></tr></thead><tbody>'+ammoDocRows(_ammo)+'</tbody></table>'+
    '<p>This confirmation is issued for customs and administrative reference. The listed firearms are declared for temporary import/export for the duration of the Competition.</p>'))+'</div><div class="dfoot"><div class="dsign"><p style="margin-top:30px">With best regards,</p><p style="margin-top:20px"><b>President</b><br>Korea Shooting Federation for the Disabled</p></div><div class="dft"><div class="dftrow1"><span class="docno">'+(s&&s.reg_no?'Changwon 2026 WSPS World Championships-'+('000'+String(s.reg_no)).slice(-3)+' ('+esc(s.issued_at||'')+')':'')+'</span><span class="dftaddr">ZIP 61998&nbsp;&nbsp;&nbsp;&nbsp;8F, Mareukbokgar-ro 154, Seo-gu, Gwangju, Republic of Korea</span></div><div class="dftrow2">PHONE +82 62 710 5391 / FAX +82 62 710 9851 / Email(ksfd0427@hanmail.net) / http://www.ksfd.kosad.kr</div></div></div></div>';}
-function fCert(g){var box=$('#fpv');if(!box)return;var s=subFor(g);var sub=s&&s.submitted_at;var label=g==='*ALL*'?'Entire delegation':g;var st=sub?'<button class="btn" style="margin-left:auto" onclick="printEl(\'fd\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">'+tl('Not submitted — preview')+'</span>';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+L('Submission confirmation')+' — '+esc(label)+'</b>'+st+'</div>'+fCertDoc(s,g);}
+function fCert(g){var box=$('#fpv');if(!box)return;var s=subFor(g);var sub=s&&s.submitted_at;var label=g==='*ALL*'?'Entire delegation':g;var st=sub?'<button class="btn" style="margin-left:auto" onclick="printEl(\'fd\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">'+Li('Not submitted — preview')+'</span>';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+L('Submission confirmation')+' — '+esc(label)+'</b>'+st+'</div>'+fCertDoc(s,g);}
 
 /* ============ Module 4: Invoice ============ */
-async function modInvoice(){stage('<div class="card"><span class="muted">'+tl('Loading…')+'</span></div>');pbStart(5);_mem=await db.members(S.country);pbStep();_invc=await db.invoices(S.country);pbStep();_iaddr=await db.invAddrs(S.country);pbStep();_fg=await db.firearms(S.country);pbStep();try{var bv=await db.getSetting('banking');_bank=bv?JSON.parse(bv):null;var pv=await db.getSetting('pricing');_pricing=pv?JSON.parse(pv):null;}catch(e){}pbStep();renderInvoice();}
+async function modInvoice(){stage('<div class="card"><span class="muted">'+L('Loading…')+'</span></div>');pbStart(5);_mem=await db.members(S.country);pbStep();_invc=await db.invoices(S.country);pbStep();_iaddr=await db.invAddrs(S.country);pbStep();_fg=await db.firearms(S.country);pbStep();try{var bv=await db.getSetting('banking');_bank=bv?JSON.parse(bv):null;var pv=await db.getSetting('pricing');_pricing=pv?JSON.parse(pv):null;}catch(e){}pbStep();renderInvoice();}
 var _invTab='group';var _ivGroups=[];var _vtT=0;
 function vtDefault(){if(_invTab==='group'){var g=invScope();return g?(g==='(Ungrouped)'?'Ungrouped Team':g):'';}if(_invTab==='all')return cname(S.country)+' Delegation';return '';}
 function invTab(t){_invTab=t;renderInvoice();}
 function invScope(){if(_invTab==='all')return '*ALL*';if(_invTab==='group')return $('#vg')?$('#vg').value:null;return null;}
-function grpOnlyOptions(){return groupsOf().map(function(g){return '<option value="'+esc(g)+'">'+(g==='(Ungrouped)'?tl('Ungrouped'):esc(g))+'</option>'}).join('');}
-function invAddrField(){return '<div class="f"><label>'+L('Recipient address (required)')+'</label><input id="va" placeholder="'+tl('Street, City, Country')+'" onchange="saveInvAddr()" oninput="this.classList.remove(\'fmiss\')"></div>';}
+function grpOnlyOptions(){return groupsOf().map(function(g){return '<option value="'+esc(g)+'">'+(g==='(Ungrouped)'?T('Ungrouped'):esc(g))+'</option>'}).join('');}
+function invAddrField(){return '<div class="f"><label>'+L('Recipient address (required)')+'</label><input id="va" placeholder="'+T('Street, City, Country')+'" onchange="saveInvAddr()" oninput="this.classList.remove(\'fmiss\')"></div>';}
 function invCustomListHtml(){var groups={};_mem.forEach(function(m){var g=grpOf(m);(groups[g]=groups[g]||[]).push(m);});
   _ivGroups=Object.keys(groups).sort(function(a,b){if(a==='(Ungrouped)')return 1;if(b==='(Ungrouped)')return -1;return a<b?-1:1;});
   return _ivGroups.map(function(g,gi){var items=groups[g];
-    return '<div class="mgl" style="position:static;margin:6px 0 2px"><label style="cursor:pointer;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ivg'+gi+'" onchange="ivGrpAll('+gi+',this.checked)" style="width:14px;height:14px;min-height:0">'+(g==='(Ungrouped)'?tl('Ungrouped'):esc(g))+' ('+items.length+')</label></div>'+
+    return '<div class="mgl" style="position:static;margin:6px 0 2px"><label style="cursor:pointer;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ivg'+gi+'" onchange="ivGrpAll('+gi+',this.checked)" style="width:14px;height:14px;min-height:0">'+(g==='(Ungrouped)'?Li('Ungrouped'):esc(g))+' ('+items.length+')</label></div>'+
      items.map(function(m){return '<label class="ivrow"><input type="checkbox" id="ivm'+m.id+'" onchange="invcPreviewDraft()" style="width:16px;height:16px;min-height:0">'+esc(mName(m)||'(new member)')+'<span class="muted" style="font-size:11px">'+esc(m.position||'')+' · '+esc(m.room||'')+'</span></label>'}).join('');
   }).join('');}
 function ivGrpAll(gi,ck){var g=_ivGroups[gi];_mem.forEach(function(m){if(grpOf(m)===g){var c=document.getElementById('ivm'+m.id);if(c)c.checked=ck;}});invcPreviewDraft();}
@@ -12924,28 +13771,28 @@ async function reqInvoiceCustom(){var t=($('#vt')&&$('#vt').value||'').trim();va
   _invc=await db.invoices(S.country);pbStep();renderInvoice();}
 function renderInvoice(){_vtT=0;
   var tabbar='<div class="tabbar">'+
-   '<div class="tb'+(_invTab==='group'?' on':'')+'" onclick="invTab(\'group\')">'+tl('By group')+'<span class="en">per sub-team</span></div>'+
-   '<div class="tb'+(_invTab==='all'?' on':'')+'" onclick="invTab(\'all\')">'+tl('Entire delegation')+'<span class="en">all members</span></div>'+
-   '<div class="tb'+(_invTab==='custom'?' on':'')+'" onclick="invTab(\'custom\')">'+tl('Custom selection')+'<span class="en">pick members</span></div></div>';
+   '<div class="tb'+(_invTab==='group'?' on':'')+'" onclick="invTab(\'group\')">'+L('By group')+'<span class="en">per sub-team</span></div>'+
+   '<div class="tb'+(_invTab==='all'?' on':'')+'" onclick="invTab(\'all\')">'+L('Entire delegation')+'<span class="en">all members</span></div>'+
+   '<div class="tb'+(_invTab==='custom'?' on':'')+'" onclick="invTab(\'custom\')">'+L('Custom selection')+'<span class="en">pick members</span></div></div>';
   var body='';
   if(_invTab==='group'){
     body=groupsOf().length?
-     '<div class="row" style="gap:8px;align-items:flex-end;margin-top:10px"><div class="f" style="margin:0;flex:1"><label>'+L('Group (recipient)')+'</label><select id="vg" onchange="invScopeChg()">'+grpOnlyOptions()+'</select></div><button class="btn g" onclick="reqInvoice()">'+L('Request draft')+'</button></div>'+'<div class="f"><label>'+L('To — recipient name (printed on the invoice · editable)')+'</label><input id="vt" oninput="_vtT=1;invcPreviewDraft()"></div>'+invAddrField()+
+     '<div class="row" style="gap:8px;align-items:flex-end;margin-top:10px"><div class="f" style="margin:0;flex:1"><label>'+L('Group (recipient)')+'</label><select id="vg" onchange="invScopeChg()">'+grpOnlyOptions()+'</select></div><button class="btn g" onclick="reqInvoice()">'+Li('Request draft')+'</button></div>'+'<div class="f"><label>'+L('To — recipient name (printed on the invoice · editable)')+'</label><input id="vt" oninput="_vtT=1;invcPreviewDraft()"></div>'+invAddrField()+
      '<p class="muted" style="font-size:11.5px;margin:2px 0 0">'+L('Only members of the selected group are included. Addresses are saved per recipient for reuse.')+'</p>'
      :'<p class="muted" style="font-size:12.5px;margin-top:10px">'+L('No members/groups yet. Enter your roster in Delegation info first.')+'</p>';
   }else if(_invTab==='all'){
     body='<p style="font-size:13px;margin:12px 0 4px"><b>'+L('The entire delegation will be billed on a single invoice.')+'</b> ('+_mem.length+' members)</p>'+'<div class="f"><label>'+L('To — recipient name (printed on the invoice · editable)')+'</label><input id="vt" oninput="_vtT=1;invcPreviewDraft()"></div>'+invAddrField()+
-     '<button class="btn g" style="width:100%" onclick="reqInvoice()">'+L('Request draft — entire delegation')+'</button>';
+     '<button class="btn g" style="width:100%" onclick="reqInvoice()">'+Li('Request draft — entire delegation')+'</button>';
   }else{
     body='<p class="muted" style="font-size:12px;margin:10px 0 4px">'+L('Pick the members to include. Use a group header checkbox to select/deselect the whole group.')+'</p>'+
-     '<div style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:4px 8px">'+(_mem.length?invCustomListHtml():'<span class="muted" style="font-size:12px">'+tl('No members.')+'</span>')+'</div>'+
-     '<div class="f" style="margin-top:10px"><label>'+L('To (recipient name · required)')+'</label><input id="vt" placeholder="'+tl('e.g. East Region Shooting Association')+'" oninput="this.classList.remove(\'fmiss\');invcPreviewDraft()"></div>'+invAddrField()+
-     '<button class="btn g" style="width:100%" onclick="reqInvoiceCustom()">'+L('Request draft')+' — <span id="ivcnt">0</span> '+tl('selected')+'</button>';
+     '<div style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:4px 8px">'+(_mem.length?invCustomListHtml():'<span class="muted" style="font-size:12px">'+L('No members.')+'</span>')+'</div>'+
+     '<div class="f" style="margin-top:10px"><label>'+L('To (recipient name · required)')+'</label><input id="vt" placeholder="'+T('e.g. East Region Shooting Association')+'" oninput="this.classList.remove(\'fmiss\');invcPreviewDraft()"></div>'+invAddrField()+
+     '<button class="btn g" style="width:100%" onclick="reqInvoiceCustom()">'+Li('Request draft')+' — <span id="ivcnt">0</span> '+Li('selected')+'</button>';
   }
-  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+tl('Back')+'</button><b style="margin-left:6px">'+L('Invoice')+'</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">'+tl('Manage roster')+' &rarr;</button></div><p class="muted" style="font-size:12px">'+L('Invoices are calculated from your roster (room type · nights). Amounts are finalised by the Organizing Committee upon approval.')+'</p></div>'+
+  stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">'+L('Invoice')+'</b><button class="btn sec" style="margin-left:auto;padding:6px 10px" onclick="modTeam()">'+Li('Manage roster')+' &rarr;</button></div><p class="muted" style="font-size:12px">'+L('Invoices are calculated from your roster (room type · nights). Amounts are finalised by the Organizing Committee upon approval.')+'</p></div>'+
   '<div class="card"><b>'+L('Request invoice')+'</b>'+tabbar+body+billingOpts()+'</div>'+
   '<div class="card"><b>'+L('Requested invoices')+'</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>'+L('No.')+'</th><th>'+L('Scope')+'</th><th>'+L('Members')+'</th><th>'+L('Status')+'</th><th></th></tr></thead><tbody>'+
-   (_invc.length?_invc.map(function(V){var n=(V.member_ids||[]).length;return '<tr><td>'+(V.no?'<b>'+esc(V.no)+'</b>':'<span class="muted">— '+tl('pending')+'</span>')+'</td><td>'+esc(V.title)+'</td><td>'+n+'</td><td>'+(V.status==='approved'?'<span class="tag g">'+tl('approved')+'</span>':'<span class="tag y">'+tl('pending approval')+'</span>')+'</td><td><button class="btn sec" style="padding:3px 8px" onclick="prevInvoice('+V.id+')">'+tl('Preview')+'</button>'+(V.status==='approved'?'':' <button class="btn r" style="padding:3px 8px" onclick="withdrawInvoice('+V.id+')">'+tl('Withdraw')+'</button>')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">'+L('No invoices requested yet.')+'</td></tr>')+
+   (_invc.length?_invc.map(function(V){var n=(V.member_ids||[]).length;return '<tr><td>'+(V.no?'<b>'+esc(V.no)+'</b>':'<span class="muted">— '+Li('pending')+'</span>')+'</td><td>'+esc(V.title)+'</td><td>'+n+'</td><td>'+(V.status==='approved'?'<span class="tag g">'+Li('approved')+'</span>':'<span class="tag y">'+Li('pending approval')+'</span>')+'</td><td><button class="btn sec" style="padding:3px 8px" onclick="prevInvoice('+V.id+')">'+Li('Preview')+'</button>'+(V.status==='approved'?'':' <button class="btn r" style="padding:3px 8px" onclick="withdrawInvoice('+V.id+')">'+Li('Withdraw')+'</button>')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">'+L('No invoices requested yet.')+'</td></tr>')+
   '</tbody></table></div></div>'+
   '<div class="card" id="vpv"></div>');
   if(_invTab==='custom'){invcPreviewDraft();}else{invScopeChg();}
@@ -12988,13 +13835,13 @@ function itemsToTable(items){
   return h;}
 function invItemsTable(mem){return itemsToTable(buildAutoItems(mem));}
 function billingOpts(){var P=pricingOf();
-  var per=_mem.map(function(m){var v=_trPer[m.id]||'';return '<tr><td style="white-space:nowrap">'+esc(mName(m)||'(new member)')+'</td><td>'+(grpOf(m)==='(Ungrouped)'?tl('Ungrouped'):esc(grpOf(m)))+'</td><td><select onchange="trPerChg('+m.id+',this.value)" style="min-height:34px;padding:4px 8px"><option value=""'+(v===''?' selected':'')+'>'+tl('Default')+'</option><option value="1"'+(v==='1'?' selected':'')+'>Option 1 ('+P.tr1+')</option><option value="2"'+(v==='2'?' selected':'')+'>Option 2 ('+P.tr2+')</option></select></td></tr>';}).join('');
+  var per=_mem.map(function(m){var v=_trPer[m.id]||'';return '<tr><td style="white-space:nowrap">'+esc(mName(m)||'(new member)')+'</td><td>'+(grpOf(m)==='(Ungrouped)'?Li('Ungrouped'):esc(grpOf(m)))+'</td><td><select onchange="trPerChg('+m.id+',this.value)" style="min-height:34px;padding:4px 8px"><option value=""'+(v===''?' selected':'')+'>'+T('Default')+'</option><option value="1"'+(v==='1'?' selected':'')+'>Option 1 ('+P.tr1+')</option><option value="2"'+(v==='2'?' selected':'')+'>Option 2 ('+P.tr2+')</option></select></td></tr>';}).join('');
   return '<div class="msec" style="margin-top:14px">'+L('BILLING OPTIONS — Transport · Training')+'</div>'+
   '<div class="row" style="gap:8px;margin-top:6px;align-items:flex-end;flex-wrap:wrap">'+
-  '<div class="f" style="margin:0;flex:1;min-width:250px"><label>'+L('Transportation option (default for everyone)')+'</label><select id="tropt" onchange="trOptChg(this.value)"><option value="1"'+(_trOpt==='1'?' selected':'')+'>'+tl('Option 1 — ICN/PUS → ground vehicle direct')+' · USD '+P.tr1+'/person</option><option value="2"'+(_trOpt==='2'?' selected':'')+'>'+tl('Option 2 — ICN → domestic flight → PUS')+' · USD '+P.tr2+'/person</option></select></div>'+
+  '<div class="f" style="margin:0;flex:1;min-width:250px"><label>'+L('Transportation option (default for everyone)')+'</label><select id="tropt" onchange="trOptChg(this.value)"><option value="1"'+(_trOpt==='1'?' selected':'')+'>'+T('Option 1 — ICN/PUS → ground vehicle direct')+' · USD '+P.tr1+'/person</option><option value="2"'+(_trOpt==='2'?' selected':'')+'>'+T('Option 2 — ICN → domestic flight → PUS')+' · USD '+P.tr2+'/person</option></select></div>'+
   '<div class="f" style="margin:0;width:160px"><label>Para Trap training (rounds)</label><input id="trslots" type="number" min="0" value="'+(Number(_trSlots)||0)+'" oninput="trSlotsChg(this.value)"></div></div>'+
   '<p class="muted" style="font-size:11.5px;margin:6px 0 0;line-height:1.55"><b>Unofficial training is for Para Trap only.</b> USD '+P.training+' = 1 round. Enter the number of rounds you wish to shoot. <b>Payable on site</b> at the range office (not in advance).</p>'+
-  '<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12px;color:var(--acc);font-weight:700">'+L('Per-member transport option (optional)')+'</summary><div class="tbl" style="margin-top:6px;max-height:220px;overflow:auto"><table><thead><tr><th>'+L('Name')+'</th><th>'+L('Group')+'</th><th>'+L('Transport')+'</th></tr></thead><tbody>'+(per||'<tr><td colspan="3" class="muted">'+tl('No members.')+'</td></tr>')+'</tbody></table></div></details>'+
+  '<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12px;color:var(--acc);font-weight:700">'+L('Per-member transport option (optional)')+'</summary><div class="tbl" style="margin-top:6px;max-height:220px;overflow:auto"><table><thead><tr><th>'+L('Name')+'</th><th>'+L('Group')+'</th><th>'+L('Transport')+'</th></tr></thead><tbody>'+(per||'<tr><td colspan="3" class="muted">'+L('No members.')+'</td></tr>')+'</tbody></table></div></details>'+
   '<p class="muted" style="font-size:11px;margin:6px 0 0">'+L('The Firearms Import/Export Fee is calculated automatically from registered firearms — review the live preview below, then submit your draft.')+' (USD '+P.firearm+'/athlete)</p>';}
 function trOptChg(v){_trOpt=v;invcPreviewDraft();}
 function trPerChg(id,v){if(v)_trPer[id]=v;else delete _trPer[id];invcPreviewDraft();}
@@ -13004,7 +13851,7 @@ var BANK_DEFAULT={holder:'Korea Shooting Federation for Disabled',account:'180-0
 function bankOf(){return _bank?Object.assign({},BANK_DEFAULT,_bank):BANK_DEFAULT;}
 function bankBlockHTML(V){var b=bankOf();return '<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc((V&&V.account)||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>';}
 function invNoteBox(V){if(!V||!V.edit_note)return '';
- return '<div style="background:#FFF6E5;border:1px solid #E0A44A;border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:12.5px;line-height:1.7"><b style="color:#8A5A10">'+tl('Note from the Organising Committee')+'</b><div style="margin-top:4px;white-space:pre-wrap">'+esc(V.edit_note)+'</div><div class="muted" style="font-size:11px;margin-top:7px">'+tl('This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.')+'</div></div>';}
+ return '<div style="background:#FFF6E5;border:1px solid #E0A44A;border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:12.5px;line-height:1.7"><b style="color:#8A5A10">'+L('Note from the Organising Committee')+'</b><div style="margin-top:4px;white-space:pre-wrap">'+esc(V.edit_note)+'</div><div class="muted" style="font-size:11px;margin-top:7px">'+L('This invoice was amended by the Organising Committee before it was approved. The amounts shown below already reflect the change.')+'</div></div>';}
 function invoiceDoc(V){var isA=V.status==='approved';var wm=isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>';var mem=_mem.filter(function(m){return (V.member_ids||[]).indexOf(m.id)>=0});
   return '<div class="doc" id="vi">'+wm+'<div class="dhead"><div class="lh"><img src="assets/logo.png" style="height:68px"><div style="flex:1;text-align:center;font-weight:bold;font-size:16px;line-height:1.4;color:#16456B">Korea Shooting Federation for Disabled<br>Changwon 2026 WSPS World Championships Organising Committee</div><img src="assets/ksfd.png" onerror="this.remove()" style="height:68px"></div></div><div class="dbody">'+(V.doc_html?V.doc_html:(
   '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">Changwon 2026 WSPS World Championships</p>'+
@@ -13014,12 +13861,12 @@ function invoiceDoc(V){var isA=V.status==='approved';var wm=isA?'':'<div class="
   '<p style="font-size:11px;color:#555;margin:0 0 2px">'+esc(cname(V.country))+' delegation · '+mem.length+' member(s)</p>'+
   itemsToTable((V.items&&V.items.length)?V.items:buildAutoItems(mem))+
   (isA?'':'<p>This is a <b>draft invoice request</b>. Amounts and the <b>Banking Information</b> for payment to the Organizing Committee are entered by the OC upon approval — the final invoice is then issued to your delegation.</p>')))+'</div><div class="dfoot"><div class="dsign"><p style="margin-top:44px">With best regards,</p>'+(isA?bankBlockHTML(V):'')+'</div><div class="dft"><div class="dftrow1"><span class="docno">'+(isA&&V.reg_no?'Changwon 2026 WSPS World Championships-'+('000'+String(V.reg_no)).slice(-3)+' ('+esc(V.approved_at||'')+')':'')+'</span><span class="dftaddr">ZIP 61998&nbsp;&nbsp;&nbsp;&nbsp;8F, Mareukbokgar-ro 154, Seo-gu, Gwangju, Republic of Korea</span></div><div class="dftrow2">PHONE +82 62 710 5391 / FAX +82 62 710 9851 / Email(ksfd0427@hanmail.net) / http://www.ksfd.kosad.kr</div></div></div></div>';}
-function prevInvoice(id){var V=_invc.find(function(x){return x.id===id});if(!V)return;var box=$('#vpv');var isA=V.status==='approved';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+(V.no?esc(V.no)+' · ':'')+esc(V.title)+'</b>'+(isA?'<button class="btn" style="margin-left:auto" onclick="printEl(\'vi\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">'+tl('Preview only — issued on approval')+'</span>')+'</div>'+invNoteBox(V)+invoiceDoc(V);}
+function prevInvoice(id){var V=_invc.find(function(x){return x.id===id});if(!V)return;var box=$('#vpv');var isA=V.status==='approved';box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+(V.no?esc(V.no)+' · ':'')+esc(V.title)+'</b>'+(isA?'<button class="btn" style="margin-left:auto" onclick="printEl(\'vi\')">Print / PDF</button>':'<span class="tag y" style="margin-left:auto">'+Li('Preview only — issued on approval')+'</span>')+'</div>'+invNoteBox(V)+invoiceDoc(V);}
 function invcPreviewDraft(){var box=$('#vpv');if(!box)return;var mem,t,a;
   if(_invTab==='custom'){mem=ivSelected();t=($('#vt')&&$('#vt').value.trim())||'Custom selection';a=($('#va')&&$('#va').value.trim())||'';var cnt=document.getElementById('ivcnt');if(cnt)cnt.textContent=mem.length;}
   else{var g=invScope()||'*ALL*';mem=scopeMembers(g);t=($('#vt')&&$('#vt').value.trim())||vtDefault()||(g==='*ALL*'?'Entire delegation':g);a=addrOf(g);}
   var V={country:S.country,title:t,member_ids:mem.map(function(m){return m.id}),status:'pending',no:'',addr:a};
-  box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+L('Live preview')+' — '+esc(t)+' ('+mem.length+' members)</b><span class="tag y" style="margin-left:auto">'+tl('PENDING APPROVAL — amounts issued on approval')+'</span></div>'+invoiceDoc(V);}
+  box.innerHTML='<div class="row" style="margin-bottom:8px"><b>'+L('Live preview')+' — '+esc(t)+' ('+mem.length+' members)</b><span class="tag y" style="margin-left:auto">'+Li('PENDING APPROVAL — amounts issued on approval')+'</span></div>'+invoiceDoc(V);}
 
 /* ============ print ============ */
 
