@@ -68,7 +68,10 @@ summary{cursor:pointer;padding:8px 0;font-size:13px;font-weight:600}
 @media(max-width:720px){.alayout{flex-direction:column}.snav{width:100%;flex-direction:row;flex-wrap:wrap;position:static}.snb{flex:1;min-width:130px}}
 .edrow{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:#F8FBFD}
 .edrow label{font-size:10px}
-.edrow input,.edrow select{min-height:38px;padding:7px 10px;font-size:13px}
+.edrow input,.edrow select,.edrow textarea{min-height:38px;padding:7px 10px;font-size:13px}
+.edrow textarea{font-family:inherit;line-height:1.45;resize:vertical;width:100%;box-sizing:border-box}
+#ed_bodywrap{outline:1px dashed #C9A400;background:#FFFDF5;padding:6px;min-height:180px}
+.edwarn{background:#FDECEA;border:1px solid #E9B7B0;color:#96382C;border-radius:8px;padding:7px 10px;font-size:12px;margin-bottom:8px}
 .edsec{font-size:10.5px;font-weight:700;color:var(--mut);letter-spacing:.4px}
 .edsplit{display:flex;gap:14px;align-items:flex-start}
 .edleft{flex:1;min-width:380px;display:flex;flex-direction:column}
@@ -782,9 +785,10 @@ function buildAutoItemsA(mem,fgs,P){var items=[];
   return items;}
 function isOnsite(r){return !!(r&&(r.onsite||/unofficial\s+training/i.test(String(r.d||''))));}
 function onsiteRow(o){if(!(o>0))return '';return '<tr><td colspan="3" style="border:none;padding:2px 8px"></td><td style="border:1px solid #bbb;padding:6px 8px;font-weight:bold;text-align:center;font-size:11.5px">PAYABLE ON SITE<span style="display:block;font-weight:normal;font-size:9px;color:#a33">(not included in the total above)</span></td><td style="border:1px solid #bbb;padding:6px 8px;text-align:right;font-weight:bold">'+Math.round(o).toLocaleString('en-US')+' USD</td></tr>';}
+function nl2brA(t){return String(t==null?'':t).replace(/\r\n|\r|\n/g,'<br>');}
 function itemsToTableA(items){
   function fmt(r){var v=Math.round(+r.t||0).toLocaleString('en-US')+(r.cur==='EUR'?' EUR':' USD');return isOnsite(r)?v+'<span style="display:block;font-size:9px;color:#a33;font-weight:normal">(payable on site)</span>':v;}
-  function rowH(r){return '<tr><td style="border:1px solid #bbb;padding:4px 8px">'+esc(r.d)+(r.s?'<span style="display:block;font-size:9.5px;color:#a33">'+esc(r.s)+'</span>':'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.q||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.m||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.p||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+fmt(r)+'</td></tr>';}
+  function rowH(r){return '<tr><td style="border:1px solid #bbb;padding:4px 8px">'+nl2brA(esc(r.d))+(r.s?'<span style="display:block;font-size:9.5px;color:#a33">'+nl2brA(esc(r.s))+'</span>':'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.q||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.m||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.p||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+fmt(r)+'</td></tr>';}
   function subF(u,e){var h2=Math.round(u).toLocaleString('en-US')+' USD';if(e>0)h2+=' + '+Math.round(e).toLocaleString('en-US')+' EUR';return h2;}
   function secH(name,u,e){return '<tr><td colspan="4" style="border:1px solid #bbb;padding:5px 8px;font-weight:bold;font-size:14px">'+esc(name)+'</td><td style="border:1px solid #bbb;padding:5px 8px;text-align:right;font-weight:bold">'+subF(u,e)+'</td></tr>';}
   var order=[],by={};(items||[]).forEach(function(it){var k=it.sec||'Other';if(!by[k]){by[k]=[];order.push(k);}by[k].push(it);});
@@ -795,12 +799,14 @@ function itemsToTableA(items){
 /* ===== 인보이스 항목 편집기 ===== */
 function invItemsOf(V,s){return (V.items&&V.items.length)?V.items:buildAutoItemsA(s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0}),s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));}
 function invTotalOf(V,s){return invItemsOf(V,s).reduce(function(a,b){return a+(isOnsite(b)?0:(+b.t||0))},0);}
-var _ed=null,_edId=0,_edV=null;
+var _ed=null,_edId=0,_edV=null,_edHtml=null,_edCustom=false,_edStale=false;
 function editInv(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;_edId=id;_edV=V;
   var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});
   _ed=(V.items&&V.items.length)?JSON.parse(JSON.stringify(V.items)):buildAutoItemsA(mem,s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));
+  _edHtml=V.doc_html||null;_edCustom=!!V.doc_html;_edStale=false;
   edRender();}
 function edTotal(){return _ed.reduce(function(a,b){return a+(isOnsite(b)?0:(+b.t||0))},0);}
+function edBody(){return (_edCustom&&_edHtml!=null)?_edHtml:invoiceBodyA(_edV,_ed);}
 function edRowsHtml(){
   var SECS=['Accommodation','Transportation','Miscellaneous','Other'];
   return _ed.map(function(r,i){
@@ -808,32 +814,59 @@ function edRowsHtml(){
     return '<div class="edrow">'+
     '<div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap">'+
      '<div class="f" style="margin:0;width:150px"><label>Section</label><select onchange="edSet('+i+',\'sec\',this.value)">'+opts+'</select></div>'+
-     '<div class="f" style="margin:0;flex:2;min-width:180px"><label>Description (항목명)</label><input value="'+esc(r.d||'')+'" oninput="edSet('+i+',\'d\',this.value)"></div>'+
+     '<div class="f" style="margin:0;flex:2;min-width:200px"><label>Description (항목명) · 줄바꿈 가능</label><textarea rows="2" oninput="edSet('+i+',\'d\',this.value)">'+esc(r.d||'')+'</textarea></div>'+
      '<div class="f" style="margin:0;width:120px"><label>Total (USD)</label><input type="number" value="'+(+r.t||0)+'" style="text-align:right;font-weight:700" oninput="edSet('+i+',\'t\',+this.value)"></div>'+
      '<button class="btn r" style="padding:9px 12px;min-height:38px" onclick="edDel('+i+')">삭제</button>'+
     '</div>'+
     '<div class="row" style="gap:8px;align-items:flex-end;margin-top:8px;flex-wrap:wrap">'+
-     '<div class="f" style="margin:0;flex:2;min-width:170px"><label>부가설명 (선택)</label><input value="'+esc(r.s||'')+'" placeholder="예: (per person, incl. meals)" oninput="edSet('+i+',\'s\',this.value)"></div>'+
+     '<div class="f" style="margin:0;flex:2;min-width:200px"><label>부가설명 (선택) · 줄바꿈 가능</label><textarea rows="2" placeholder="예: (per person, incl. meals)" oninput="edSet('+i+',\'s\',this.value)">'+esc(r.s||'')+'</textarea></div>'+
      '<div class="f" style="margin:0;width:110px"><label>Quantity</label><input value="'+esc(r.q||'')+'" placeholder="7 Nights" oninput="edSet('+i+',\'q\',this.value)"></div>'+
      '<div class="f" style="margin:0;width:110px"><label>× (인원 등)</label><input value="'+esc(r.m||'')+'" placeholder="* 3 People" oninput="edSet('+i+',\'m\',this.value)"></div>'+
      '<div class="f" style="margin:0;width:130px"><label>Price 표기</label><input value="'+esc(r.p||'')+'" placeholder="* 220 USD =" oninput="edSet('+i+',\'p\',this.value)"></div>'+
     '</div></div>';}).join('')||'<p class="muted" style="font-size:12.5px">항목이 없습니다. 아래 "+ 항목 추가"로 시작하세요.</p>';}
+function edStateHtml(){
+  var chip=_edCustom?'<span class="tag y">본문 직접 수정됨</span>':'<span class="tag g">항목 기준 자동 생성</span>';
+  var warn=(_edCustom&&_edStale)?'<div class="edwarn">⚠ 항목을 바꿨지만 아래 본문에는 반영되지 않았습니다. 반영하려면 <b>항목에서 본문 다시 생성</b>을 누르세요. 그대로 저장하면 <b>화면에 보이는 본문</b>이 저장됩니다.</div>':'';
+  return '<div class="row" style="margin-bottom:6px;gap:6px;align-items:center">'+chip+
+   '<button class="btn sec" style="padding:4px 10px;font-size:11.5px;min-height:0" onclick="edRegen()">🔄 항목에서 본문 다시 생성</button>'+
+   '<span class="muted" style="font-size:11px;margin-left:auto">본문을 직접 클릭해서 수정할 수 있습니다</span></div>'+warn;}
 function edRender(){var old=document.getElementById('dm');if(old)old.remove();
-  document.body.insertAdjacentHTML('beforeend','<div class="mback z2" id="dm" onclick="if(event.target===this)this.remove()"><div class="amodal" style="max-width:1500px;width:96vw">'+
-   '<div class="row" style="margin-bottom:10px"><b style="font-size:15px;color:var(--navy)">인보이스 항목 편집 — '+esc(_edV?_edV.country:'')+' · '+esc(_edV?_edV.title:'')+'</b><span class="muted" style="margin-left:12px">합계 <b id="edtot" style="color:var(--acc);font-size:15px">'+usdF(edTotal())+'</b></span><button class="btn" style="margin-left:auto;background:#7A2E1F;padding:6px 14px;min-height:0;font-size:12px" onclick="printEl(\'ed_doc\')">Print / PDF</button><button class="mclose" style="margin-left:8px" onclick="document.getElementById(\'dm\').remove()">×</button></div>'+
+  var pend=_edV&&_edV.status!=='approved';
+  document.body.insertAdjacentHTML('beforeend','<div class="mback z2" id="dm" onclick="if(event.target===this)this.remove()"><div class="amodal" style="max-width:1600px;width:97vw">'+
+   '<div class="row" style="margin-bottom:10px"><b style="font-size:15px;color:var(--navy)">인보이스 편집 — '+esc(_edV?_edV.country:'')+' · '+esc(_edV?_edV.title:'')+'</b><span class="muted" style="margin-left:12px">합계 <b id="edtot" style="color:var(--acc);font-size:15px">'+usdF(edTotal())+'</b></span>'+
+   '<button class="btn g" style="margin-left:auto;padding:7px 16px;min-height:0" onclick="edSave(false)">💾 저장</button>'+
+   (pend?'<button class="btn" style="margin-left:6px;padding:7px 16px;min-height:0;background:#B4550E" onclick="edSave(true)">✅ 저장 &amp; 승인</button>':'')+
+   '<button class="btn" style="margin-left:6px;background:#7A2E1F;padding:7px 14px;min-height:0;font-size:12px" onclick="printEl(\'ed_doc\')">Print / PDF</button><button class="mclose" style="margin-left:8px" onclick="document.getElementById(\'dm\').remove()">×</button></div>'+
    '<div class="edsplit">'+
     '<div class="edleft"><div class="edsec" style="margin-bottom:6px">항목 편집 — 가격 변경 · 신설 · 삭제</div><div id="edrows">'+edRowsHtml()+'</div>'+
-     '<div class="row" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line)"><button class="btn sec" onclick="edAdd()">+ 항목 추가</button><button class="btn g" style="margin-left:auto;padding:10px 22px" onclick="edSave()">저장</button></div></div>'+
-    '<div class="edright"><div class="edsec" style="margin-bottom:6px">LIVE PREVIEW — 저장 전 미리보기</div><div id="edprev">'+invoiceDocA(_edV,_ed,'ed_doc')+'</div></div>'+
-   '</div></div></div>');}
-function edPrev(){var el=document.getElementById('edprev');if(el)el.innerHTML=invoiceDocA(_edV,_ed,'ed_doc');var t=document.getElementById('edtot');if(t)t.innerHTML=usdF(edTotal());}
+     '<div class="row" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line)"><button class="btn sec" onclick="edAdd()">+ 항목 추가</button></div></div>'+
+    '<div class="edright"><div class="edsec" style="margin-bottom:6px">문서 본문 — 그대로 저장됩니다 (직접 수정 가능)</div><div id="edstate">'+edStateHtml()+'</div><div id="edprev"></div></div>'+
+   '</div></div></div>');
+  edDrawDoc();}
+function edDrawDoc(){var el=document.getElementById('edprev');if(!el)return;
+  var isA=_edV&&_edV.status==='approved';
+  el.innerHTML=mdToolbarHTML()+'<div class="doc" id="ed_doc">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+
+    '<div id="md_fullbody" contenteditable="true" oninput="edBodyInput()">'+invFillA(edBody(),_edV)+'</div>'+invPendNoteA(_edV)+docFootA(invFootOptA(_edV))+'</div>';
+  try{mdTableResizeInit();}catch(e){}}
+function edSyncState(){var el=document.getElementById('edstate');if(el)el.innerHTML=edStateHtml();
+  var t=document.getElementById('edtot');if(t)t.innerHTML=usdF(edTotal());}
+function edBodyInput(){var b=document.getElementById('md_fullbody');if(!b)return;_edHtml=b.innerHTML;
+  if(!_edCustom){_edCustom=true;edSyncState();}}
+function edRegen(){_edCustom=false;_edStale=false;_edHtml=null;edSyncState();edDrawDoc();}
+function edPrev(){ if(_edCustom){_edStale=true;edSyncState();return;} edSyncState();edDrawDoc(); }
 function edSet(i,k,v){if(_ed[i]){_ed[i][k]=v;edPrev();}}
 function edDel(i){_ed.splice(i,1);var el=document.getElementById('edrows');if(el)el.innerHTML=edRowsHtml();edPrev();}
 function edAdd(){_ed.push({sec:'Other',d:'',s:'',q:'',m:'',p:'',t:0});var el=document.getElementById('edrows');if(el){el.innerHTML=edRowsHtml();el.scrollTop=el.scrollHeight;}edPrev();}
-async function edSave(){
-  if(LIVE){var r=await sbc.from('invoices').update({items:_ed,edited_at:today()}).eq('id',_edId);if(r.error){alert('저장 실패: '+r.error.message);return;}}
-  else{var s=mL();var V=(s.invoices||[]).find(function(x){return x.id===_edId});if(V){V.items=_ed;V.edited_at=today();}mS(s);}
-  var dm=document.getElementById('dm');if(dm)dm.remove();alert('인보이스 항목이 저장되었습니다.');scrMain();}
+async function edSave(alsoApprove){
+  var b=document.getElementById('md_fullbody');var html=b?b.innerHTML:edBody();
+  if(LIVE){var r=await sbc.from('invoices').update({items:_ed,doc_html:html,edited_at:today()}).eq('id',_edId);
+    if(r.error){alert('저장 실패: '+r.error.message+'\n\n(doc_html 컬럼이 없다면 doc_html_migration.sql 을 먼저 실행하세요)');return;}
+    try{await fetchAll();}catch(e){}}
+  else{var s=mL();var V=(s.invoices||[]).find(function(x){return x.id===_edId});if(V){V.items=_ed;V.doc_html=html;V.edited_at=today();}mS(s);}
+  var id=_edId;var dm=document.getElementById('dm');if(dm)dm.remove();
+  _edHtml=null;_edCustom=false;_edStale=false;
+  if(alsoApprove){await approveV(id);return;}
+  alert('인보이스가 저장되었습니다. ✔ (항목과 문서 본문이 함께 반영되었습니다)');scrMain();}
 /* ===== 초청장 내용 편집기 (승인 전 수정) ===== */
 var _let=null,_letId=0,_letL=null;
 function editLet(id){var s=dataS();var L=s.invitations.find(function(x){return x.id===id});if(!L)return;_letId=id;_letL=L;
@@ -987,6 +1020,7 @@ function deBody(src){var s=dataS();
 function directEdit(){
  var doc=document.getElementById('adm_doc');if(!doc){alert('문서를 찾을 수 없습니다.');return;}
  if(!_DRAFTSRC){alert('이 문서는 직접 편집을 지원하지 않습니다.');return;}
+ if(_DRAFTSRC.kind==='invoice'){var vid=_DRAFTSRC.id;var dm0=document.getElementById('dm');if(dm0)dm0.remove();var am0=document.getElementById('am');if(am0)am0.remove();editInv(vid);return;}
  var body=doc.querySelector('.dbody');var html=body?body.innerHTML:doc.innerHTML;
  var dm=document.getElementById('dm');if(dm)dm.remove();
  var am=document.getElementById('am');if(am)am.remove();
@@ -1004,19 +1038,30 @@ function docInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.
   mem.map(function(m){return '<tr><td>'+esc(memName(m))+'</td><td>'+esc(m.position)+'</td><td>'+esc(m.dob)+'</td><td>'+esc(m.arrive)+' ~ '+esc(m.depart)+'</td><td>'+esc(m.passport)+'</td><td>'+esc(m.passport_expiry||'')+'</td></tr>'}).join('')+'</tbody></table>'+
   '<p>We confirm that the above-named individuals will depart the Republic of Korea upon conclusion of the Competition.</p>'+docFootA(isA?{sign:true,no:L.reg_no,date:L.approved_at}:{})+'</div>';
   _DRAFTSRC={kind:'invitation',id:id};docShow('초청장 — '+esc(L.country)+' · '+esc(L.title)+(isA?'':' <span class="tag y">pending</span>'),h);}
-function invoiceDocA(V,itemsOverride,idOpt){var s=dataS();var isA=V.status==='approved';var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});var b=bankS(s);
+function invFootOptA(V){var s=dataS();var isA=V.status==='approved';var b=bankS(s);
+  return {no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(V.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'')};}
+function invoiceBodyA(V,itemsOverride){var s=dataS();var isA=V.status==='approved';var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});
   var items=itemsOverride||((V.items&&V.items.length)?V.items:buildAutoItemsA(mem,s.firearms.filter(function(g){return g.country===V.country}),pricingS(s)));
+  return '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">Changwon 2026 WSPS World Championships</p>'+
+  '<table style="width:100%;font-size:12.5px;margin:0 0 8px;border-collapse:collapse"><tr><td style="border:none;padding:2px 4px;width:13%"><b>To:</b></td><td style="border:none;padding:2px 4px;font-weight:bold">'+esc(V.title||'\u2014')+'</td><td style="border:none;padding:2px 4px;text-align:right;width:10%"><b>NPC:</b></td><td style="border:none;padding:2px 4px;width:14%;text-align:center;font-weight:bold;font-size:16px;color:#16456B">'+esc(V.country)+'</td></tr>'+
+  '<tr><td style="border:none;padding:2px 4px"><b>Address:</b></td><td style="border:none;padding:2px 4px" colspan="3">'+esc(V.addr||'\u2014')+'</td></tr>'+
+  '<tr><td style="border:none;padding:2px 4px"><b>DATE</b></td><td style="border:none;padding:2px 4px"><span data-inv="date">'+(isA?dfmtA(V.approved_at):'\u2014')+'</span></td><td style="border:none;padding:2px 4px;text-align:right"><b>Invoice No.</b></td><td style="border:none;padding:2px 4px;text-align:center;font-weight:bold"><span data-inv="no">'+(isA?'CW26INV-'+esc(V.no):'\u2014')+'</span></td></tr></table><hr class="docrule">'+
+  '<p style="font-size:11px;color:#555;margin:0 0 2px">'+esc(cnameA(V.country))+' delegation \u00b7 '+mem.length+' member(s)</p>'+
+  itemsToTableA(items);}
+function invPendNoteA(V){return V.status==='approved'?'':'<p>This is a <b>draft invoice request</b>. Amounts and Banking Information are entered by the OC upon approval.</p>';}
+function invFillA(html,V){var isA=V.status==='approved';
+  var d=isA?dfmtA(V.approved_at):'\u2014', n=isA?('CW26INV-'+esc(V.no)):'\u2014';
+  return String(html==null?'':html)
+    .replace(/(<span data-inv="date">)[\s\S]*?(<\/span>)/g,'$1'+d+'$2')
+    .replace(/(<span data-inv="no">)[\s\S]*?(<\/span>)/g,'$1'+n+'$2');}
+function invoiceDocA(V,itemsOverride,idOpt,bodyOverride){var isA=V.status==='approved';
+  var body=invFillA(bodyOverride!=null?bodyOverride:invoiceBodyA(V,itemsOverride),V);
   return '<div class="doc" id="'+(idOpt||'adm_doc')+'">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+
-  '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 10px">Changwon 2026 WSPS World Championships</p>'+
-  '<table style="width:100%;font-size:12.5px;margin:0 0 8px;border-collapse:collapse"><tr><td style="border:none;padding:2px 4px;width:13%"><b>To:</b></td><td style="border:none;padding:2px 4px;font-weight:bold">'+esc(V.title||'—')+'</td><td style="border:none;padding:2px 4px;text-align:right;width:10%"><b>NPC:</b></td><td style="border:none;padding:2px 4px;width:14%;text-align:center;font-weight:bold;font-size:16px;color:#16456B">'+esc(V.country)+'</td></tr>'+
-  '<tr><td style="border:none;padding:2px 4px"><b>Address:</b></td><td style="border:none;padding:2px 4px" colspan="3">'+esc(V.addr||'—')+'</td></tr>'+
-  '<tr><td style="border:none;padding:2px 4px"><b>DATE</b></td><td style="border:none;padding:2px 4px">'+(isA?dfmtA(V.approved_at):'—')+'</td><td style="border:none;padding:2px 4px;text-align:right"><b>Invoice No.</b></td><td style="border:none;padding:2px 4px;text-align:center;font-weight:bold">'+(isA?'CW26INV-'+esc(V.no):'—')+'</td></tr></table><hr class="docrule">'+
-  '<p style="font-size:11px;color:#555;margin:0 0 2px">'+esc(cnameA(V.country))+' delegation · '+mem.length+' member(s)</p>'+
-  itemsToTableA(items)+
-  (isA?'':'<p>This is a <b>draft invoice request</b>. Amounts and Banking Information are entered by the OC upon approval.</p>')+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(V.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> '+esc(b.note)+'</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'')})+'</div>';}
+  body+invPendNoteA(V)+docFootA(invFootOptA(V))+'</div>';}
 function docV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var isA=V.status==='approved';
-  if(V.doc_html){var b0=bankS(s);_DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),vNoteBox(V)+'<div class="doc" id="adm_doc">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+V.doc_html+docFootA({no:(isA?V.reg_no:null),date:V.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b0.bank)+'<br>SWIFT Code: '+esc(b0.swift)+'<br>Account Holder: '+esc(b0.holder)+'<br>Account No.: '+esc(V.account||b0.account)+'<br>Address: '+esc(b0.addr)+'</div>':'')})+'</div>');return;}
-  _DRAFTSRC={kind:'invoice',id:id};docShow('인보이스 — '+esc(V.country)+' · '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),vNoteBox(V)+invoiceDocA(V,null,'adm_doc'));}
+  _DRAFTSRC={kind:'invoice',id:id};
+  docShow('\uc778\ubcf4\uc774\uc2a4 \u2014 '+esc(V.country)+' \u00b7 '+esc(V.title)+(isA?'':' <span class="tag y">pending</span>'),
+    vNoteBox(V)+invoiceDocA(V,null,'adm_doc',(V.doc_html||null)));}
 function ammoOfA(s,c){try{var r=(s.invoice_addresses||[]).find(function(a){return a.country===c&&a.grp==='*AMMO*'});if(r&&r.addr)return JSON.parse(r.addr);}catch(e){}return null;}
 function ammoRowsA(a){var has=a&&(((+a.p)||0)>0||((+a.b)||0)>0);
  if(!has)return '<tr><td colspan="2" style="color:#888">No ammunition declared.</td></tr>';
