@@ -70,7 +70,11 @@ summary{cursor:pointer;padding:8px 0;font-size:13px;font-weight:600}
 .edrow label{font-size:10px}
 .edrow input,.edrow select,.edrow textarea{min-height:38px;padding:7px 10px;font-size:13px}
 .edrow textarea{font-family:inherit;line-height:1.45;resize:vertical;width:100%;box-sizing:border-box}
-#ed_bodywrap{outline:1px dashed #C9A400;background:#FFFDF5;padding:6px;min-height:180px}
+#dm #md_fullbody{outline:2px dashed #C9A400;outline-offset:3px;background:#FFFDF7;border-radius:4px;min-height:160px}
+#dm #md_fullbody:focus{outline:2px solid #B4550E;background:#fff}
+@media print{#md_fullbody{outline:none!important;background:transparent!important}}
+.edbar{position:sticky;top:0;z-index:6;background:#EAF1F7;padding:2px 0 8px}
+.docmbar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:122;display:flex;gap:6px;align-items:center;background:#fff;border-radius:10px;padding:6px 10px;box-shadow:0 2px 10px rgba(0,0,0,.3)}
 .edwarn{background:#FDECEA;border:1px solid #E9B7B0;color:#96382C;border-radius:8px;padding:7px 10px;font-size:12px;margin-bottom:8px}
 .edsec{font-size:10.5px;font-weight:700;color:var(--mut);letter-spacing:.4px}
 .edsplit{display:flex;gap:14px;align-items:flex-start}
@@ -662,9 +666,9 @@ async function vNoteOk(mode){var el=document.getElementById('vn_t');var t=(el&&e
 async function approveV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;
   if(vEdited(V)){vNoteOpen(id,'approve');return;}
   await approveV2(id,null);}
-async function approveV2(id,note){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var no=prompt('인보이스 번호 (숫자)',nextNo(s.invoices||[]));if(no==null)return;var acct=prompt('납부 계좌번호 (Banking Information에 기재 · 기본값=관리 계좌)',bankS(s).account);if(acct==null)return;
+async function approveV2(id,note){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;var no=prompt('인보이스 번호 (숫자)',(V.no||nextNo(s.invoices||[])));if(no==null)return;var acct=prompt('납부 계좌번호 (Banking Information에 기재 · 기본값=관리 계좌)',(V.account||bankS(s).account));if(acct==null)return;
   var pay={no:no,account:acct,status:'approved',approved_at:today()};if(note!=null)pay.edit_note=note;
-  if(LIVE){var reg=await issueDocno('invoice',V.country,'CW26INV-'+no,'invoices',id);if(reg==null)return;pay.reg_no=reg;var r=await sbc.from('invoices').update(pay).eq('id',id);if(r&&r.error){alert('승인 실패: '+r.error.message+'\n\n(컬럼이 없다면 invoice_edit_note_migration.sql 을 Supabase에서 먼저 실행하세요)');return;}}
+  if(LIVE){if(V.reg_no){pay.reg_no=V.reg_no;}else{var reg=await issueDocno('invoice',V.country,'CW26INV-'+no,'invoices',id);if(reg==null)return;pay.reg_no=reg;}var r=await sbc.from('invoices').update(pay).eq('id',id);if(r&&r.error){alert('승인 실패: '+r.error.message+'\n\n(컬럼이 없다면 invoice_edit_note_migration.sql 을 Supabase에서 먼저 실행하세요)');return;}}
   else{V.no=no;V.account=acct;V.reg_no=mockIssue(s,'invoice',V.country,'CW26INV-'+no,'invoices',id);V.status='approved';V.approved_at=today();if(note!=null)V.edit_note=note;mS(s);}scrMain();}
 async function revokeV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;if(!confirm('승인을 취소할까요?'))return;
   if(LIVE){await sbc.from('invoices').update({status:'pending',no:'',account:'',approved_at:''}).eq('id',id);}else{V.status='pending';V.no='';V.account='';V.approved_at='';mS(s);}scrMain();}
@@ -824,19 +828,21 @@ function edRowsHtml(){
      '<div class="f" style="margin:0;width:110px"><label>× (인원 등)</label><input value="'+esc(r.m||'')+'" placeholder="* 3 People" oninput="edSet('+i+',\'m\',this.value)"></div>'+
      '<div class="f" style="margin:0;width:130px"><label>Price 표기</label><input value="'+esc(r.p||'')+'" placeholder="* 220 USD =" oninput="edSet('+i+',\'p\',this.value)"></div>'+
     '</div></div>';}).join('')||'<p class="muted" style="font-size:12.5px">항목이 없습니다. 아래 "+ 항목 추가"로 시작하세요.</p>';}
+function edApproveLabel(){return (_edV&&_edV.status==='approved')?'✅ 저장 &amp; 재승인':'✅ 저장 &amp; 승인';}
+function edBtnsHtml(){return '<button class="btn g" style="padding:7px 16px;min-height:0" onclick="edSave(false)">💾 저장</button>'+
+   '<button class="btn" style="margin-left:6px;padding:7px 16px;min-height:0;background:#B4550E" onclick="edSave(true)">'+edApproveLabel()+'</button>';}
 function edStateHtml(){
   var chip=_edCustom?'<span class="tag y">본문 직접 수정됨</span>':'<span class="tag g">항목 기준 자동 생성</span>';
   var warn=(_edCustom&&_edStale)?'<div class="edwarn">⚠ 항목을 바꿨지만 아래 본문에는 반영되지 않았습니다. 반영하려면 <b>항목에서 본문 다시 생성</b>을 누르세요. 그대로 저장하면 <b>화면에 보이는 본문</b>이 저장됩니다.</div>':'';
-  return '<div class="row" style="margin-bottom:6px;gap:6px;align-items:center">'+chip+
-   '<button class="btn sec" style="padding:4px 10px;font-size:11.5px;min-height:0" onclick="edRegen()">🔄 항목에서 본문 다시 생성</button>'+
-   '<span class="muted" style="font-size:11px;margin-left:auto">본문을 직접 클릭해서 수정할 수 있습니다</span></div>'+warn;}
+  return '<div class="edbar"><div class="row" style="gap:6px;align-items:center">'+edBtnsHtml()+
+   '<span style="margin-left:auto"></span>'+chip+
+   '<button class="btn sec" style="padding:4px 10px;font-size:11.5px;min-height:0" onclick="edRegen()">🔄 항목에서 본문 다시 생성</button></div>'+
+   '<div class="muted" style="font-size:11px;margin-top:4px">아래 노란 점선 안을 직접 클릭해서 문서 본문을 고칠 수 있습니다. 화면에 보이는 그대로 저장됩니다.</div></div>'+warn;}
 function edRender(){var old=document.getElementById('dm');if(old)old.remove();
-  var pend=_edV&&_edV.status!=='approved';
   document.body.insertAdjacentHTML('beforeend','<div class="mback z2" id="dm" onclick="if(event.target===this)this.remove()"><div class="amodal" style="max-width:1600px;width:97vw">'+
    '<div class="row" style="margin-bottom:10px"><b style="font-size:15px;color:var(--navy)">인보이스 편집 — '+esc(_edV?_edV.country:'')+' · '+esc(_edV?_edV.title:'')+'</b><span class="muted" style="margin-left:12px">합계 <b id="edtot" style="color:var(--acc);font-size:15px">'+usdF(edTotal())+'</b></span>'+
-   '<button class="btn g" style="margin-left:auto;padding:7px 16px;min-height:0" onclick="edSave(false)">💾 저장</button>'+
-   (pend?'<button class="btn" style="margin-left:6px;padding:7px 16px;min-height:0;background:#B4550E" onclick="edSave(true)">✅ 저장 &amp; 승인</button>':'')+
-   '<button class="btn" style="margin-left:6px;background:#7A2E1F;padding:7px 14px;min-height:0;font-size:12px" onclick="printEl(\'ed_doc\')">Print / PDF</button><button class="mclose" style="margin-left:8px" onclick="document.getElementById(\'dm\').remove()">×</button></div>'+
+   '<span style="margin-left:auto"></span>'+edBtnsHtml()+
+   '<button class="btn" style="margin-left:6px;background:#7A2E1F;padding:7px 14px;min-height:0;font-size:12px" onclick="printEl(\'ed_doc\')">Print / PDF</button><button class="mclose" style="margin-left:8px" onclick="edClose()">×</button></div>'+
    '<div class="edsplit">'+
     '<div class="edleft"><div class="edsec" style="margin-bottom:6px">항목 편집 — 가격 변경 · 신설 · 삭제</div><div id="edrows">'+edRowsHtml()+'</div>'+
      '<div class="row" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line)"><button class="btn sec" onclick="edAdd()">+ 항목 추가</button></div></div>'+
@@ -857,13 +863,15 @@ function edPrev(){ if(_edCustom){_edStale=true;edSyncState();return;} edSyncStat
 function edSet(i,k,v){if(_ed[i]){_ed[i][k]=v;edPrev();}}
 function edDel(i){_ed.splice(i,1);var el=document.getElementById('edrows');if(el)el.innerHTML=edRowsHtml();edPrev();}
 function edAdd(){_ed.push({sec:'Other',d:'',s:'',q:'',m:'',p:'',t:0});var el=document.getElementById('edrows');if(el){el.innerHTML=edRowsHtml();el.scrollTop=el.scrollHeight;}edPrev();}
+function edClose(){closeDocModal();var dm=document.getElementById('dm');if(dm)dm.remove();}
 async function edSave(alsoApprove){
   var b=document.getElementById('md_fullbody');var html=b?b.innerHTML:edBody();
+  closeDocModal();
   if(LIVE){var r=await sbc.from('invoices').update({items:_ed,doc_html:html,edited_at:today()}).eq('id',_edId);
     if(r.error){alert('저장 실패: '+r.error.message+'\n\n(doc_html 컬럼이 없다면 doc_html_migration.sql 을 먼저 실행하세요)');return;}
     try{await fetchAll();}catch(e){}}
   else{var s=mL();var V=(s.invoices||[]).find(function(x){return x.id===_edId});if(V){V.items=_ed;V.doc_html=html;V.edited_at=today();}mS(s);}
-  var id=_edId;var dm=document.getElementById('dm');if(dm)dm.remove();
+  var id=_edId;edClose();
   _edHtml=null;_edCustom=false;_edStale=false;
   if(alsoApprove){await approveV(id);return;}
   alert('인보이스가 저장되었습니다. ✔ (항목과 문서 본문이 함께 반영되었습니다)');scrMain();}
@@ -929,14 +937,37 @@ function infoModal(t,h){var old=document.getElementById('dm');if(old)old.remove(
 
 /* ===== A4 문서: 화면 자동 줌(transform scale) + 탭 확대 모달 · 인쇄는 실 A4 ===== */
 var A4W=794,_fitT;
-function openDocModal(doc){var ov=document.createElement('div');ov.className='docmback';
-  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
-  var x=document.createElement('button');x.className='docmx';x.innerHTML='&times;';x.onclick=function(){ov.remove();};
+function openDocModal(doc){
+  var live=!!(doc.querySelector&&doc.querySelector('[contenteditable="true"]'));
+  var ov=document.createElement('div');ov.className='docmback';
   var fit=document.createElement('div');fit.className='docfit';
-  var clone=doc.cloneNode(true);clone.style.transform='';clone.removeAttribute('id');
-  fit.appendChild(clone);ov.appendChild(x);ov.appendChild(fit);document.body.appendChild(ov);
+  var node,ph=null,prevT='';
+  if(live){ /* 원본 노드를 그대로 옮겨서 편집 내용이 유지되게 함 */
+    ph=document.createElement('div');ph.className='docph';ph.style.display='none';
+    doc.parentNode.insertBefore(ph,doc);
+    node=doc;prevT=doc.style.transform||'';node.style.transform='';
+  }else{
+    node=doc.cloneNode(true);node.style.transform='';node.removeAttribute('id');
+  }
+  function close(){
+    if(live&&ph&&ph.parentNode){ph.parentNode.insertBefore(node,ph);ph.remove();node.style.transform=prevT;try{fitDoc(node);}catch(e){}}
+    ov.remove();}
+  ov._closeDocModal=close;
+  ov.addEventListener('click',function(e){if(e.target===ov)close();});
+  var x=document.createElement('button');x.className='docmx';x.innerHTML='&times;';x.onclick=close;
+  ov.appendChild(x);
+  if(live&&typeof edBtnsHtml==='function'&&document.getElementById('dm')){
+    var bar=document.createElement('div');bar.className='docmbar';
+    bar.innerHTML='<span style="font-size:12px;font-weight:700;color:#16456B">확대 편집</span>'+edBtnsHtml()+
+      '<button class="btn sec" style="padding:7px 14px;min-height:0" onclick="closeDocModal()">닫기</button>';
+    ov.appendChild(bar);
+  }
+  fit.appendChild(node);ov.appendChild(fit);document.body.appendChild(ov);
   var avail=Math.min(A4W,(window.innerWidth||A4W)-40),scale=avail/A4W;
-  clone.style.transform='scale('+scale+')';fit.style.width=avail+'px';fit.style.height=(clone.offsetHeight*scale)+'px';}
+  node.style.transform='scale('+scale+')';fit.style.width=avail+'px';fit.style.height=(node.offsetHeight*scale)+'px';
+  if(live)try{node.querySelector('[contenteditable="true"]').focus();}catch(e){}}
+function closeDocModal(){var ov=document.querySelector('.docmback');if(!ov)return;if(ov._closeDocModal)ov._closeDocModal();else ov.remove();}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDocModal();});
 function fitDoc(doc){if(!doc||!doc.parentNode)return;var fit=doc.parentNode;
   if(!(fit.className&&/(^|\s)docfit(\s|$)/.test(fit.className))){
     var w=document.createElement('div');w.className='docfit';doc.parentNode.insertBefore(w,doc);w.appendChild(doc);
