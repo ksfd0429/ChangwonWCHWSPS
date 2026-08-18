@@ -779,10 +779,17 @@ async function savePricing(){var o={single:+$('#pr_s').value||0,twin:+$('#pr_t')
   alert('단가가 저장되었습니다. 이후 생성되는 인보이스 초안에 반영됩니다.');scrMain();}
 function usdF(n){return Math.round(n).toLocaleString('en-US')+' USD';}
 function dfmtA(iso){var d=new Date(iso);if(isNaN(d.getTime()))return iso||'—';var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return d.getDate()+'-'+M[d.getMonth()]+'-'+String(d.getFullYear()).slice(-2);}
-function buildAutoItemsA(mem,fgs,P){var items=[];
+function accRowsA(mem,P,merge){var rows=[];
   function nOf(m){return Number(nightsA(m.arrive,m.depart))||0;}
-  function byN(list){var o={};list.forEach(function(m){var n=nOf(m);if(n>0)(o[n]=o[n]||[]).push(m)});return o;}
-  [['Twin',P.twin],['Single',P.single]].forEach(function(rt){var g=byN(mem.filter(function(m){return (m.room||'Twin')===rt[0]}));Object.keys(g).sort(function(a,b){return a-b}).forEach(function(n){var c=g[n].length;items.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals)',q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1]});});});
+  [['Twin',P.twin],['Single',P.single]].forEach(function(rt){
+    var lst=mem.filter(function(m){return (m.room||'Twin')===rt[0]&&nOf(m)>0});
+    if(merge){var pn=0;lst.forEach(function(m){pn+=nOf(m)});
+      if(pn>0)rows.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals \u00b7 '+lst.length+' people, all nights combined)',q:pn+' Nights',m:'',p:'* '+rt[1]+' USD =',t:pn*rt[1]});
+    }else{var o={};lst.forEach(function(m){var n=nOf(m);(o[n]=o[n]||[]).push(m)});
+      Object.keys(o).sort(function(a,b){return a-b}).forEach(function(n){var c=o[n].length;
+        rows.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals)\n\u2014 '+o[n].map(memName).join(', '),q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1]});});}
+  });return rows;}
+function buildAutoItemsA(mem,fgs,P,merge){var items=accRowsA(mem,P,!!merge);
   var c1=mem.length;if(c1)items.push({sec:'Transportation',d:'Transportation — Option 1',s:'(ICN/PUS → ground vehicle → Changwon)',q:c1+' People',m:'',p:'* '+P.tr1+' USD =',t:c1*P.tr1});
   var fa=mem.filter(function(m){return (fgs||[]).some(function(g2){return g2.owner===memName(m)||g2.owner===m.name})}).length;
   if(fa)items.push({sec:'Miscellaneous',d:'Firearms Import/Export Fee',s:'(per athlete)',q:fa+' Athlete(s)',m:'',p:'* '+P.firearm+' USD =',t:fa*P.firearm});
@@ -803,11 +810,18 @@ function itemsToTableA(items){
 /* ===== 인보이스 항목 편집기 ===== */
 function invItemsOf(V,s){return (V.items&&V.items.length)?V.items:buildAutoItemsA(s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0}),s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));}
 function invTotalOf(V,s){return invItemsOf(V,s).reduce(function(a,b){return a+(isOnsite(b)?0:(+b.t||0))},0);}
-var _ed=null,_edId=0,_edV=null,_edHtml=null,_edCustom=false,_edStale=false;
+var _ed=null,_edId=0,_edV=null,_edHtml=null,_edCustom=false,_edStale=false,_edMerge=false;
+function edDetectMerge(){_edMerge=(_ed||[]).some(function(r){return r.sec==='Accommodation'&&!String(r.m||'').trim()&&/Nights/i.test(String(r.q||''))});}
+function edMembers(){var s=dataS();var V=_edV;return s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});}
+function edAccMode(merge){_edMerge=!!merge;
+  var acc=accRowsA(edMembers(),pricingS(dataS()),_edMerge);
+  _ed=acc.concat(_ed.filter(function(r){return r.sec!=='Accommodation'}));
+  var el=document.getElementById('edrows');if(el)el.innerHTML=edRowsHtml();
+  edPrev();}
 function editInv(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;_edId=id;_edV=V;
   var mem=s.members.filter(function(m){return m.country===V.country&&(V.member_ids||[]).indexOf(m.id)>=0});
   _ed=(V.items&&V.items.length)?JSON.parse(JSON.stringify(V.items)):buildAutoItemsA(mem,s.firearms.filter(function(g){return g.country===V.country}),pricingS(s));
-  _edHtml=V.doc_html||null;_edCustom=!!V.doc_html;_edStale=false;
+  _edHtml=V.doc_html||null;_edCustom=!!V.doc_html;_edStale=false;edDetectMerge();
   edRender();}
 function edTotal(){return _ed.reduce(function(a,b){return a+(isOnsite(b)?0:(+b.t||0))},0);}
 function edBody(){return (_edCustom&&_edHtml!=null)?_edHtml:invoiceBodyA(_edV,_ed);}
@@ -819,7 +833,7 @@ function edRowsHtml(){
     '<div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap">'+
      '<div class="f" style="margin:0;width:150px"><label>Section</label><select onchange="edSet('+i+',\'sec\',this.value)">'+opts+'</select></div>'+
      '<div class="f" style="margin:0;flex:2;min-width:200px"><label>Description (항목명) · 줄바꿈 가능</label><textarea rows="2" oninput="edSet('+i+',\'d\',this.value)">'+esc(r.d||'')+'</textarea></div>'+
-     '<div class="f" style="margin:0;width:120px"><label>Total (USD)</label><input type="number" value="'+(+r.t||0)+'" style="text-align:right;font-weight:700" oninput="edSet('+i+',\'t\',+this.value)"></div>'+
+     '<div class="f" style="margin:0;width:120px"><label>Total (USD) <span style="font-weight:400;color:#7a8aa0">자동계산</span></label><input type="number" id="edt_'+i+'" value="'+(+r.t||0)+'" style="text-align:right;font-weight:700" oninput="edSet('+i+',\'t\',+this.value)"></div>'+
      '<button class="btn r" style="padding:9px 12px;min-height:38px" onclick="edDel('+i+')">삭제</button>'+
     '</div>'+
     '<div class="row" style="gap:8px;align-items:flex-end;margin-top:8px;flex-wrap:wrap">'+
@@ -844,7 +858,10 @@ function edRender(){var old=document.getElementById('dm');if(old)old.remove();
    '<span style="margin-left:auto"></span>'+edBtnsHtml()+
    '<button class="btn" style="margin-left:6px;background:#7A2E1F;padding:7px 14px;min-height:0;font-size:12px" onclick="printEl(\'ed_doc\')">Print / PDF</button><button class="mclose" style="margin-left:8px" onclick="edClose()">×</button></div>'+
    '<div class="edsplit">'+
-    '<div class="edleft"><div class="edsec" style="margin-bottom:6px">항목 편집 — 가격 변경 · 신설 · 삭제</div><div id="edrows">'+edRowsHtml()+'</div>'+
+    '<div class="edleft"><div class="edsec" style="margin-bottom:6px">항목 편집 — 가격 변경 · 신설 · 삭제</div>'+
+     '<label class="row" style="gap:7px;align-items:center;cursor:pointer;font-size:12.5px;margin:0 0 4px"><input type="checkbox" '+(_edMerge?'checked':'')+' onchange="edAccMode(this.checked)" style="width:16px;height:16px;min-height:0;margin:0"><b>숙박 통합 표시</b> (Twin/Single 각 1행 · 전체 박수 합산)</label>'+
+     '<p class="muted" style="font-size:10.5px;margin:0 0 8px">해제 시 박수별 세부 분할 + 각 행 아래 해당 인원 이름 표시. 전환하면 숙박 항목이 <b>명단 기준으로 다시 계산</b>됩니다(다른 항목은 유지).</p>'+
+     '<div id="edrows">'+edRowsHtml()+'</div>'+
      '<div class="row" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line)"><button class="btn sec" onclick="edAdd()">+ 항목 추가</button></div></div>'+
     '<div class="edright"><div class="edsec" style="margin-bottom:6px">문서 본문 — 그대로 저장됩니다 (직접 수정 가능)</div><div id="edstate">'+edStateHtml()+'</div><div id="edprev"></div></div>'+
    '</div></div></div>');
@@ -860,7 +877,12 @@ function edBodyInput(){var b=document.getElementById('md_fullbody');if(!b)return
   if(!_edCustom){_edCustom=true;edSyncState();}}
 function edRegen(){_edCustom=false;_edStale=false;_edHtml=null;edSyncState();edDrawDoc();}
 function edPrev(){ if(_edCustom){_edStale=true;edSyncState();return;} edSyncState();edDrawDoc(); }
-function edSet(i,k,v){if(_ed[i]){_ed[i][k]=v;edPrev();}}
+function edSet(i,k,v){if(!_ed[i])return;_ed[i][k]=v;
+  if(k==='q'||k==='m'||k==='p'){var r=_ed[i],f=[];
+    [r.q,r.m,r.p].forEach(function(x){var mm=String(x==null?'':x).replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);if(mm)f.push(parseFloat(mm[0]));});
+    if(f.length>=2){r.t=Math.round(f.reduce(function(a,b){return a*b},1)*100)/100;
+      var el=document.getElementById('edt_'+i);if(el)el.value=Math.round(r.t);}}
+  edPrev();}
 function edDel(i){_ed.splice(i,1);var el=document.getElementById('edrows');if(el)el.innerHTML=edRowsHtml();edPrev();}
 function edAdd(){_ed.push({sec:'Other',d:'',s:'',q:'',m:'',p:'',t:0});var el=document.getElementById('edrows');if(el){el.innerHTML=edRowsHtml();el.scrollTop=el.scrollHeight;}edPrev();}
 function edClose(){closeDocModal();var dm=document.getElementById('dm');if(dm)dm.remove();}
