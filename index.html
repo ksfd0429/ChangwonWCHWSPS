@@ -14169,6 +14169,23 @@ var _ivMerge=false;
 function ivMergeChg(v){_ivMerge=!!v;invcPreviewDraft();}
 function accModeBar(){return '<label class="row" style="gap:8px;margin:10px 0 2px;align-items:center;cursor:pointer;font-size:13px"><input type="checkbox" '+(_ivMerge?'checked':'')+' onchange="ivMergeChg(this.checked)" style="width:17px;height:17px;min-height:0;margin:0">'+L('Consolidate accommodation (one Twin line + one Single line, all nights combined)')+'</label>'+
  '<p class="muted" style="font-size:11px;margin:0 0 2px">'+L('Unchecked: itemised by nights, with member names shown under each line.')+'</p>';}
+function nrmOwner(s){s=String(s==null?'':s);
+  try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
+  return s.toUpperCase().replace(/[.,'\-]/g,' ').replace(/\s+/g,' ').trim();}
+function ownerMatchesMember(owner,nameLF,nameFL){
+  var o=nrmOwner(owner);if(!o)return false;
+  var a=nrmOwner(nameLF),b=nrmOwner(nameFL);
+  if(a&&o===a)return true; if(b&&o===b)return true;
+  var at=(a||'').split(' ').filter(Boolean);
+  if(at.length>=2){
+    var ot=o.split(' ').filter(Boolean);
+    var os=ot.slice().sort().join('|'),as2=at.slice().sort().join('|');
+    if(os===as2)return true;                             /* 순서만 다른 경우 */
+    var st={};for(var i=0;i<ot.length;i++)st[ot[i]]=1;   /* 부칭·미들네임 등 추가 토큰 허용 */
+    var all=true;for(var j=0;j<at.length;j++){if(!st[at[j]]){all=false;break;}}
+    if(all)return true;
+  }
+  return false;}
 function buildAutoItems(mem){var P=pricingOf();var items=[];
   function nOf(m){return Number(nights(m.arrive,m.depart))||0;}
   function byN(list){var o={};list.forEach(function(m){var n=nOf(m);if(n>0)(o[n]=o[n]||[]).push(m)});return o;}
@@ -14185,7 +14202,7 @@ function buildAutoItems(mem){var P=pricingOf();var items=[];
   [['1','Transportation — Option 1','(ICN/PUS → ground vehicle → Changwon)',P.tr1],['2','Transportation — Option 2','(ICN → domestic flight → PUS → Changwon)',P.tr2]].forEach(function(cfg){
     var c=mem.filter(function(m){return trOptOf(m)===cfg[0]}).length;
     if(c)items.push({sec:'Transportation',d:cfg[1],s:cfg[2],q:c+' People',m:'',p:'* '+cfg[3]+' USD =',t:c*cfg[3]});});
-  var fa=mem.filter(function(m){return (_fg||[]).some(function(g2){return g2.owner===mName(m)||g2.owner===m.name})}).length;
+  var fa=mem.filter(function(m){var lf=mName(m),fl=((m.first_name||'')+' '+(m.last_name||''));return (_fg||[]).some(function(g2){return g2.owner===lf||g2.owner===m.name||ownerMatchesMember(g2.owner,lf,fl)})}).length;
   if(fa)items.push({sec:'Miscellaneous',d:'Firearms Import/Export Fee',s:'(per athlete)',q:fa+' Athlete(s)',m:'',p:'* '+P.firearm+' USD =',t:fa*P.firearm});
   var ts2=Number(_trSlots)||0;
   if(ts2>0)items.push({sec:'Miscellaneous',d:'Unofficial Training Fee (Para Trap only)',s:'(per round · payable on site)',q:ts2+' Round(s)',m:'',p:'* '+P.training+' USD =',t:ts2*P.training});

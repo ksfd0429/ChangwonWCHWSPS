@@ -789,9 +789,26 @@ function accRowsA(mem,P,merge){var rows=[];
       Object.keys(o).sort(function(a,b){return a-b}).forEach(function(n){var c=o[n].length;
         rows.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals)\n\u2014 '+o[n].map(memName).join(', '),q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1]});});}
   });return rows;}
+function nrmOwner(s){s=String(s==null?'':s);
+  try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
+  return s.toUpperCase().replace(/[.,'\-]/g,' ').replace(/\s+/g,' ').trim();}
+function ownerMatchesMember(owner,nameLF,nameFL){
+  var o=nrmOwner(owner);if(!o)return false;
+  var a=nrmOwner(nameLF),b=nrmOwner(nameFL);
+  if(a&&o===a)return true; if(b&&o===b)return true;
+  var at=(a||'').split(' ').filter(Boolean);
+  if(at.length>=2){
+    var ot=o.split(' ').filter(Boolean);
+    var os=ot.slice().sort().join('|'),as2=at.slice().sort().join('|');
+    if(os===as2)return true;                             /* 순서만 다른 경우 */
+    var st={};for(var i=0;i<ot.length;i++)st[ot[i]]=1;   /* 부칭·미들네임 등 추가 토큰 허용 */
+    var all=true;for(var j=0;j<at.length;j++){if(!st[at[j]]){all=false;break;}}
+    if(all)return true;
+  }
+  return false;}
 function buildAutoItemsA(mem,fgs,P,merge){var items=accRowsA(mem,P,!!merge);
   var c1=mem.length;if(c1)items.push({sec:'Transportation',d:'Transportation — Option 1',s:'(ICN/PUS → ground vehicle → Changwon)',q:c1+' People',m:'',p:'* '+P.tr1+' USD =',t:c1*P.tr1});
-  var fa=mem.filter(function(m){return (fgs||[]).some(function(g2){return g2.owner===memName(m)||g2.owner===m.name})}).length;
+  var fa=mem.filter(function(m){var lf=memName(m),fl=((m.first_name||'')+' '+(m.last_name||''));return (fgs||[]).some(function(g2){return g2.owner===lf||g2.owner===m.name||ownerMatchesMember(g2.owner,lf,fl)})}).length;
   if(fa)items.push({sec:'Miscellaneous',d:'Firearms Import/Export Fee',s:'(per athlete)',q:fa+' Athlete(s)',m:'',p:'* '+P.firearm+' USD =',t:fa*P.firearm});
   return items;}
 function isOnsite(r){return !!(r&&(r.onsite||/unofficial\s+training/i.test(String(r.d||''))));}
