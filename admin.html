@@ -808,7 +808,7 @@ function ownerMatchesMember(owner,nameLF,nameFL){
   return false;}
 function buildAutoItemsA(mem,fgs,P,merge){var items=accRowsA(mem,P,!!merge);
   var c1=mem.length;if(c1)items.push({sec:'Transportation',d:'Transportation — Option 1',s:'(ICN/PUS → ground vehicle → Changwon)',q:c1+' People',m:'',p:'* '+P.tr1+' USD =',t:c1*P.tr1});
-  var fa=mem.filter(function(m){var lf=memName(m),fl=((m.first_name||'')+' '+(m.last_name||''));return (fgs||[]).some(function(g2){return g2.owner===lf||g2.owner===m.name||ownerMatchesMember(g2.owner,lf,fl)})}).length;
+  var fa=mem.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;
   if(fa)items.push({sec:'Miscellaneous',d:'Firearms Import/Export Fee',s:'(per athlete)',q:fa+' Athlete(s)',m:'',p:'* '+P.firearm+' USD =',t:fa*P.firearm});
   return items;}
 function isOnsite(r){return !!(r&&(r.onsite||/unofficial\s+training/i.test(String(r.d||''))));}
