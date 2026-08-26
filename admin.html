@@ -1020,7 +1020,40 @@ function _fitSetup(){if(window.MutationObserver&&document.body){try{new Mutation
 if(document.body)_fitSetup();else window.addEventListener('DOMContentLoaded',_fitSetup);
 window.addEventListener('resize',scheduleFit);
 function printEl(id){var n=document.getElementById(id);if(!n){alert('No document');return;}var pa=document.getElementById('pa');pa.innerHTML='<div class="doc">'+n.innerHTML+'</div>';pa.classList.remove('hide');var _dc=pa.querySelector('.doc');pa.classList.toggle('multi',!!(_dc&&_dc.scrollHeight>1125));window.print();setTimeout(function(){pa.classList.add('hide');pa.classList.remove('multi')},400);}
-function docShow(title,html){infoModal(title+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn" style="background:#2E6B5B;padding:5px 12px;min-height:0;font-size:12px" onclick="draftDoc()">📝 기안(복사)</button> <button class="btn" style="background:#B4550E;padding:5px 12px;min-height:0;font-size:12px" onclick="directEdit()">✏️ 직접 편집</button>',html);}
+function docShow(title,html){infoModal(title+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn" style="background:#2E6B5B;padding:5px 12px;min-height:0;font-size:12px" onclick="draftDoc()">📝 기안(복사)</button> <button class="btn" style="background:#B4550E;padding:5px 12px;min-height:0;font-size:12px" onclick="directEdit()">✏️ 직접 편집</button>',html);try{docSideAttach()}catch(e){}}
+/* ── 문서 모달 좌측: 국가코드 기준 제출 현황 패널 ──
+   초청장·총기확인서·인보이스 문서를 열면 왼쪽에 전체 참가국(디렉토리∪명단) 대비
+   제출/미제출을 국가코드 단위로 보여준다. 같은 나라가 여러 건 제출해도 1개국으로 집계. */
+function docSideData(kind){var s=dataS();
+  var uni={};(s.npc_accounts||[]).forEach(function(x){if(x.country)uni[x.country]=1;});
+  (s.members||[]).forEach(function(m){if(m.country)uni[m.country]=1;});
+  var src=kind==='invitation'?(s.invitations||[]):kind==='firearms'?(s.firearm_submissions||[]):kind==='invoice'?(s.invoices||[]):null;
+  if(!src)return null;
+  var done={};src.forEach(function(x){if(x.country)done[x.country]=(done[x.country]||0)+1;});
+  var all=Object.keys(uni).sort();
+  return {all:all,done:done,label:kind==='invitation'?'초청장':kind==='firearms'?'총기확인서':'인보이스'};}
+function docSideAttach(){
+  var kind=(typeof _DRAFTSRC==='object'&&_DRAFTSRC&&_DRAFTSRC.kind)||'';
+  var d=docSideData(kind);if(!d)return;
+  var dm=document.getElementById('dm');if(!dm)return;
+  var miss=d.all.filter(function(c){return !d.done[c];});
+  var sub=d.all.filter(function(c){return !!d.done[c];});
+  function row(c,ok){return '<div class="dsr" title="'+esc(cnameA(c))+(ok&&d.done[c]>1?' · '+d.done[c]+'건':'')+'" style="display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;font-size:11.5px;'+(ok?'color:#1F6B42':'color:#B03A2E')+'">'+
+    '<span style="width:13px;text-align:center">'+(ok?'✓':'✕')+'</span><b style="letter-spacing:.4px">'+esc(c)+'</b>'+
+    (ok&&d.done[c]>1?'<span style="margin-left:auto;font-size:10px;color:#7A8CA3">'+d.done[c]+'</span>':'')+'</div>';}
+  var h='<div class="docside" onclick="event.stopPropagation()" style="position:fixed;left:14px;top:74px;bottom:14px;width:158px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 20px rgba(20,40,70,.18);display:flex;flex-direction:column;overflow:hidden;z-index:5">'+
+    '<div style="padding:9px 10px;border-bottom:1px solid var(--line);background:#F4F7FB">'+
+    '<b style="font-size:12px;color:var(--navy)">'+esc(d.label)+' 제출 현황</b>'+
+    '<div class="muted" style="font-size:10.5px;margin-top:2px">국가 단위 · <b style="color:#1F6B42">'+sub.length+'</b> 제출 / <b style="color:#B03A2E">'+miss.length+'</b> 미제출 / 전체 '+d.all.length+'</div></div>'+
+    '<div style="flex:1;overflow-y:auto;padding:6px 4px">'+
+    (miss.length?'<div class="muted" style="font-size:10px;padding:2px 8px 3px;letter-spacing:.5px">미제출 ('+miss.length+')</div>'+miss.map(function(c){return row(c,false)}).join(''):'')+
+    (sub.length?'<div class="muted" style="font-size:10px;padding:8px 8px 3px;letter-spacing:.5px">제출 ('+sub.length+')</div>'+sub.map(function(c){return row(c,true)}).join(''):'')+
+    '</div></div>';
+  dm.insertAdjacentHTML('beforeend',h);
+  if(!document.getElementById('docside-css')){var st=document.createElement('style');st.id='docside-css';
+    st.textContent='@media(max-width:1080px){.docside{display:none!important}} .docside .dsr:hover{background:#F0F4F9}';
+    document.head.appendChild(st);}}
+
 var _DRAFTSRC=null;
 function buildDraftSeed(src){var s=dataS();if(!src)return null;
  if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});if(!L)return null;var mem=s.members.filter(function(m){return m.country===L.country&&(L.member_ids||[]).indexOf(m.id)>=0});return {doc_type:'invitation',country:L.country,slots:{cname:cnameA(L.country),scope:(L.title&&L.title!=='Entire delegation'?L.title:'')},rows:mem.map(function(m){return [memName(m),m.position||'',m.dob||'',((m.arrive||'')+' ~ '+(m.depart||'')),m.passport||'',m.passport_expiry||''];})};}
