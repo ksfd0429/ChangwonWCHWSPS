@@ -1160,7 +1160,7 @@ function polGen(c){
        ' ㅇ 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>'+
        ' ㅇ 실&nbsp;&nbsp;탄 : '+polAmmoLine(c,t)+'<br>'+
        ' ㅇ 출·입국 항공일정 :<br>'+teamFlights(t)+'<br>'+
-       ' ㅇ 호송책임자 : '+POL_ESCORTS+'<br>'+
+       ' ㅇ 호송책임자 : 호송계획서 참조<br>'+
        ' ㅇ 입고 장소 : 창원국제사격장</p>';});
   var teamStatus=teams.map(function(t){var tg=t.guns.map(function(x){return x.g;});
     return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;- 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>&nbsp;&nbsp;- 실&nbsp;&nbsp;탄 : '+polAmmoLine(c,t);}).join('<br>');
