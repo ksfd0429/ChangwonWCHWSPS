@@ -1032,6 +1032,47 @@ function polMatch(mem,owner){var ot=String(owner||'').toUpperCase().split(/[^A-Z
   mem.forEach(function(m){var mt=((m.first_name||'')+' '+(m.last_name||'')).toUpperCase().split(/[^A-Z]+/).filter(Boolean);
     var sc=ot.filter(function(t){return mt.indexOf(t)>=0}).length;if(sc>bs){bs=sc;best=m;}});
   return bs>0?best:null;}
+var POL_ROUTES={
+ AC61:'토론토/인천',AC62:'인천/토론토',AC63:'밴쿠버/인천',AC64:'인천/밴쿠버',
+ AF264:'파리/인천',AF267:'인천/파리',
+ AI312:'델리/인천',AI313:'인천/델리',
+ AY41:'헬싱키/인천',AY42:'인천/헬싱키',
+ CA129:'베이징/김해',CA130:'김해/베이징',CA401:'청두/인천',CA402:'인천/청두',
+ CI186:'타이베이/김해',CI187:'김해/타이베이',CI189:'김해/타이베이',
+ EK322:'두바이/인천',EK323:'인천/두바이',EK324:'두바이/인천',EK325:'인천/두바이',
+ EY822:'아부다비/인천',EY823:'인천/아부다비',
+ HY511:'타슈켄트/인천',HY512:'인천/타슈켄트',
+ KC909:'알마티/인천',KC910:'인천/알마티',
+ KE411:'인천/오클랜드',KE412:'오클랜드/인천',
+ KE497:'인천/델리',KE498:'델리/인천',
+ KE907:'인천/런던',KE908:'런던/인천',
+ KE913:'인천/마드리드',KE914:'마드리드/인천',
+ KE927:'인천/밀라노',KE928:'밀라노/인천',
+ KE937:'인천/비엔나',KE938:'비엔나/인천',
+ KE945:'인천/프랑크푸르트',KE946:'프랑크푸르트/인천',
+ KE963:'인천/부다페스트',KE964:'부다페스트/인천',
+ KE969:'인천/프라하',KE970:'프라하/인천',
+ KE1401:'김포/김해',KE1403:'김포/김해',KE1405:'김포/김해',KE1407:'김포/김해',
+ KE1402:'김해/김포',KE1404:'김해/김포',KE1406:'김해/김포',KE1408:'김해/김포',KE1814:'김해/김포',
+ KE2129:'김해/도쿄나리타',KE2130:'도쿄나리타/김해',
+ LH712:'프랑크푸르트/인천',LH713:'인천/프랑크푸르트',LH718:'뮌헨/인천',LH719:'인천/뮌헨',
+ LO99:'바르샤바/인천',LO98:'인천/바르샤바',
+ LX122:'취리히/인천',LX123:'인천/취리히',
+ MH66:'쿠알라룸푸르/인천',
+ OZ581:'인천/밀라노',
+ SK987:'코펜하겐/인천',SK988:'인천/코펜하겐',
+ SQ615:'인천/싱가포르',SQ616:'싱가포르/인천',
+ TG658:'방콕/인천',TG653:'인천/방콕',
+ TK20:'이스탄불/인천',TK21:'인천/이스탄불',TK90:'이스탄불/인천',TK91:'인천/이스탄불',
+ UA805:'샌프란시스코/인천',UA806:'인천/샌프란시스코',UA892:'인천/샌프란시스코',UA893:'샌프란시스코/인천',
+ VS208:'런던/인천',VS209:'인천/런던'};
+function polLegs(fs){return String(fs||'').split(/[,\/]+|(?<=\d)-(?=[A-Z])/i).map(function(x){return x.trim();}).filter(function(x){return x&&!/^(TBD|N\/?A|-+)$/i.test(x);});}
+function polRoute(f){var k=String(f||'').toUpperCase().replace(/[\s\-]/g,'');
+  k=k.replace(/^([A-Z]{1,3})0*(\d+)$/,function(_,a,b){return a+parseInt(b,10);});
+  return POL_ROUTES[k]||'';}
+function polFlLine(date,fl,time){
+  var r=polRoute(fl);
+  return esc(date||'0000-00-00')+(date?polDW(date):' (  )')+' '+esc(fl)+' '+esc(time||'00:00')+' ('+(r?esc(r):'출발지/도착지')+')';}
 function polSched(m){return [m.arrive||'',m.arr_flight||'',m.arr_time||'',m.depart||'',m.dep_flight||'',m.dep_time||''].join('|');}
 function polMD(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?(parseInt(m[2],10)+'월 '+parseInt(m[3],10)+'일'):'';}
 function polDW(d){try{var t=new Date(d+'T00:00:00');if(isNaN(t))return '';return ' ('+['일','월','화','수','목','금','토'][t.getDay()]+')';}catch(e){return '';}}
@@ -1070,8 +1111,16 @@ function polGen(c){
     return (a?parseInt(a[1],10)+'/'+parseInt(a[2],10):'?')+' 도착 / '+(d?parseInt(d[1],10)+'/'+parseInt(d[2],10):'?')+' 귀국 팀';}
   function teamFlights(t){
     if(!t.arrive&&!t.depart)return '입 국 : (기재) / 출 국 : (기재)';
-    return '입 국 : '+esc(t.arrive)+polDW(t.arrive)+' '+esc(t.arr_flight)+' '+esc(t.arr_time)+'<br>'+
-           '출 국 : '+esc(t.depart)+polDW(t.depart)+' '+esc(t.dep_flight)+' '+esc(t.dep_time);}
+    var aL=polLegs(t.arr_flight),dL=polLegs(t.dep_flight),h='';
+    h+='입 국 :'+(aL.length>1?'<br>':' ');
+    if(!aL.length)h+=esc(t.arrive)+polDW(t.arrive)+' '+esc(t.arr_flight)+' '+esc(t.arr_time);
+    else h+=aL.map(function(f,i){var last=(i===aL.length-1);
+      return polFlLine(last?t.arrive:'',f,last?t.arr_time:'');}).join('<br>');
+    h+='<br>출 국 :'+(dL.length>1?'<br>':' ');
+    if(!dL.length)h+=esc(t.depart)+polDW(t.depart)+' '+esc(t.dep_flight)+' '+esc(t.dep_time);
+    else h+=dL.map(function(f,i){var first=(i===0);
+      return polFlLine(first?t.depart:'',f,first?t.dep_time:'');}).join('<br>');
+    return h;}
   function teamTable(t){
     var order=[],by={};
     t.guns.forEach(function(x){var k2=x.g.owner||'(미지정)';if(!by[k2]){by[k2]=[];order.push(k2);}by[k2].push(x);});
@@ -1103,7 +1152,7 @@ function polGen(c){
   var teamStatus=teams.map(function(t){var tg=t.guns.map(function(x){return x.g;});
     return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;- 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>&nbsp;&nbsp;- 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)';}).join('<br>');
   var teamFl=teams.map(function(t){
-    return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;'+teamFlights(t).replace('<br>','<br>&nbsp;&nbsp;');}).join('<br>');
+    return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;'+teamFlights(t).replace(/<br>/g,'<br>&nbsp;&nbsp;');}).join('<br>');
   H+='<hr style="margin:22px 0;border:none;border-top:1px dashed #999">';
   H+='<h1 style="text-align:center;font-size:21px;letter-spacing:8px;margin:4px 0 14px">사 유 서</h1>';
   H+='<p style="text-align:right">대한장애인사격연맹회장</p>';
