@@ -319,12 +319,20 @@ async function scrMain(){
      return '<tr><td><b>'+esc(p.name)+'</b></td><td>'+n.toLocaleString()+'</td><td>'+(n/((+p.pack)||250)).toFixed(1)+'</td><td>'+_amEur(n*_amUnit(id))+'</td></tr>';}).join('')
     :'<tr><td colspan="4" class="muted">집계할 내역이 없습니다.</td></tr>')+
    '</tbody></table></div></div>';
-  _SEC={ammo:{t:'산탄 실탄 수요조사',h:AMMO},act:{t:'0. Account activation requests',h:ACT},inv:{t:'1. Invitation letters',h:INV},f:{t:'2. Firearm submission confirmations',h:FR},v:{t:'3. Invoices',h:VC},bank:{t:'Banking information (납부 계좌 관리)',h:BANK},price:{t:'Invoice pricing (단가 관리)',h:PRICE},acc:{t:'NPC accounts',h:ACC},roster:{t:'All delegations roster ('+s.members.length+')',h:ROSTER},pstat:{t:'참가자 총 현황',h:PSTAT},fstat:{t:'총기 총 현황',h:FSTAT},rev:{t:'수입 총현황 (예정 수입)',h:REV}};
+  var _polCs=[];(function(){var seen={};(s.firearms||[]).forEach(function(g){if(g.country&&!seen[g.country]){seen[g.country]=1;_polCs.push(g.country);}});_polCs.sort();})();
+  var POL='<div class="card"><b>경찰청 제출용 총포서류</b>'+
+   '<p class="muted" style="font-size:12px;margin:6px 0 10px">총기를 등록한 국가별로 <b>총포내역 · 사유서 · 호송계획서</b>를 자동 생성합니다. 열면 내용을 직접 편집하고 글꼴을 바꿔 저장할 수 있으며, 표는 드래그로 필요한 셀 범위만 선택해 복사한 뒤 한글(HWP) 문서에 붙여넣을 수 있습니다.</p>'+
+   '<div style="overflow:auto"><table><thead><tr><th>NPC</th><th>국가명</th><th>총기</th><th>산탄총</th><th>저장본</th><th></th></tr></thead><tbody>'+
+   (_polCs.length?_polCs.map(function(c){var fg=(s.firearms||[]).filter(function(g){return g.country===c});var sg=fg.filter(function(g){return /shot/i.test(g.type||'')}).length;var sv=null;try{var e=(s.oc_settings||[]).find(function(x){return x.key==='police_kit:'+c});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v&&v.html)sv=v;}}catch(err){}
+     return '<tr><td><b>'+esc(c)+'</b></td><td>'+esc(cnameA(c))+'</td><td>'+fg.length+'정</td><td>'+(sg?sg+'정':'-')+'</td><td>'+(sv?'<span class="tag" style="background:#E7F2EA;color:#1F6B42">저장 '+esc(String(sv.at||'').slice(0,10))+'</span>':'<span class="muted" style="font-size:11px">자동생성</span>')+'</td>'+
+     '<td><button class="btn sec" style="padding:4px 12px;font-size:12px;min-height:0" onclick="polOpen(\''+c+'\')">열람·편집</button></td></tr>';}).join(''):'<tr><td colspan="6" class="muted">등록된 총기가 없습니다.</td></tr>')+
+   '</tbody></table></div></div>';
+  _SEC={ammo:{t:'산탄 실탄 수요조사',h:AMMO},act:{t:'0. Account activation requests',h:ACT},inv:{t:'1. Invitation letters',h:INV},f:{t:'2. Firearm submission confirmations',h:FR},v:{t:'3. Invoices',h:VC},bank:{t:'Banking information (납부 계좌 관리)',h:BANK},price:{t:'Invoice pricing (단가 관리)',h:PRICE},acc:{t:'NPC accounts',h:ACC},roster:{t:'All delegations roster ('+s.members.length+')',h:ROSTER},pstat:{t:'참가자 총 현황',h:PSTAT},fstat:{t:'총기 총 현황',h:FSTAT},rev:{t:'수입 총현황 (예정 수입)',h:REV},pol:{t:'총포서류 (경찰청 제출) — 총포내역 · 사유서 · 호송계획서',h:POL}};
   function navb(k,label,n){return '<button class="snb" onclick="openSec(\''+k+'\')"><span>'+label+'</span>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';}
   stage('<div class="alayout"><div class="snav">'+
    '<button class="snb" style="border-color:var(--acc);color:var(--acc)" onclick="scrMain()"><span>⟳ 대시보드 새로고침</span></button>'+
    '<div class="sngl">계정 관리</div>'+navb('act','활성화 요청',pA)+navb('acc','NPC 계정',0)+
-   '<div class="sngl">문서 심사</div>'+navb('inv','초청장',pInv)+navb('f','총기 확인서',pF)+navb('v','인보이스',pV)+
+   '<div class="sngl">문서 심사</div>'+navb('inv','초청장',pInv)+navb('f','총기 확인서',pF)+navb('v','인보이스',pV)+navb('pol','총포서류(경찰청)',0)+
    '<div class="sngl">현황 · 통계</div>'+navb('pstat','참가자 총 현황',0)+navb('fstat','총기 총 현황',0)+navb('ammo','🧨 산탄 실탄 수요조사',pAM)+navb('rev','수입 총현황',0)+navb('roster','전체 명단',0)+
    '<div class="sngl">설정</div>'+navb('bank','납부 계좌',0)+navb('price','단가 관리',0)+
    '</div><div class="amain">'+
@@ -1009,6 +1017,204 @@ function docSideAttach(kind,hostId){
     st.textContent='@media(max-width:1050px){.docside{display:none!important}} .docside .dsr:hover{background:#F0F4F9}';
     document.head.appendChild(st);
     window.addEventListener('resize',function(){docSidePlace('am');docSidePlace('dm');});}}
+
+
+/* ── 경찰청 총포서류: 국가별 총포내역·사유서·호송계획서 생성/편집/저장 ──
+   · HWP 바이너리 생성은 브라우저에서 불가하므로 열람+편집+복사 방식 지원.
+   · 표는 드래그 시 사각형 범위 셀만 선택되고(HWP식), Ctrl+C로 표 구조 유지 복사.
+   · 저장: oc_settings key 'police_kit:<NPC>' 에 HTML 보관(국가당 1건, 덮어쓰기). */
+var POL_ESCORTS='허이욱 (대한장애인사격연맹 대회운영지원인력 / 010-3384-3060)<br>나정아 (대한장애인사격연맹 대회운영지원인력 / 010-5015-3060)<br>김사명 (대한장애인사격연맹 대회운영지원인력 / 010-5251-3153)<br>신연우 (대한장애인사격연맹 대회운영지원인력 / 010-5632-1699)<br>이종욱 (대한장애인사격연맹 국제전문인력 / 010-4225-7237)';
+function polTypeK(t){t=String(t||'').trim();if(/shot/i.test(t))return '산탄총';if(/air/i.test(t))return (/pistol/i.test(t)?'공기권총':'공기소총');return (/pistol/i.test(t)?'화약권총':'화약소총');}
+function polKey(c){return 'police_kit:'+c;}
+function polSaved(c){try{var e=(dataS().oc_settings||[]).find(function(x){return x.key===polKey(c)});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v&&v.html)return v;}}catch(err){}return null;}
+function polDate(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?(m[1].slice(2)+'.'+m[2]+'.'+m[3]):String(d||'');}
+function polMatch(mem,owner){var ot=String(owner||'').toUpperCase().split(/[^A-Z]+/).filter(Boolean);var best=null,bs=0;
+  mem.forEach(function(m){var mt=((m.first_name||'')+' '+(m.last_name||'')).toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+    var sc=ot.filter(function(t){return mt.indexOf(t)>=0}).length;if(sc>bs){bs=sc;best=m;}});
+  return bs>0?best:null;}
+function polGen(c){
+  var s=dataS();
+  var mem=(s.members||[]).filter(function(m){return m.country===c});
+  var guns=(s.firearms||[]).filter(function(g){return g.country===c});
+  var order=[],by={};
+  guns.forEach(function(g){var k=g.owner||'(미지정)';if(!by[k]){by[k]=[];order.push(k);}by[k].push(g);});
+  var rows='',no=0;
+  order.forEach(function(o){var gl=by[o],m=polMatch(mem,o);
+    gl.forEach(function(g,gi){no++;
+      rows+='<tr><td style="text-align:center">'+no+'</td>'+
+        (gi===0?('<td rowspan="'+gl.length+'">'+esc(o)+'</td><td rowspan="'+gl.length+'" style="text-align:center">'+esc(m?polDate(m.dob):'')+'</td>'):'')+
+        '<td style="text-align:center">'+esc(polTypeK(g.type))+'</td><td>'+esc(g.manufacturer||'')+'</td><td>'+esc(g.model||'')+'</td><td>'+esc(g.serial||'')+'</td><td style="text-align:center">'+esc(g.caliber||'')+'</td>'+
+        (gi===0?('<td rowspan="'+gl.length+'" style="text-align:center">'+esc(m?(m.passport||''):'')+'</td>'):'')+'</tr>';});});
+  var cnt={};guns.forEach(function(g){var k=polTypeK(g.type);cnt[k]=(cnt[k]||0)+1;});
+  var air=(cnt['공기소총']||0)+(cnt['공기권총']||0),pow=(cnt['화약소총']||0)+(cnt['화약권총']||0),sg=cnt['산탄총']||0;
+  var parts=[];
+  if(air)parts.push('공기총 '+air+'정 (공기소총 '+(cnt['공기소총']||0)+'정, 공기권총 '+(cnt['공기권총']||0)+'정)');
+  if(pow)parts.push('화약총 '+pow+'정 (화약소총 '+(cnt['화약소총']||0)+'정, 화약권총 '+(cnt['화약권총']||0)+'정)');
+  if(sg)parts.push('산탄총 '+sg+'정');
+  var gunSum=guns.length+'정'+(parts.length?' — '+parts.join(' / '):'');
+  var ath=mem.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length,off=mem.length-ath;
+  var fl={},fo=[];
+  mem.forEach(function(m){if(!m.arrive&&!m.depart)return;var k=[m.arrive||'',m.arr_flight||'',m.arr_time||'',m.depart||'',m.dep_flight||'',m.dep_time||''].join('|');if(!(k in fl)){fl[k]=0;fo.push(k);}fl[k]++;});
+  fo.sort(function(a,b){return fl[b]-fl[a]});
+  var flightHtml=fo.length?fo.map(function(k){var p=k.split('|');
+    return '입 국 : '+esc(p[0])+' '+esc(p[1])+' '+esc(p[2])+' &nbsp;/&nbsp; 출 국 : '+esc(p[3])+' '+esc(p[4])+' '+esc(p[5])+' &nbsp;('+fl[k]+'명)';}).join('<br>')
+    :'입 국 : (기재) / 출 국 : (기재)';
+  var cn=cnameA(c);
+  var H='';
+  H+='<h1 style="text-align:center;font-size:21px;letter-spacing:8px;margin:4px 0 14px">총포 내역</h1>';
+  H+='<p><b>'+esc(cn)+' ('+esc(c)+') 선수단</b> — 입국인원 '+mem.length+'명 (선수 '+ath+'명, 임원 '+off+'명)</p>';
+  H+='<table><thead><tr><th style="width:32px">순</th><th>성 명<br><span style="font-weight:400;font-size:11px">(성씨는 대문자 표기)</span></th><th style="width:72px">생년월일</th><th style="width:70px">구분</th><th>총명</th><th>모델</th><th>총기번호</th><th style="width:52px">구경</th><th>여권번호</th></tr></thead><tbody>'+
+     (rows||'<tr><td colspan="9" style="text-align:center">(등록된 총기 없음)</td></tr>')+'</tbody></table>';
+  H+='<p style="margin-top:10px"><b>계</b><br>'+
+     ' ㅇ 입국인원 : '+mem.length+'명 (선수 '+ath+'명, 임원 '+off+'명)<br>'+
+     ' ㅇ 총&nbsp;&nbsp;기 : '+gunSum+'<br>'+
+     ' ㅇ 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)<br>'+
+     ' ㅇ 출·입국 항공일정 :<br>'+flightHtml+'<br>'+
+     ' ㅇ 호송책임자 : '+POL_ESCORTS+'<br>'+
+     ' ㅇ 입고 장소 : 창원국제사격장</p>';
+  H+='<hr style="margin:22px 0;border:none;border-top:1px dashed #999">';
+  H+='<h1 style="text-align:center;font-size:21px;letter-spacing:8px;margin:4px 0 14px">사 유 서</h1>';
+  H+='<p style="text-align:right">대한장애인사격연맹회장</p>';
+  H+='<p>1. 사격발전을 위하여 협조하여 주시는 귀 청의 노고에 감사드립니다.</p>';
+  H+='<p>2. 우리 연맹에서는 2026창원장애인사격세계선수권대회에 참가하고자 하는 '+esc(cn)+' 선수단의 요청에 따라 '+esc(cn)+' 선수단의 경기용 총포 일시수출·입 허가 및 일시 소지허가를 다음과 같이 신청합니다.</p>';
+  H+='<p>&nbsp;가. 대회개요<br>'+
+     '&nbsp;&nbsp;(1) 대 회 명 : 2026창원장애인사격세계선수권대회<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Changwon 2026 WSPS World Championships<br>'+
+     '&nbsp;&nbsp;(2) 대회기간 : 2026. 09. 07.(월) - 09. 16.(수)<br>'+
+     '&nbsp;&nbsp;(3) 경기용 총포 일시수출·입 허가기간 : 2026. 09. 01.(화) - 09. 16.(수)<br>'+
+     '&nbsp;&nbsp;(4) 대회장소 : 경상남도 창원, 창원국제사격장</p>';
+  H+='<p>&nbsp;나. 경기용 총포 일시수출·입 현황<br>'+
+     '&nbsp;&nbsp;ㅇ 총&nbsp;&nbsp;기 : '+gunSum+'<br>'+
+     '&nbsp;&nbsp;ㅇ 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)</p>';
+  H+='<p>&nbsp;다. 출·입국 항공일정 :<br>'+flightHtml+'</p>';
+  H+='<hr style="margin:22px 0;border:none;border-top:1px dashed #999">';
+  H+='<h1 style="text-align:center;font-size:21px;letter-spacing:6px;margin:4px 0 14px">호송계획서</h1>';
+  H+='<p>1. 사격발전을 위하여 협조하여 주시는 귀 청의 노고에 감사드립니다.</p>';
+  H+='<p>2. 우리 연맹에서는 2026창원장애인사격세계선수권대회에 참가하고자 하는 '+esc(cn)+' 선수단의 경기용 총포 호송계획을 다음과 같이 알려드립니다.</p>';
+  H+='<p>&nbsp;가. 호송일시 및 장소<br>'+
+     '&nbsp;&nbsp;국내 입국 시: 인천국제공항 → 창원국제사격장 무기고<br>'+
+     '&nbsp;&nbsp;국내 출국 시: 창원국제사격장 무기고 → 인천국제공항</p>';
+  H+='<p>&nbsp;나. 세부총기 및 실탄<br>'+
+     '&nbsp;&nbsp;ㅇ 총&nbsp;&nbsp;기 : '+gunSum+'<br>'+
+     '&nbsp;&nbsp;ㅇ 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발</p>';
+  H+='<p>&nbsp;다. 호송책임자 : '+POL_ESCORTS+'</p>';
+  H+='<p>&nbsp;라. 국내 입국 시 운반로<br>'+
+     '&nbsp;&nbsp;∎ 인천국제공항 → 인천대교고속도로 → 중부내륙고속도로 → 창원국제사격장<br>'+
+     '&nbsp;&nbsp;※ 상기 운반로는 당일 교통 사정으로 인하여 변경될 수 있음</p>';
+  H+='<p>&nbsp;마. 국내 출국 시 운반로<br>&nbsp;&nbsp;∎ 입국 시의 역순</p>';
+  H+='<p>&nbsp;바. 인적사항 및 총포내역 : 인적사항 및 총포내역(별첨참조).&nbsp; 끝.</p>';
+  return H;}
+var _polC='';
+function polOpen(c){
+  _polC=c;var saved=polSaved(c);var html=saved?saved.html:polGen(c);
+  var old=document.getElementById('pm');if(old)old.remove();
+  if(!document.getElementById('pol-css')){var st=document.createElement('style');st.id='pol-css';
+    st.textContent='#poled table{border-collapse:collapse;margin:8px 0;width:100%}#poled td,#poled th{border:1px solid #555;padding:3px 7px;font-size:13px;vertical-align:middle}#poled th{background:#F0F3F7}#poled h1{font-weight:700}#poled td.csel,#poled th.csel{background:#C9E0F8 !important;outline:1.5px solid #5B96D6;outline-offset:-1.5px}#poled.nosel{-webkit-user-select:none;user-select:none}';
+    document.head.appendChild(st);}
+  var selst='padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:#fff';
+  document.body.insertAdjacentHTML('beforeend',
+   '<div class="mback" id="pm" onclick="if(event.target===this)polClose()"><div class="amodal" style="max-width:1000px">'+
+   '<div class="row" style="margin-bottom:6px;flex-wrap:wrap;gap:6px;align-items:center">'+
+    '<b style="font-size:15px;color:var(--navy)">총포서류 — '+esc(c)+' · '+esc(cnameA(c))+'</b>'+
+    (saved?'<span class="tag" style="background:#E7F2EA;color:#1F6B42">저장본 '+esc(String(saved.at||'').slice(0,10))+'</span>':'<span class="tag">자동 생성</span>')+
+    '<span style="margin-left:auto"></span>'+
+    '<select id="pol_font" style="'+selst+'" onchange="polFont(this.value);this.value=\'\'"><option value="">글꼴 변경</option><option value="Malgun Gothic">맑은 고딕</option><option value="Batang">바탕</option><option value="BatangChe">바탕체</option><option value="Gulim">굴림</option><option value="Dotum">돋움</option><option value="Gungsuh">궁서</option><option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option></select>'+
+    '<select id="pol_size" style="'+selst+'" onchange="polSize(this.value);this.value=\'\'"><option value="">크기 변경</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>18</option><option>20</option><option>22</option><option>24</option><option>28</option></select>'+
+    '<button class="btn" style="background:#1F6B42;padding:6px 14px;min-height:0;font-size:12px" onclick="polSave()">💾 저장</button>'+
+    '<button class="btn sec" style="padding:6px 12px;min-height:0;font-size:12px" onclick="polRegen()">↺ 재생성</button>'+
+    '<button class="btn" style="background:#7A2E1F;padding:6px 12px;min-height:0;font-size:12px" onclick="printEl(\'poled\')">Print / PDF</button>'+
+    '<button class="mclose" onclick="polClose()">×</button></div>'+
+   '<div class="muted" style="font-size:11.5px;margin-bottom:8px">본문을 클릭해 바로 편집할 수 있습니다. 글꼴·크기는 <b>범위를 선택한 뒤</b> 적용하세요. 표는 셀을 누른 채 드래그하면 <b>사각형 범위의 셀만</b> 선택되며, Ctrl+C로 복사해 한글(HWP)·엑셀에 표 형태 그대로 붙여넣을 수 있습니다. HWP 파일 자체 생성은 브라우저에서 지원되지 않습니다.</div>'+
+   '<div id="poled" contenteditable="true" spellcheck="false" style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:28px 34px;max-height:68vh;overflow:auto;font-family:\'Malgun Gothic\',sans-serif;font-size:14px;line-height:1.7;color:#111">'+html+'</div>'+
+   '</div></div>');
+  polBindSel();}
+function polClose(){polCellClear();var el=document.getElementById('pm');if(el)el.remove();}
+function polRegen(){if(!confirm('현재 편집 내용을 버리고 등록 데이터 기준으로 다시 생성할까요?\n(저장하지 않으면 DB의 저장본은 그대로 유지됩니다)'))return;var ed=document.getElementById('poled');if(ed)ed.innerHTML=polGen(_polC);}
+async function polSave(){
+  var ed=document.getElementById('poled');if(!ed||!_polC)return;
+  polCellClear();
+  var val=JSON.stringify({html:ed.innerHTML,at:new Date().toISOString()});
+  if(LIVE){var r=await sbc.from('oc_settings').upsert({key:polKey(_polC),value:val},{onConflict:'key'});
+    if(r&&r.error){alert('저장 실패: '+r.error.message);return;}
+    var e=((_S&&_S.oc_settings)||[]).find(function(x){return x.key===polKey(_polC)});
+    if(e)e.value=val;else if(_S){(_S.oc_settings=_S.oc_settings||[]).push({key:polKey(_polC),value:val});}}
+  else{var st=mL();st.oc_settings=st.oc_settings||[];var e2=st.oc_settings.find(function(x){return x.key===polKey(_polC)});
+    if(e2)e2.value=val;else st.oc_settings.push({key:polKey(_polC),value:val});mS(st);}
+  alert('저장 완료 ✔  ['+_polC+'] 총포서류');}
+/* 글꼴/크기: 표 셀 선택이 있으면 셀 단위, 없으면 텍스트 선택 범위에 적용 */
+function polFont(v){if(!v)return;var ed=document.getElementById('poled');if(!ed)return;
+  if(_polCell.cells.length){_polCell.cells.forEach(function(td){td.style.fontFamily=v;});return;}
+  ed.focus();try{document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,v);}catch(e){}}
+function polSize(v){if(!v)return;var ed=document.getElementById('poled');if(!ed)return;var px=v+'px';
+  if(_polCell.cells.length){_polCell.cells.forEach(function(td){td.style.fontSize=px;});return;}
+  ed.focus();
+  try{document.execCommand('styleWithCSS',false,true);document.execCommand('fontSize',false,'7');
+    ed.querySelectorAll('font[size="7"]').forEach(function(f){var sp=document.createElement('span');sp.style.fontSize=px;while(f.firstChild)sp.appendChild(f.firstChild);f.parentNode.replaceChild(sp,f);});
+    ed.querySelectorAll('span[style*="font-size: xxx-large"]').forEach(function(sp){sp.style.fontSize=px;});}catch(e){}}
+/* ── 표 사각형 셀 선택 (HWP식): 1행2열→2행2열 수직 드래그 = 그 수직선상의 셀만 ── */
+var _polCell={tab:null,cells:[],anchor:null,drag:false,active:false};
+function polGridCells(tab){var grid=[],cells=[],rows=tab.rows;
+  for(var r=0;r<rows.length;r++){grid[r]=grid[r]||[];var ci=0;
+    for(var i=0;i<rows[r].cells.length;i++){var cell=rows[r].cells[i];
+      while(grid[r][ci])ci++;
+      var rs=cell.rowSpan||1,cs=cell.colSpan||1;
+      for(var rr=0;rr<rs;rr++){grid[r+rr]=grid[r+rr]||[];for(var cc=0;cc<cs;cc++)grid[r+rr][ci+cc]=cell;}
+      cells.push({cell:cell,r:r,c:ci,rs:rs,cs:cs});ci+=cs;}}
+  return {grid:grid,cells:cells};}
+function polCellClear(){_polCell.cells.forEach(function(td){td.classList.remove('csel');});
+  _polCell={tab:null,cells:[],anchor:null,drag:false,active:false};
+  var ed=document.getElementById('poled');if(ed)ed.classList.remove('nosel');}
+function polCellApply(cur){
+  var g=polGridCells(_polCell.tab);
+  var A=null,B=null;
+  g.cells.forEach(function(x){if(x.cell===_polCell.anchor)A=x;if(x.cell===cur)B=x;});
+  if(!A||!B)return;
+  var r0=Math.min(A.r,B.r),r1=Math.max(A.r+A.rs-1,B.r+B.rs-1);
+  var c0=Math.min(A.c,B.c),c1=Math.max(A.c+A.cs-1,B.c+B.cs-1);
+  /* 확장: 병합셀이 사각형에 걸치면 사각형을 그 셀 전체로 넓힘 (안정될 때까지) */
+  var changed=true,guard=0;
+  while(changed&&guard++<20){changed=false;
+    g.cells.forEach(function(x){var xr1=x.r+x.rs-1,xc1=x.c+x.cs-1;
+      var inter=!(xr1<r0||x.r>r1||xc1<c0||x.c>c1);
+      if(inter){if(x.r<r0){r0=x.r;changed=true;}if(xr1>r1){r1=xr1;changed=true;}
+        if(x.c<c0){c0=x.c;changed=true;}if(xc1>c1){c1=xc1;changed=true;}}});}
+  _polCell.cells.forEach(function(td){td.classList.remove('csel');});
+  _polCell.cells=[];_polCell.rect=[r0,c0,r1,c1];
+  g.cells.forEach(function(x){var xr1=x.r+x.rs-1,xc1=x.c+x.cs-1;
+    if(!(xr1<r0||x.r>r1||xc1<c0||x.c>c1)){x.cell.classList.add('csel');_polCell.cells.push(x.cell);}});}
+function polBindSel(){
+  var ed=document.getElementById('poled');if(!ed)return;
+  ed.addEventListener('mousedown',function(e){
+    var td=e.target.closest?e.target.closest('td,th'):null;
+    if(td&&ed.contains(td)&&td.closest('table')){
+      polCellClear();
+      _polCell.tab=td.closest('table');_polCell.anchor=td;_polCell.drag=true;}
+    else polCellClear();});
+  ed.addEventListener('mouseover',function(e){
+    if(!_polCell.drag||!_polCell.anchor)return;
+    var td=e.target.closest?e.target.closest('td,th'):null;
+    if(!td||!_polCell.tab.contains(td))return;
+    if(!_polCell.active&&td===_polCell.anchor)return;
+    _polCell.active=true;ed.classList.add('nosel');
+    try{var sel=window.getSelection();if(sel)sel.removeAllRanges();}catch(err){}
+    polCellApply(td);});
+  document.addEventListener('mouseup',function(){
+    if(_polCell.drag){_polCell.drag=false;
+      if(!_polCell.active)polCellClear();
+      else{var ed2=document.getElementById('poled');if(ed2)ed2.classList.remove('nosel');}}});
+  document.addEventListener('copy',function(e){
+    if(!_polCell.active||!_polCell.cells.length)return;
+    var pm=document.getElementById('pm');if(!pm)return;
+    var g=polGridCells(_polCell.tab),r0=_polCell.rect[0],c0=_polCell.rect[1],r1=_polCell.rect[2],c1=_polCell.rect[3];
+    var htmlRows=[],tsvRows=[];
+    for(var r=r0;r<=r1;r++){var h='',tv=[];
+      for(var c=c0;c<=c1;c++){var cell=g.grid[r]&&g.grid[r][c];tv.push(cell?cell.innerText.replace(/\s+/g,' ').trim():'');}
+      g.cells.forEach(function(x){if(x.r===r&&x.c>=c0&&x.c<=c1){
+        var rs=Math.min(x.rs,r1-x.r+1),cs=Math.min(x.cs,c1-x.c+1);
+        h+='<'+x.cell.tagName.toLowerCase()+(rs>1?' rowspan="'+rs+'"':'')+(cs>1?' colspan="'+cs+'"':'')+' style="border:1px solid #555;padding:3px 7px">'+x.cell.innerHTML+'</'+x.cell.tagName.toLowerCase()+'>';}});
+      if(h)htmlRows.push('<tr>'+h+'</tr>');tsvRows.push(tv.join('\t'));}
+    e.clipboardData.setData('text/html','<table style="border-collapse:collapse">'+htmlRows.join('')+'</table>');
+    e.clipboardData.setData('text/plain',tsvRows.join('\n'));
+    e.preventDefault();});}
 
 /* ===== section/doc modals ===== */
 var _openSec='';var _SEC={};
