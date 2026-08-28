@@ -1073,6 +1073,19 @@ function polRoute(f){var k=String(f||'').toUpperCase().replace(/[\s\-]/g,'');
 function polFlLine(date,fl,time){
   var r=polRoute(fl);
   return esc(date||'0000-00-00')+(date?polDW(date):' (  )')+' '+esc(fl)+' '+esc(time||'00:00')+' ('+(r?esc(r):'출발지/도착지')+')';}
+/* ── 일정별 실탄 회신(ammo_flight:<NPC>) 자동 반영 ── */
+function polAmmo(c,t){
+  try{var e=(dataS().oc_settings||[]).find(function(x){return x.key==='ammo_flight:'+c});
+    if(!e||!e.value)return null;
+    var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;
+    var nf=function(f){return String(f||'').toUpperCase().replace(/[\s\-]/g,'').replace(/^([A-Z]{1,3})0*(\d+)$/,function(_,a,b){return a+parseInt(b,10);});};
+    return (v.groups||[]).find(function(x){return x.arrive===t.arrive&&x.depart===t.depart&&nf(x.arr_flight)===nf(t.arr_flight)&&nf(x.dep_flight)===nf(t.dep_flight);})||null;
+  }catch(err){return null;}}
+function polAmmoLine(c,t){
+  var g=t?polAmmo(c,t):null;
+  if(!g)return '총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)';
+  var p=(+g.pellets||0),r=(+g.rounds||0);
+  return '총 '+(p+r).toLocaleString('en-US')+'발 (공기총탄 '+p.toLocaleString('en-US')+'발, 화약총탄 '+r.toLocaleString('en-US')+'발)';}
 function polSched(m){return [m.arrive||'',m.arr_flight||'',m.arr_time||'',m.depart||'',m.dep_flight||'',m.dep_time||''].join('|');}
 function polMD(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?(parseInt(m[2],10)+'월 '+parseInt(m[3],10)+'일'):'';}
 function polDW(d){try{var t=new Date(d+'T00:00:00');if(isNaN(t))return '';return ' ('+['일','월','화','수','목','금','토'][t.getDay()]+')';}catch(e){return '';}}
@@ -1145,12 +1158,12 @@ function polGen(c){
     H+='<p style="margin-top:8px"><b>계</b><br>'+
        ' ㅇ 입국인원 : '+t.members.length+'명 (선수 '+ath+'명, 임원 '+off+'명)<br>'+
        ' ㅇ 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>'+
-       ' ㅇ 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)<br>'+
+       ' ㅇ 실&nbsp;&nbsp;탄 : '+polAmmoLine(c,t)+'<br>'+
        ' ㅇ 출·입국 항공일정 :<br>'+teamFlights(t)+'<br>'+
        ' ㅇ 호송책임자 : '+POL_ESCORTS+'<br>'+
        ' ㅇ 입고 장소 : 창원국제사격장</p>';});
   var teamStatus=teams.map(function(t){var tg=t.guns.map(function(x){return x.g;});
-    return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;- 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>&nbsp;&nbsp;- 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)';}).join('<br>');
+    return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;- 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>&nbsp;&nbsp;- 실&nbsp;&nbsp;탄 : '+polAmmoLine(c,t);}).join('<br>');
   var teamFl=teams.map(function(t){
     return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;'+teamFlights(t).replace(/<br>/g,'<br>&nbsp;&nbsp;');}).join('<br>');
   H+='<hr style="margin:22px 0;border:none;border-top:1px dashed #999">';
