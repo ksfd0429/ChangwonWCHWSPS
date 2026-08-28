@@ -1032,46 +1032,74 @@ function polMatch(mem,owner){var ot=String(owner||'').toUpperCase().split(/[^A-Z
   mem.forEach(function(m){var mt=((m.first_name||'')+' '+(m.last_name||'')).toUpperCase().split(/[^A-Z]+/).filter(Boolean);
     var sc=ot.filter(function(t){return mt.indexOf(t)>=0}).length;if(sc>bs){bs=sc;best=m;}});
   return bs>0?best:null;}
-function polGen(c){
-  var s=dataS();
-  var mem=(s.members||[]).filter(function(m){return m.country===c});
-  var guns=(s.firearms||[]).filter(function(g){return g.country===c});
-  var order=[],by={};
-  guns.forEach(function(g){var k=g.owner||'(미지정)';if(!by[k]){by[k]=[];order.push(k);}by[k].push(g);});
-  var rows='',no=0;
-  order.forEach(function(o){var gl=by[o],m=polMatch(mem,o);
-    gl.forEach(function(g,gi){no++;
-      rows+='<tr><td style="text-align:center">'+no+'</td>'+
-        (gi===0?('<td rowspan="'+gl.length+'">'+esc(o)+'</td><td rowspan="'+gl.length+'" style="text-align:center">'+esc(m?polDate(m.dob):'')+'</td>'):'')+
-        '<td style="text-align:center">'+esc(polTypeK(g.type))+'</td><td>'+esc(g.manufacturer||'')+'</td><td>'+esc(g.model||'')+'</td><td>'+esc(g.serial||'')+'</td><td style="text-align:center">'+esc(g.caliber||'')+'</td>'+
-        (gi===0?('<td rowspan="'+gl.length+'" style="text-align:center">'+esc(m?(m.passport||''):'')+'</td>'):'')+'</tr>';});});
-  var cnt={};guns.forEach(function(g){var k=polTypeK(g.type);cnt[k]=(cnt[k]||0)+1;});
+function polSched(m){return [m.arrive||'',m.arr_flight||'',m.arr_time||'',m.depart||'',m.dep_flight||'',m.dep_time||''].join('|');}
+function polMD(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?(parseInt(m[2],10)+'월 '+parseInt(m[3],10)+'일'):'';}
+function polDW(d){try{var t=new Date(d+'T00:00:00');if(isNaN(t))return '';return ' ('+['일','월','화','수','목','금','토'][t.getDay()]+')';}catch(e){return '';}}
+function polGunSum(gl){
+  var cnt={};gl.forEach(function(g){var k=polTypeK(g.type);cnt[k]=(cnt[k]||0)+1;});
   var air=(cnt['공기소총']||0)+(cnt['공기권총']||0),pow=(cnt['화약소총']||0)+(cnt['화약권총']||0),sg=cnt['산탄총']||0;
   var parts=[];
   if(air)parts.push('공기총 '+air+'정 (공기소총 '+(cnt['공기소총']||0)+'정, 공기권총 '+(cnt['공기권총']||0)+'정)');
   if(pow)parts.push('화약총 '+pow+'정 (화약소총 '+(cnt['화약소총']||0)+'정, 화약권총 '+(cnt['화약권총']||0)+'정)');
   if(sg)parts.push('산탄총 '+sg+'정');
-  var gunSum=guns.length+'정'+(parts.length?' — '+parts.join(' / '):'');
-  var ath=mem.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length,off=mem.length-ath;
-  var fl={},fo=[];
-  mem.forEach(function(m){if(!m.arrive&&!m.depart)return;var k=[m.arrive||'',m.arr_flight||'',m.arr_time||'',m.depart||'',m.dep_flight||'',m.dep_time||''].join('|');if(!(k in fl)){fl[k]=0;fo.push(k);}fl[k]++;});
-  fo.sort(function(a,b){return fl[b]-fl[a]});
-  var flightHtml=fo.length?fo.map(function(k){var p=k.split('|');
-    return '입 국 : '+esc(p[0])+' '+esc(p[1])+' '+esc(p[2])+' &nbsp;/&nbsp; 출 국 : '+esc(p[3])+' '+esc(p[4])+' '+esc(p[5])+' &nbsp;('+fl[k]+'명)';}).join('<br>')
-    :'입 국 : (기재) / 출 국 : (기재)';
+  return gl.length+'정'+(parts.length?' — '+parts.join(' / '):'');}
+function polGen(c){
+  var s=dataS();
+  var mem=(s.members||[]).filter(function(m){return m.country===c});
+  var guns=(s.firearms||[]).filter(function(g){return g.country===c});
   var cn=cnameA(c);
+  /* 총기별 소유자 매칭 → 소유자의 출입국 일정으로 팀 구성 (총기 없는 일정은 총포내역 미생성) */
+  var groups={},go=[];
+  guns.forEach(function(g){var m=polMatch(mem,g.owner);var k=m?polSched(m):'|||||';
+    if(!groups[k]){groups[k]={key:k,guns:[]};go.push(k);}
+    groups[k].guns.push({g:g,m:m});});
+  go.sort();
+  var teams=go.map(function(k){var G=groups[k];var p=k.split('|');
+    return {key:k,arrive:p[0],arr_flight:p[1],arr_time:p[2],depart:p[3],dep_flight:p[4],dep_time:p[5],
+            guns:G.guns,members:mem.filter(function(m){return polSched(m)===k;})};});
+  function teamLabel(t,i){
+    if(!t.arrive&&!t.depart)return '팀'+(i+1)+' – 일정 미확인 (소유자가 명단과 매칭되지 않았거나 항공일정 미입력)';
+    return '팀'+(i+1)+' – '+polMD(t.arrive)+' 도착 / '+polMD(t.depart)+' 귀국';}
+  function teamShort(t){
+    if(!t.arrive&&!t.depart)return '일정 미확인 팀';
+    var a=/-(\d{2})-(\d{2})/.exec(t.arrive||''),d=/-(\d{2})-(\d{2})/.exec(t.depart||'');
+    return (a?parseInt(a[1],10)+'/'+parseInt(a[2],10):'?')+' 도착 / '+(d?parseInt(d[1],10)+'/'+parseInt(d[2],10):'?')+' 귀국 팀';}
+  function teamFlights(t){
+    if(!t.arrive&&!t.depart)return '입 국 : (기재) / 출 국 : (기재)';
+    return '입 국 : '+esc(t.arrive)+polDW(t.arrive)+' '+esc(t.arr_flight)+' '+esc(t.arr_time)+'<br>'+
+           '출 국 : '+esc(t.depart)+polDW(t.depart)+' '+esc(t.dep_flight)+' '+esc(t.dep_time);}
+  function teamTable(t){
+    var order=[],by={};
+    t.guns.forEach(function(x){var k2=x.g.owner||'(미지정)';if(!by[k2]){by[k2]=[];order.push(k2);}by[k2].push(x);});
+    var rows='',no=0;
+    order.forEach(function(o){var gl=by[o],m=gl[0].m;
+      gl.forEach(function(x,gi){no++;var g=x.g;
+        rows+='<tr><td style="text-align:center">'+no+'</td>'+
+          (gi===0?('<td rowspan="'+gl.length+'">'+esc(o)+'</td><td rowspan="'+gl.length+'" style="text-align:center">'+esc(m?polDate(m.dob):'')+'</td>'):'')+
+          '<td style="text-align:center">'+esc(polTypeK(g.type))+'</td><td>'+esc(g.manufacturer||'')+'</td><td>'+esc(g.model||'')+'</td><td>'+esc(g.serial||'')+'</td><td style="text-align:center">'+esc(g.caliber||'')+'</td>'+
+          (gi===0?('<td rowspan="'+gl.length+'" style="text-align:center">'+esc(m?(m.passport||''):'')+'</td>'):'')+'</tr>';});});
+    return '<table><thead><tr><th style="width:32px">순</th><th>성 명<br><span style="font-weight:400;font-size:11px">(성씨는 대문자 표기)</span></th><th style="width:72px">생년월일</th><th style="width:70px">구분</th><th>총명</th><th>모델</th><th>총기번호</th><th style="width:52px">구경</th><th>여권번호</th></tr></thead><tbody>'+rows+'</tbody></table>';}
   var H='';
   H+='<h1 style="text-align:center;font-size:21px;letter-spacing:8px;margin:4px 0 14px">총포 내역</h1>';
-  H+='<p><b>'+esc(cn)+' ('+esc(c)+') 선수단</b> — 입국인원 '+mem.length+'명 (선수 '+ath+'명, 임원 '+off+'명)</p>';
-  H+='<table><thead><tr><th style="width:32px">순</th><th>성 명<br><span style="font-weight:400;font-size:11px">(성씨는 대문자 표기)</span></th><th style="width:72px">생년월일</th><th style="width:70px">구분</th><th>총명</th><th>모델</th><th>총기번호</th><th style="width:52px">구경</th><th>여권번호</th></tr></thead><tbody>'+
-     (rows||'<tr><td colspan="9" style="text-align:center">(등록된 총기 없음)</td></tr>')+'</tbody></table>';
-  H+='<p style="margin-top:10px"><b>계</b><br>'+
-     ' ㅇ 입국인원 : '+mem.length+'명 (선수 '+ath+'명, 임원 '+off+'명)<br>'+
-     ' ㅇ 총&nbsp;&nbsp;기 : '+gunSum+'<br>'+
-     ' ㅇ 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)<br>'+
-     ' ㅇ 출·입국 항공일정 :<br>'+flightHtml+'<br>'+
-     ' ㅇ 호송책임자 : '+POL_ESCORTS+'<br>'+
-     ' ㅇ 입고 장소 : 창원국제사격장</p>';
+  H+='<p><b>'+esc(cn)+' ('+esc(c)+') 선수단</b>'+(teams.length>1?' — 출입국 일정별 '+teams.length+'개 팀':'')+'</p>';
+  if(!teams.length)H+='<p>(등록된 총기가 없습니다. 총기 없이 이동하는 일정은 총포내역을 생성하지 않습니다.)</p>';
+  teams.forEach(function(t,i){
+    var tg=t.guns.map(function(x){return x.g;});
+    var ath=t.members.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;
+    var off=t.members.length-ath;
+    H+='<p style="margin-top:'+(i?'22px':'10px')+'"><b>'+esc(teamLabel(t,i))+'</b></p>';
+    H+=teamTable(t);
+    H+='<p style="margin-top:8px"><b>계</b><br>'+
+       ' ㅇ 입국인원 : '+t.members.length+'명 (선수 '+ath+'명, 임원 '+off+'명)<br>'+
+       ' ㅇ 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>'+
+       ' ㅇ 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)<br>'+
+       ' ㅇ 출·입국 항공일정 :<br>'+teamFlights(t)+'<br>'+
+       ' ㅇ 호송책임자 : '+POL_ESCORTS+'<br>'+
+       ' ㅇ 입고 장소 : 창원국제사격장</p>';});
+  var teamStatus=teams.map(function(t){var tg=t.guns.map(function(x){return x.g;});
+    return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;- 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>&nbsp;&nbsp;- 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)';}).join('<br>');
+  var teamFl=teams.map(function(t){
+    return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;'+teamFlights(t).replace('<br>','<br>&nbsp;&nbsp;');}).join('<br>');
   H+='<hr style="margin:22px 0;border:none;border-top:1px dashed #999">';
   H+='<h1 style="text-align:center;font-size:21px;letter-spacing:8px;margin:4px 0 14px">사 유 서</h1>';
   H+='<p style="text-align:right">대한장애인사격연맹회장</p>';
@@ -1082,20 +1110,17 @@ function polGen(c){
      '&nbsp;&nbsp;(2) 대회기간 : 2026. 09. 07.(월) - 09. 16.(수)<br>'+
      '&nbsp;&nbsp;(3) 경기용 총포 일시수출·입 허가기간 : 2026. 09. 01.(화) - 09. 16.(수)<br>'+
      '&nbsp;&nbsp;(4) 대회장소 : 경상남도 창원, 창원국제사격장</p>';
-  H+='<p>&nbsp;나. 경기용 총포 일시수출·입 현황<br>'+
-     '&nbsp;&nbsp;ㅇ 총&nbsp;&nbsp;기 : '+gunSum+'<br>'+
-     '&nbsp;&nbsp;ㅇ 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)</p>';
-  H+='<p>&nbsp;다. 출·입국 항공일정 :<br>'+flightHtml+'</p>';
+  H+='<p>&nbsp;나. 경기용 총포 일시수출·입 현황<br>'+teamStatus+'</p>';
+  H+='<p>&nbsp;다. 출·입국 항공일정 :<br>'+teamFl+'</p>';
   H+='<hr style="margin:22px 0;border:none;border-top:1px dashed #999">';
   H+='<h1 style="text-align:center;font-size:21px;letter-spacing:6px;margin:4px 0 14px">호송계획서</h1>';
   H+='<p>1. 사격발전을 위하여 협조하여 주시는 귀 청의 노고에 감사드립니다.</p>';
   H+='<p>2. 우리 연맹에서는 2026창원장애인사격세계선수권대회에 참가하고자 하는 '+esc(cn)+' 선수단의 경기용 총포 호송계획을 다음과 같이 알려드립니다.</p>';
   H+='<p>&nbsp;가. 호송일시 및 장소<br>'+
-     '&nbsp;&nbsp;국내 입국 시: 인천국제공항 → 창원국제사격장 무기고<br>'+
-     '&nbsp;&nbsp;국내 출국 시: 창원국제사격장 무기고 → 인천국제공항</p>';
-  H+='<p>&nbsp;나. 세부총기 및 실탄<br>'+
-     '&nbsp;&nbsp;ㅇ 총&nbsp;&nbsp;기 : '+gunSum+'<br>'+
-     '&nbsp;&nbsp;ㅇ 실&nbsp;&nbsp;탄 : 총 (&nbsp;&nbsp;&nbsp;&nbsp;)발</p>';
+     teams.map(function(t){return 'ㅇ '+esc(teamShort(t))+'<br>'+
+       '&nbsp;&nbsp;국내 입국 시: '+(t.arrive?esc(t.arrive)+polDW(t.arrive)+' ':'')+'인천국제공항 → 창원국제사격장 무기고<br>'+
+       '&nbsp;&nbsp;국내 출국 시: '+(t.depart?esc(t.depart)+polDW(t.depart)+' ':'')+'창원국제사격장 무기고 → 인천국제공항';}).join('<br>')+'</p>';
+  H+='<p>&nbsp;나. 세부총기 및 실탄<br>'+teamStatus+'</p>';
   H+='<p>&nbsp;다. 호송책임자 : '+POL_ESCORTS+'</p>';
   H+='<p>&nbsp;라. 국내 입국 시 운반로<br>'+
      '&nbsp;&nbsp;∎ 인천국제공항 → 인천대교고속도로 → 중부내륙고속도로 → 창원국제사격장<br>'+
