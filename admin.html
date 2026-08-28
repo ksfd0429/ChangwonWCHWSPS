@@ -1028,8 +1028,10 @@ function polTypeK(t){t=String(t||'').trim();if(/shot/i.test(t))return '산탄총
 function polKey(c){return 'police_kit:'+c;}
 function polSaved(c){try{var e=(dataS().oc_settings||[]).find(function(x){return x.key===polKey(c)});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v&&v.html)return v;}}catch(err){}return null;}
 function polDate(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?(m[1].slice(2)+'.'+m[2]+'.'+m[3]):String(d||'');}
-function polMatch(mem,owner){var ot=String(owner||'').toUpperCase().split(/[^A-Z]+/).filter(Boolean);var best=null,bs=0;
-  mem.forEach(function(m){var mt=((m.first_name||'')+' '+(m.last_name||'')).toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+function polMatch(mem,owner){
+  function toks(x){return String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().split(/[^A-Z]+/).filter(function(t){return t.length>=2});}
+  var ot=toks(owner),best=null,bs=0;
+  mem.forEach(function(m){var mt=toks((m.first_name||'')+' '+(m.last_name||''));
     var sc=ot.filter(function(t){return mt.indexOf(t)>=0}).length;if(sc>bs){bs=sc;best=m;}});
   return bs>0?best:null;}
 var POL_ROUTES={
