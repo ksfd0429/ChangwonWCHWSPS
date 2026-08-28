@@ -322,9 +322,9 @@ async function scrMain(){
   var _polCs=[];(function(){var seen={};(s.firearms||[]).forEach(function(g){if(g.country&&!seen[g.country]){seen[g.country]=1;_polCs.push(g.country);}});_polCs.sort();})();
   var POL='<div class="card"><b>경찰청 제출용 총포서류</b>'+
    '<p class="muted" style="font-size:12px;margin:6px 0 10px">총기를 등록한 국가별로 <b>총포내역 · 사유서 · 호송계획서</b>를 자동 생성합니다. 열면 내용을 직접 편집하고 글꼴을 바꿔 저장할 수 있으며, 표는 드래그로 필요한 셀 범위만 선택해 복사한 뒤 한글(HWP) 문서에 붙여넣을 수 있습니다.</p>'+
-   '<div style="overflow:auto"><table><thead><tr><th>NPC</th><th>국가명</th><th>총기</th><th>산탄총</th><th>저장본</th><th></th></tr></thead><tbody>'+
-   (_polCs.length?_polCs.map(function(c){var fg=(s.firearms||[]).filter(function(g){return g.country===c});var sg=fg.filter(function(g){return /shot/i.test(g.type||'')}).length;var sv=null;try{var e=(s.oc_settings||[]).find(function(x){return x.key==='police_kit:'+c});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v&&v.html)sv=v;}}catch(err){}
-     return '<tr><td><b>'+esc(c)+'</b></td><td>'+esc(cnameA(c))+'</td><td>'+fg.length+'정</td><td>'+(sg?sg+'정':'-')+'</td><td>'+(sv?'<span class="tag" style="background:#E7F2EA;color:#1F6B42">저장 '+esc(String(sv.at||'').slice(0,10))+'</span>':'<span class="muted" style="font-size:11px">자동생성</span>')+'</td>'+
+   '<div style="overflow:auto"><table><thead><tr><th style="width:40px">순번</th><th>NPC</th><th>국가명</th><th>총기</th><th>산탄총</th><th>저장본</th><th></th></tr></thead><tbody>'+
+   (_polCs.length?_polCs.map(function(c,_pi){var fg=(s.firearms||[]).filter(function(g){return g.country===c});var sg=fg.filter(function(g){return /shot/i.test(g.type||'')}).length;var sv=null;try{var e=(s.oc_settings||[]).find(function(x){return x.key==='police_kit:'+c});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v&&v.html)sv=v;}}catch(err){}
+     return '<tr><td style="text-align:center">'+(_pi+1)+'</td><td><b>'+esc(c)+'</b></td><td>'+esc(cnameA(c))+'</td><td>'+fg.length+'정</td><td>'+(sg?sg+'정':'-')+'</td><td>'+(sv?'<span class="tag" style="background:#E7F2EA;color:#1F6B42">저장 '+esc(String(sv.at||'').slice(0,10))+'</span>':'<span class="muted" style="font-size:11px">자동생성</span>')+'</td>'+
      '<td><button class="btn sec" style="padding:4px 12px;font-size:12px;min-height:0" onclick="polOpen(\''+c+'\')">열람·편집</button></td></tr>';}).join(''):'<tr><td colspan="6" class="muted">등록된 총기가 없습니다.</td></tr>')+
    '</tbody></table></div></div>';
   _SEC={ammo:{t:'산탄 실탄 수요조사',h:AMMO},act:{t:'0. Account activation requests',h:ACT},inv:{t:'1. Invitation letters',h:INV},f:{t:'2. Firearm submission confirmations',h:FR},v:{t:'3. Invoices',h:VC},bank:{t:'Banking information (납부 계좌 관리)',h:BANK},price:{t:'Invoice pricing (단가 관리)',h:PRICE},acc:{t:'NPC accounts',h:ACC},roster:{t:'All delegations roster ('+s.members.length+')',h:ROSTER},pstat:{t:'참가자 총 현황',h:PSTAT},fstat:{t:'총기 총 현황',h:FSTAT},rev:{t:'수입 총현황 (예정 수입)',h:REV},pol:{t:'총포서류 (경찰청 제출) — 총포내역 · 사유서 · 호송계획서',h:POL}};
@@ -1057,6 +1057,10 @@ function polGen(c){
   var teams=go.map(function(k){var G=groups[k];var p=k.split('|');
     return {key:k,arrive:p[0],arr_flight:p[1],arr_time:p[2],depart:p[3],dep_flight:p[4],dep_time:p[5],
             guns:G.guns,members:mem.filter(function(m){return polSched(m)===k;})};});
+  var _permA='',_permD='';
+  teams.forEach(function(t){if(t.arrive&&(!_permA||t.arrive<_permA))_permA=t.arrive;if(t.depart&&(!_permD||t.depart>_permD))_permD=t.depart;});
+  function polKd(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));if(!m)return '';return m[1]+'. '+m[2]+'. '+m[3]+'.'+polDW(d);}
+  var _permStr=(_permA&&_permD)?(polKd(_permA)+' - '+polKd(_permD)):'2026. 09. 01.(화) - 09. 16.(수)';
   function teamLabel(t,i){
     if(!t.arrive&&!t.depart)return '팀'+(i+1)+' – 일정 미확인 (소유자가 명단과 매칭되지 않았거나 항공일정 미입력)';
     return '팀'+(i+1)+' – '+polMD(t.arrive)+' 도착 / '+polMD(t.depart)+' 귀국';}
@@ -1108,7 +1112,7 @@ function polGen(c){
   H+='<p>&nbsp;가. 대회개요<br>'+
      '&nbsp;&nbsp;(1) 대 회 명 : 2026창원장애인사격세계선수권대회<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Changwon 2026 WSPS World Championships<br>'+
      '&nbsp;&nbsp;(2) 대회기간 : 2026. 09. 07.(월) - 09. 16.(수)<br>'+
-     '&nbsp;&nbsp;(3) 경기용 총포 일시수출·입 허가기간 : 2026. 09. 01.(화) - 09. 16.(수)<br>'+
+     '&nbsp;&nbsp;(3) 경기용 총포 일시수출·입 허가기간 : '+_permStr+'<br>'+
      '&nbsp;&nbsp;(4) 대회장소 : 경상남도 창원, 창원국제사격장</p>';
   H+='<p>&nbsp;나. 경기용 총포 일시수출·입 현황<br>'+teamStatus+'</p>';
   H+='<p>&nbsp;다. 출·입국 항공일정 :<br>'+teamFl+'</p>';
@@ -1116,6 +1120,7 @@ function polGen(c){
   H+='<h1 style="text-align:center;font-size:21px;letter-spacing:6px;margin:4px 0 14px">호송계획서</h1>';
   H+='<p>1. 사격발전을 위하여 협조하여 주시는 귀 청의 노고에 감사드립니다.</p>';
   H+='<p>2. 우리 연맹에서는 2026창원장애인사격세계선수권대회에 참가하고자 하는 '+esc(cn)+' 선수단의 경기용 총포 호송계획을 다음과 같이 알려드립니다.</p>';
+  H+='<p>&nbsp;※ 경기용 총포 일시수출·입 허가기간 : '+_permStr+'</p>';
   H+='<p>&nbsp;가. 호송일시 및 장소<br>'+
      teams.map(function(t){return 'ㅇ '+esc(teamShort(t))+'<br>'+
        '&nbsp;&nbsp;국내 입국 시: '+(t.arrive?esc(t.arrive)+polDW(t.arrive)+' ':'')+'인천국제공항 → 창원국제사격장 무기고<br>'+
