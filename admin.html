@@ -1289,6 +1289,7 @@ function _hxKd(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?
 function _hxRegion(xml,tok,open,close){var i=xml.indexOf(tok);if(i<0)throw new Error('token missing: '+tok);var a=xml.lastIndexOf('<'+open,i);var b=xml.indexOf('</'+close+'>',i)+close.length+3;if(a<0||b<close.length+3)throw new Error('region fail: '+tok);return {a:a,b:b,tpl:xml.slice(a,b)};}
 function _hxBlock(xml,tokA,tokB){var i=xml.indexOf(tokA),j=xml.indexOf(tokB);if(i<0||j<0)throw new Error('token missing: '+tokA);var a=xml.lastIndexOf('<hp:p',i);var b=xml.indexOf('</hp:p>',j)+7;return {a:a,b:b,tpl:xml.slice(a,b)};}
 function _hxFill(tpl,map){var o=tpl;for(var k in map){o=o.split('{{'+k+'}}').join(map[k]);}return o;}
+function _hxUniqTbl(xml,base){var i=0;return xml.replace(/<hp:tbl\b[^>]*>/g,function(tag){var _id=base+i,_z=i;i++;return tag.replace(/\bid="\d+"/,'id="'+_id+'"').replace(/\bzOrder="\d+"/,'zOrder="'+_z+'"');});}
 function _hxRenumber(xml){var parts=xml.split('<hp:tr');for(var i=1;i<parts.length;i++){parts[i]=parts[i].replace(/rowAddr="\d+"/g,'rowAddr="'+(i-1)+'"');}return parts.join('<hp:tr');}
 async function polHwpx(c,dryRun,_port,_incUn){
  try{
@@ -1386,6 +1387,7 @@ async function polHwpx(c,dryRun,_port,_incUn){
     return _hxFill(one,{TEAM_LABEL:esc(t._label),S_PERSONS:t._persons,S_GUNS:'ㅇ 총    기 : '+t._gunsum,
       S_AMMO:'ㅇ 실    탄 : '+t._ammo,S_FLT_IN:t._fin,S_FLT_OUT:t._fout});});
   s1=s1.slice(0,runA)+tblRuns.join('')+s1.slice(runB);
+  s1=_hxUniqTbl(s1,1440087314);
   var bT=_hxBlock(s2,'{{T_HDR}}','{{T_AMMO}}');
   s2=s2.slice(0,bT.a)+teams.map(function(t){return _hxFill(bT.tpl,{T_HDR:t._short,T_GUNS:'- 총    기 : '+t._gunsum,T_AMMO:'- 실    탄 : '+t._ammo});}).join('')+s2.slice(bT.b);
   var bF=_hxBlock(s2,'{{F_HDR}}','{{F_OUT}}');
