@@ -352,7 +352,8 @@ function fstatXls(){
  var s=dataS();var rows=(s.firearms||[]).slice().sort(function(a,b){return String(a.country+'|'+a.owner).localeCompare(String(b.country+'|'+b.owner));});
  if(!rows.length){alert('등록된 총기가 없습니다.');return;}
  var hdr=['No.','NPC','Owner','Manufacturer','Model','Serial No.','Type','Caliber','Photos','Photo (Full) URL','Photo (Serial) URL'];
- var data=rows.map(function(g,i){return [i+1,g.country||'',g.owner||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||'',((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),g.photo_full||'',g.photo_num||''];});
+ var pu=function(u){u=String(u||'');if(!u)return '';if(u.slice(0,5)==='data:'||u.length>2000)return '(inline photo — admin 화면에서 열람)';return u;};
+ var data=rows.map(function(g,i){return [i+1,g.country||'',g.owner||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||'',((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),pu(g.photo_full),pu(g.photo_num)];});
  var fn='Changwon2026_Firearms_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx';
  function build(){
   var ws=XLSX.utils.aoa_to_sheet([hdr].concat(data));
