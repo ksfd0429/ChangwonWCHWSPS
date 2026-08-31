@@ -13847,35 +13847,38 @@ function itRep(A,D){var o={};
   if(d.length){var fd=d[0];o.depart=fd.dep_date||'';o.dep_time=fd.dep_time||'';
     o.dep_flight=d.map(function(l){return l.flight}).join(' / ');}
   return o;}
-function itLegRow(kind,i,l,n){var p=kind+i;
-  return '<tr>'+
-  '<td style="text-align:center;color:#5D758B;font-size:11px">'+(i+1)+'</td>'+
-  '<td><input id="itf_'+p+'" value="'+esc(l.flight||'')+'" placeholder="LH718" style="width:80px;text-transform:uppercase"></td>'+
-  '<td><input id="ito_'+p+'" value="'+esc(l.from||'')+'" placeholder="FRA" maxlength="4" style="width:56px;text-transform:uppercase"></td>'+
-  '<td><input id="itt_'+p+'" value="'+esc(l.to||'')+'" placeholder="ICN" maxlength="4" style="width:56px;text-transform:uppercase"></td>'+
+function itLegRow(kind,i,l,n,label){var p=kind+i;
+  return '<tr style="background:#F7FAFC">'+
+  '<td style="white-space:nowrap;padding-left:18px;color:#5D758B;font-size:11.5px">&#8627; '+label+'</td>'+
+  '<td><input id="itf_'+p+'" value="'+esc(l.flight||'')+'" placeholder="LH718" style="width:86px;text-transform:uppercase"></td>'+
+  '<td><input id="ito_'+p+'" value="'+esc(l.from||'')+'" placeholder="FRA" maxlength="4" style="width:58px;text-transform:uppercase"></td>'+
+  '<td><input id="itt_'+p+'" value="'+esc(l.to||'')+'" placeholder="ICN" maxlength="4" style="width:58px;text-transform:uppercase"></td>'+
   '<td><input id="itdd_'+p+'" type="date" min="1900-01-01" max="2099-12-31" value="'+esc(l.dep_date||'')+'" style="min-width:124px"></td>'+
-  '<td><input id="itdt_'+p+'" inputmode="numeric" maxlength="5" placeholder="21:40" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(l.dep_time||'')+'" style="width:62px"></td>'+
+  '<td><input id="itdt_'+p+'" inputmode="numeric" maxlength="5" placeholder="21:40" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(l.dep_time||'')+'" style="width:64px"></td>'+
   '<td><input id="itad_'+p+'" type="date" min="1900-01-01" max="2099-12-31" value="'+esc(l.arr_date||'')+'" style="min-width:124px"></td>'+
-  '<td><input id="itat_'+p+'" inputmode="numeric" maxlength="5" placeholder="14:35" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(l.arr_time||'')+'" style="width:62px"></td>'+
-  '<td>'+(n>1?'<button class="btn r" style="padding:3px 8px;font-size:11px;min-height:0" onclick="itDelLeg('+jsq(kind)+','+i+')">×</button>':'')+'</td></tr>';}
-function itLegTable(kind,arr,title){
-  return '<div class="msec">'+title+'</div>'+
-   '<div class="tbl" style="margin-top:4px"><table><thead><tr><th style="width:20px"></th><th>'+L('Flight')+'</th><th>'+L('From')+'</th><th>'+L('To')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Dep.')+'</th><th>'+L('Arr. date')+'</th><th>'+L('Arr.')+'</th><th></th></tr></thead><tbody>'+
-   arr.map(function(l,i){return itLegRow(kind,i,l,arr.length)}).join('')+
-   '</tbody></table></div>'+
-   '<div class="row" style="margin-top:5px"><button class="btn sec" style="padding:4px 12px;font-size:12px" onclick="itAddLeg('+jsq(kind)+')">'+Li('+ Add leg')+'</button></div>';}
-function itPanel(i,g){var st=_itX[i];if(!st)return '';
+  '<td><input id="itat_'+p+'" inputmode="numeric" maxlength="5" placeholder="14:35" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(l.arr_time||'')+'" style="width:64px"></td>'+
+  '<td>'+(n>1?'<button class="btn r" style="padding:3px 8px;font-size:11px;min-height:0" onclick="itDelLeg('+jsq(kind)+','+i+')">&times;</button>':'')+'</td></tr>';}
+/* 그룹 행 바로 아래, 같은 표 안에서 펼쳐지는 구간 행들 (별도 표·모달 없음) */
+function itSubHead(){return '<tr style="background:#EDF2F7;font-size:11px;color:#40566B">'+
+  '<th style="padding-left:18px;text-align:left">'+L('Leg')+'</th><th>'+L('Flight')+'</th><th>'+L('From')+'</th><th>'+L('To')+'</th>'+
+  '<th>'+L('Dep. date')+'</th><th>'+L('Dep.')+'</th><th>'+L('Arr. date')+'</th><th>'+L('Arr.')+'</th><th></th></tr>';}
+function itAddRow(kind,label){return '<tr style="background:#F7FAFC"><td colspan="9" style="padding-left:18px">'+
+  '<button class="btn sec" style="padding:3px 12px;font-size:11.5px;min-height:0" onclick="itAddLeg('+jsq(kind)+')">'+Li('+ Add leg')+' &middot; '+label+'</button></td></tr>';}
+function itRows(i,g){var st=_itX[i];if(!st)return '';
   var n=(g==='*ALL*'?_mem:scopeMembers(g)).length;
-  return '<tr><td colspan="10" style="background:#F7FAFC;padding:12px 14px">'+
-   '<p class="muted" style="font-size:12px;margin:0 0 8px">'+L('Enter the whole journey in travel order — the flight already entered above is included as one leg. Airport codes: ICN Incheon, PUS Gimhae.')+
-   ' <b>'+n+'</b> '+L('member(s) will be updated.')+'</p>'+
-   itLegTable(itKind(i,'A'),st.A,L('ARRIVAL — origin to Korea'))+
-   '<div style="height:10px"></div>'+
-   itLegTable(itKind(i,'D'),st.D,L('DEPARTURE — Korea to final destination'))+
-   '<div class="row" style="margin-top:10px;gap:8px;align-items:center">'+
-     '<button class="btn g" style="padding:6px 16px;font-size:12px" onclick="itSaveLegs('+i+','+jsq(g)+')">'+Li('Save itinerary')+'</button>'+
-     '<button class="btn sec" style="padding:6px 12px;font-size:12px" onclick="itToggle('+i+','+jsq(g)+')">'+Li('Close')+'</button>'+
-   '</div></td></tr>';}
+  var KA=itKind(i,'A'),KD=itKind(i,'D');
+  var h='<tr style="background:#EDF2F7"><td colspan="9" style="padding:8px 14px 2px 18px"><span class="muted" style="font-size:11.5px">'+
+    L('Enter the whole journey in travel order — the flight already entered above is included as one leg. Airport codes: ICN Incheon, PUS Gimhae.')+
+    ' <b>'+n+'</b> '+L('member(s) will be updated.')+'</span></td></tr>'+itSubHead();
+  h+=st.A.map(function(l,k){return itLegRow(KA,k,l,st.A.length,tl('Inbound')+' '+(k+1))}).join('');
+  h+=itAddRow(KA,tl('Inbound'));
+  h+=st.D.map(function(l,k){return itLegRow(KD,k,l,st.D.length,tl('Outbound')+' '+(k+1))}).join('');
+  h+=itAddRow(KD,tl('Outbound'));
+  h+='<tr style="background:#F7FAFC"><td colspan="9" style="padding:8px 14px 12px 18px">'+
+     '<button class="btn g" style="padding:5px 16px;font-size:12px;min-height:0" onclick="itSaveLegs('+i+','+jsq(g)+')">'+Li('Save itinerary')+'</button> '+
+     '<button class="btn sec" style="padding:5px 12px;font-size:12px;min-height:0" onclick="itToggle('+i+','+jsq(g)+')">'+Li('Close')+'</button>'+
+     '</td></tr>';
+  return h;}
 function itToggle(i,g){
   if(_itX[i]){itPull(i);delete _itX[i];}
   else{_itX[i]=itSeed(g);}
@@ -13896,6 +13899,15 @@ async function itSaveLegs(i,g){itPull(i);var st=_itX[i];if(!st)return;
   pbStart(t.length+1);
   for(var k=0;k<t.length;k++){var r=await db.updMember(t[k].id,patch);pbStep();
     if(r&&r.error){alert(r.error.message);return;}}
+  /* 여정 저장 시 위쪽 그룹 요약 행도 함께 갱신 (편명은 경유 포함 전체 체인) */
+  if(rep.arrive||rep.depart){
+    var tg=(g==='*ALL*')?(_gfGroups||[]).slice():[g];
+    for(var q=0;q<tg.length;q++){
+      var cur=(_gf||[]).find(function(x){return x.grp===tg[q];})||{};
+      await db.setGFlight(S.country,tg[q],{
+        arrive:rep.arrive||cur.arrive||'',arr_flight:rep.arr_flight||cur.arr_flight||'',arr_time:rep.arr_time||cur.arr_time||'',
+        depart:rep.depart||cur.depart||'',dep_flight:rep.dep_flight||cur.dep_flight||'',dep_time:rep.dep_time||cur.dep_time||''});}}
+  _gf=await db.gFlights(S.country);
   _mem=await db.members(S.country);pbStep();delete _itX[i];renderTeam();}
 function itBtn(i,g){var c=itGrpLegs(g);var open=!!_itX[i];
   var full=(c.n>0&&c.n===c.tot);
@@ -13914,12 +13926,12 @@ function gfInputs(sfx,gf){gf=gf||{};
    '<td><input id="gfdt'+sfx+'" inputmode="numeric" maxlength="5" placeholder="10:05" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(gf.dep_time||'')+'" style="width:66px"></td>';}
 function gfCardHtml(){_gfGroups=groupsOf();
   if(!_mem.length)return '';
-  var rows=_gfGroups.map(function(g,i){return '<tr><td style="white-space:nowrap"><b>'+(g==='(Ungrouped)'?Li('Ungrouped'):esc(g))+'</b><span class="muted" style="display:block;font-size:10.5px">'+scopeMembers(g).length+' member(s)</span></td>'+gfInputs(i,gfOf(g))+'<td><button class="btn g" style="padding:4px 10px;font-size:11px" onclick="gfSave('+i+')">'+Li('Save')+'</button></td><td>'+itBtn(i,g)+'</td></tr>'+(_itX[i]?itPanel(i,g):'');}).join('');
+  var rows=_gfGroups.map(function(g,i){return '<tr><td style="white-space:nowrap"><b>'+(g==='(Ungrouped)'?Li('Ungrouped'):esc(g))+'</b><span class="muted" style="display:block;font-size:10.5px">'+scopeMembers(g).length+' member(s)</span></td>'+gfInputs(i,gfOf(g))+'<td><button class="btn g" style="padding:4px 10px;font-size:11px" onclick="gfSave('+i+')">'+Li('Save')+'</button></td><td>'+itBtn(i,g)+'</td></tr>'+(_itX[i]?itRows(i,g):'');}).join('');
   return '<div class="card"><b>'+L('Group flight schedules')+'</b>'+
    '<p class="muted" style="font-size:12px;margin:6px 0 8px">'+L('Saving a group schedule automatically applies it to every member with "Use group flight schedule" checked.')+'</p>'+
    '<div class="tbl"><table><thead><tr><th>'+L('Group')+'</th><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th><th>'+L('Itinerary')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
    '<div class="msec" style="margin-top:14px">'+L('UNIFY ALL GROUPS')+'</div>'+
-   '<div class="tbl" style="margin-top:6px;border-color:var(--y)"><table><thead><tr><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th><th>'+L('Itinerary')+'</th></tr></thead><tbody><tr>'+gfInputs('_all',null)+'<td><button class="btn y" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="gfSaveAll()">'+Li('Apply one schedule to ALL groups')+'</button></td><td>'+itBtn(-1,'*ALL*')+'</td></tr>'+(_itX[-1]?itPanel(-1,'*ALL*'):'')+'</tbody></table></div></div>';}
+   '<div class="tbl" style="margin-top:6px;border-color:var(--y)"><table><thead><tr><th style="width:1px"></th><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th><th>'+L('Itinerary')+'</th></tr></thead><tbody><tr><td></td>'+gfInputs('_all',null)+'<td><button class="btn y" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="gfSaveAll()">'+Li('Apply one schedule to ALL groups')+'</button></td><td>'+itBtn(-1,'*ALL*')+'</td></tr>'+(_itX[-1]?itRows(-1,'*ALL*'):'')+'</tbody></table></div></div>';}
 function gfCollect(sfx){var ids=['gfa','gfaf','gfat','gfd','gfdf','gfdt'];var ks=['arrive','arr_flight','arr_time','depart','dep_flight','dep_time'];var o={};var bad=0;
   for(var j=0;j<6;j++){var el=document.getElementById(ids[j]+sfx);var v=el?(el.value||'').trim():'';var ok=v!==''&&((ids[j]!=='gfat'&&ids[j]!=='gfdt')||timeOk(v));if(el)el.classList.toggle('fmiss',!ok);if(!ok)bad++;o[ks[j]]=v;}
   return bad?null:o;}
