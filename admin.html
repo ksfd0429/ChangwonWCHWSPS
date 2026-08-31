@@ -267,7 +267,7 @@ async function scrMain(){
   var fAllRows=s.firearms.map(function(g){return '<tr><td><b>'+esc(g.country)+'</b></td><td>'+esc(g.owner)+'</td><td>'+esc(g.manufacturer)+'</td><td>'+esc(g.model)+'</td><td>'+esc(g.serial)+'</td><td>'+esc(g.type)+'</td><td>'+esc(g.caliber)+'</td><td>'+((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2')+'</td></tr>';}).join('');
   var FSTAT='<div class="stats" style="margin-bottom:10px"><div class="stat"><b>'+s.firearms.length+'</b><span>총 등록 총기</span></div>'+Object.keys(ftypes).map(function(t){return '<div class="stat"><b>'+ftypes[t]+'</b><span>'+esc(t)+'</span></div>'}).join('')+'</div>'+
    '<div class="tbl" style="margin-bottom:12px"><table><thead><tr><th>NPC</th><th>총기</th><th>Air</th><th>.22</th><th>Shotgun</th><th>사진 완료</th></tr></thead><tbody>'+(fcRows||'<tr><td colspan="6" class="muted">None.</td></tr>')+'</tbody></table></div>'+
-   '<div class="edsec" style="margin:4px 0 4px">전체 총기 목록 <button class="btn sec" style="padding:3px 10px;font-size:12px;margin-left:8px" onclick="fstatXls()">⬇ 엑셀 다운로드</button></div><div class="tbl"><table><thead><tr><th>NPC</th><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+(fAllRows||'<tr><td colspan="8" class="muted">None.</td></tr>')+'</tbody></table></div>';
+   '<div class="edsec" style="margin:4px 0 4px">전체 총기 목록 <button class="btn sec" style="padding:3px 10px;font-size:12px;margin-left:8px" onclick="fstatXls()">⬇ 엑셀 (전체)</button><button class="btn sec" style="padding:3px 10px;font-size:12px;margin-left:5px" onclick="fstatXls(\'인천\')">⬇ 인천</button><button class="btn sec" style="padding:3px 10px;font-size:12px;margin-left:5px" onclick="fstatXls(\'김해\')">⬇ 김해</button></div><div class="tbl"><table><thead><tr><th>NPC</th><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+(fAllRows||'<tr><td colspan="8" class="muted">None.</td></tr>')+'</tbody></table></div>';
   var revA=0,revP=0,revCols=[],revColIdx={},revRws=[];
   (s.invoices||[]).forEach(function(V){var items=invItemsOf(V,s).filter(function(b){return !isOnsite(b)});var t=items.reduce(function(a,b){return a+(+b.t||0)},0);var appr=V.status==='approved';
     if(appr)revA+=t;else revP+=t;
@@ -348,7 +348,61 @@ async function scrMain(){
   if(_openSec&&_SEC[_openSec])openSec(_openSec);
 }
 var _REGVIEW=[];
-function fstatXls(){
+/* 경찰 배부용 총기 목록 엑셀: 소지자 여권번호·출입국 일정·공항 포함, 전체/인천/김해 필터 */
+function gunMem(s,g){
+  var m=s.members.find(function(mm){return mm.country===g.country&&(memName(mm)===g.owner||mm.name===g.owner)});
+  if(m)return m;
+  var toks=function(x){return String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().split(/[^A-Z]+/).filter(function(t){return t.length>=2});};
+  var gt=toks(g.owner);var best=null,bs=0;
+  s.members.forEach(function(mm){if(mm.country!==g.country)return;
+    var mt=toks(memName(mm)+' '+(mm.name||''));
+    var sc=mt.filter(function(t){return gt.indexOf(t)>=0}).length;
+    if(sc>bs){bs=sc;best=mm;}});
+  return bs>0?best:null;}
+function gunAirp(fl,role){ // role:'arr'(마지막 구간 도착지)|'dep'(첫 구간 출발지) — POL_ROUTES 기준
+  var L=polLegs(fl);if(!L.length)return 'TBD';
+  var f=(role==='arr')?L[L.length-1]:L[0];
+  var r=polRoute(f);if(!r)return 'TBD';
+  var p=r.split('/');var ap=(role==='arr')?p[p.length-1]:p[0];
+  return ap.replace(/\(.*?\)/g,'');}
+function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
+ var s=dataS();var rows=(s.firearms||[]).slice().sort(function(a,b){return String(a.country+'|'+a.owner).localeCompare(String(b.country+'|'+b.owner));});
+ if(!rows.length){alert('등록된 총기가 없습니다.');return;}
+ var recs=rows.map(function(g){var m=gunMem(s,g);
+   var aA=m?gunAirp(m.arr_flight,'arr'):'TBD', dA=m?gunAirp(m.dep_flight,'dep'):'TBD';
+   return {g:g,m:m,aA:aA,dA:dA};});
+ if(filt)recs=recs.filter(function(r){return r.aA===filt||r.dA===filt;});
+ if(!recs.length){alert(filt+' 경유 총기가 없습니다.');return;}
+ var hdr=['No.','국가','소지자','여권번호','제조사','모델','총번','종류','구경','입국일','입국편','입국공항','출국일','출국편','출국공항','사진','사진(전체) URL','사진(총번) URL'];
+ var pu=function(u){u=String(u||'');if(!u)return '';if(u.slice(0,5)==='data:'||u.length>2000)return '(inline photo — admin 화면에서 열람)';return u;};
+ var data=recs.map(function(r,i){var g=r.g,m=r.m;
+   return [i+1,g.country||'',g.owner||'',(m&&m.passport)||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||'',
+     (m&&m.arrive)||'',(m&&m.arr_flight)||'',r.aA,(m&&m.depart)||'',(m&&m.dep_flight)||'',r.dA,
+     ((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),pu(g.photo_full),pu(g.photo_num)];});
+ var tag=filt==='인천'?'ICN':filt==='김해'?'GIMHAE':'ALL';
+ var fn='Changwon2026_Firearms_'+tag+'_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx';
+ var TXT=[3,6]; // 여권번호·총번 = 텍스트 강제(앞 0 보존)
+ function build(){
+  var ws=XLSX.utils.aoa_to_sheet([hdr].concat(data));
+  for(var ri=0;ri<data.length;ri++){for(var t=0;t<TXT.length;t++){var ci=TXT[t];
+    var cc=ws[XLSX.utils.encode_cell({r:ri+1,c:ci})];
+    if(cc){cc.t='s';cc.v=String(data[ri][ci]==null?'':data[ri][ci]);cc.z='@';}}}
+  ws['!cols']=[{wch:5},{wch:6},{wch:24},{wch:13},{wch:16},{wch:14},{wch:14},{wch:11},{wch:8},{wch:11},{wch:15},{wch:9},{wch:11},{wch:15},{wch:9},{wch:6},{wch:40},{wch:40}];
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,filt?('Firearms_'+tag):'Firearms');
+  XLSX.writeFile(wb,fn);
+ }
+ if(window.XLSX){build();return;}
+ var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+ sc.onload=build;
+ sc.onerror=function(){
+  var q=function(v){v=String(v==null?'':v);return '"'+v.replace(/"/g,'""')+'"';};
+  var qs=function(v){v=String(v==null?'':v).replace(/"/g,'""');return String.fromCharCode(34)+'='+String.fromCharCode(34,34)+v+String.fromCharCode(34,34,34);};
+  var csv='﻿'+[hdr].concat(data).map(function(r,ri){return r.map(function(v,ci){return (ri>0&&TXT.indexOf(ci)>=0)?qs(v):q(v);}).join(',');}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=fn.replace('.xlsx','.csv');a.click();
+ };
+ document.head.appendChild(sc);
+}
+function _fstatXlsLegacy(){
  var s=dataS();var rows=(s.firearms||[]).slice().sort(function(a,b){return String(a.country+'|'+a.owner).localeCompare(String(b.country+'|'+b.owner));});
  if(!rows.length){alert('등록된 총기가 없습니다.');return;}
  var hdr=['No.','NPC','Owner','Manufacturer','Model','Serial No.','Type','Caliber','Photos','Photo (Full) URL','Photo (Serial) URL'];
