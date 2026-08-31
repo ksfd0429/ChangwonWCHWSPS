@@ -1237,6 +1237,28 @@ function polAmmoLine(c,t,single){
 function polSched(m){return [m.arrive||'',m.arr_flight||'',m.arr_time||'',m.depart||'',m.dep_flight||'',m.dep_time||''].join('|');}
 function polMD(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?(parseInt(m[2],10)+'월 '+parseInt(m[3],10)+'일'):'';}
 function polDW(d){try{var t=new Date(d+'T00:00:00');if(isNaN(t))return '';return ' ('+['일','월','화','수','목','금','토'][t.getDay()]+')';}catch(e){return '';}}
+var AP_KO={ICN:'인천',GMP:'김포',PUS:'김해',CJU:'제주',TAE:'대구',KWJ:'광주',CJJ:'청주',
+ NRT:'도쿄나리타',HND:'도쿄하네다',KIX:'오사카',PEK:'베이징',PKX:'베이징다싱',PVG:'상하이',CTU:'청두',CAN:'광저우',HKG:'홍콩',TPE:'타이베이',
+ BKK:'방콕',SIN:'싱가포르',KUL:'쿠알라룸푸르',CGK:'자카르타',MNL:'마닐라',HAN:'하노이',SGN:'호치민',DEL:'델리',BOM:'뭄바이',CMB:'콜롬보',KTM:'카트만두',
+ DXB:'두바이',AUH:'아부다비',DOH:'도하',IST:'이스탄불',TAS:'타슈켄트',ALA:'알마티',TSE:'아스타나',NQZ:'아스타나',GYD:'바쿠',TBS:'트빌리시',IKA:'테헤란',TLV:'텔아비브',CAI:'카이로',
+ FRA:'프랑크푸르트',MUC:'뮌헨',BER:'베를린',DUS:'뒤셀도르프',CDG:'파리',ORY:'파리오를리',AMS:'암스테르담',BRU:'브뤼셀',LHR:'런던',LGW:'런던개트윅',MAN:'맨체스터',DUB:'더블린',
+ MAD:'마드리드',BCN:'바르셀로나',LIS:'리스본',OPO:'포르투',FCO:'로마',MXP:'밀라노',VCE:'베네치아',ZRH:'취리히',GVA:'제네바',VIE:'비엔나',
+ PRG:'프라하',BUD:'부다페스트',WAW:'바르샤바',KRK:'크라쿠프',BTS:'브라티슬라바',LJU:'류블랴나',ZAG:'자그레브',BEG:'베오그라드',SJJ:'사라예보',TGD:'포드고리차',TIV:'티바트',SKP:'스코페',SOF:'소피아',OTP:'부쿠레슈티',
+ CPH:'코펜하겐',ARN:'스톡홀름',OSL:'오슬로',HEL:'헬싱키',KEF:'레이캬비크',RIX:'리가',VNO:'빌뉴스',TLL:'탈린',KBP:'키이우',SVO:'모스크바',DME:'모스크바',LED:'상트페테르부르크',
+ JFK:'뉴욕',LAX:'로스앤젤레스',SFO:'샌프란시스코',ORD:'시카고',ATL:'애틀랜타',DFW:'댈러스',SEA:'시애틀',IAD:'워싱턴',YYZ:'토론토',YVR:'밴쿠버',
+ GRU:'상파울루',GIG:'리우데자네이루',EZE:'부에노스아이레스',SCL:'산티아고',LIM:'리마',BOG:'보고타',MEX:'멕시코시티',SJO:'산호세',PTY:'파나마시티',
+ SYD:'시드니',MEL:'멜버른',BNE:'브리즈번',AKL:'오클랜드',CHC:'크라이스트처치',JNB:'요하네스버그',CPT:'케이프타운',NBO:'나이로비',LOS:'라고스',ABV:'아부자',CAS:'카사블랑카'};
+function apKo(code,nm){var c=String(code||'').toUpperCase();return AP_KO[c]||nm||c||'';}
+function apPort(code){var c=String(code||'').toUpperCase();return c==='ICN'?'인천':c==='PUS'?'김해':c==='GMP'?'김포':'TBD';}
+function polLegsArr(m,k){try{var v=m?m[k]:null;if(typeof v==='string')v=JSON.parse(v||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
+function polTeamLegs(t,role){var k=(role==='arr')?'arr_legs':'dep_legs';var src=[];
+  (t.guns||[]).forEach(function(x){if(x&&x.m)src.push(x.m);});(t.members||[]).forEach(function(m){src.push(m);});
+  for(var i=0;i<src.length;i++){var L=polLegsArr(src[i],k);if(L.length)return L;}
+  return null;}
+function polLegLine(l){var d=l.dep_date||'',tm=l.dep_time||'';
+  var r=apKo(l.from,l.from_name)+'/'+apKo(l.to,l.to_name);
+  if(r==='/')r='출발지/도착지';
+  return esc(d||'0000-00-00')+(d?polDW(d):' (  )')+' '+esc(l.flight||'')+' '+esc(tm||'00:00')+' ('+esc(r)+')';}
 function polGunSum(gl){
   var cnt={};gl.forEach(function(g){var k=polTypeK(g.type);cnt[k]=(cnt[k]||0)+1;});
   var air=(cnt['공기소총']||0)+(cnt['공기권총']||0),pow=(cnt['화약소총']||0)+(cnt['화약권총']||0),sg=cnt['산탄총']||0;
@@ -1268,7 +1290,10 @@ async function polHwpx(c,dryRun){
   var teams=go.map(function(k){var G=groups[k];var p=k.split('|');
     return {key:k,arrive:p[0],arr_flight:p[1],arr_time:p[2],depart:p[3],dep_flight:p[4],dep_time:p[5],
             guns:G.guns,members:mem.filter(function(m){return polSched(m)===k;})};});
-  teams.forEach(function(t){t.aA=gunAirp(t.arr_flight,'arr');t.dA=gunAirp(t.dep_flight,'dep');});
+  teams.forEach(function(t){var AL=polTeamLegs(t,'arr'),DL=polTeamLegs(t,'dep');
+    var _a=(AL&&AL.length)?apPort(AL[AL.length-1].to):'';var _d=(DL&&DL.length)?apPort(DL[0].from):'';
+    t.aA=(_a&&_a!=='TBD')?_a:gunAirp(t.arr_flight,'arr');
+    t.dA=(_d&&_d!=='TBD')?_d:gunAirp(t.dep_flight,'dep');});
   var apSet=[];teams.forEach(function(t){[t.aA,t.dA].forEach(function(a){if((a==='인천'||a==='김해')&&apSet.indexOf(a)<0)apSet.push(a);});});
   if(apSet.length>1){var fa='';teams.slice().sort(function(a,b){return String(a.arrive||'9999').localeCompare(String(b.arrive||'9999'));})
     .some(function(t){if(t.aA==='인천'||t.aA==='김해'){fa=t.aA;return true;}return false;});
@@ -1368,7 +1393,10 @@ function polGen(c){
     return {key:k,arrive:p[0],arr_flight:p[1],arr_time:p[2],depart:p[3],dep_flight:p[4],dep_time:p[5],
             guns:G.guns,members:mem.filter(function(m){return polSched(m)===k;})};});
   function apName(a){return a==='인천'?'인천국제공항':a==='김해'?'김해국제공항':'(공항 미확정)';}
-  teams.forEach(function(t){t.aA=gunAirp(t.arr_flight,'arr');t.dA=gunAirp(t.dep_flight,'dep');});
+  teams.forEach(function(t){var AL=polTeamLegs(t,'arr'),DL=polTeamLegs(t,'dep');
+    var _a=(AL&&AL.length)?apPort(AL[AL.length-1].to):'';var _d=(DL&&DL.length)?apPort(DL[0].from):'';
+    t.aA=(_a&&_a!=='TBD')?_a:gunAirp(t.arr_flight,'arr');
+    t.dA=(_d&&_d!=='TBD')?_d:gunAirp(t.dep_flight,'dep');});
   var _apSet=[];teams.forEach(function(t){[t.aA,t.dA].forEach(function(a){if((a==='인천'||a==='김해')&&_apSet.indexOf(a)<0)_apSet.push(a);});});
   if(_apSet.length>1){ // 인천·김해 혼합국: 최초 입국팀의 공항으로 전체 통일
     var _fa='';teams.slice().sort(function(a,b){return String(a.arrive||'9999').localeCompare(String(b.arrive||'9999'));})
@@ -1386,6 +1414,11 @@ function polGen(c){
     var a=/-(\d{2})-(\d{2})/.exec(t.arrive||''),d=/-(\d{2})-(\d{2})/.exec(t.depart||'');
     return (a?parseInt(a[1],10)+'/'+parseInt(a[2],10):'?')+' 도착 / '+(d?parseInt(d[1],10)+'/'+parseInt(d[2],10):'?')+' 귀국 팀';}
   function teamFlights(t){
+    var _AL=polTeamLegs(t,'arr'),_DL=polTeamLegs(t,'dep');
+    if((_AL&&_AL.length)||(_DL&&_DL.length)){var hh='';
+      hh+='입 국 :'+((_AL&&_AL.length>1)?'<br>':' ')+((_AL&&_AL.length)?_AL.map(polLegLine).join('<br>'):'(기재)');
+      hh+='<br>출 국 :'+((_DL&&_DL.length>1)?'<br>':' ')+((_DL&&_DL.length)?_DL.map(polLegLine).join('<br>'):'(기재)');
+      return hh;}
     if(!t.arrive&&!t.depart)return '입 국 : (기재) / 출 국 : (기재)';
     var aL=polLegs(t.arr_flight),dL=polLegs(t.dep_flight),h='';
     h+='입 국 :'+(aL.length>1?'<br>':' ');
