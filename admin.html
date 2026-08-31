@@ -356,6 +356,8 @@ function fstatXls(){
  var fn='Changwon2026_Firearms_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx';
  function build(){
   var ws=XLSX.utils.aoa_to_sheet([hdr].concat(data));
+  for(var ri=0;ri<data.length;ri++){var ad=XLSX.utils.encode_cell({r:ri+1,c:5});var cc=ws[ad];
+   if(cc){cc.t='s';cc.v=String(data[ri][5]==null?'':data[ri][5]);cc.z='@';}} // Serial = 항상 텍스트(앞 0 보존)
   ws['!cols']=[{wch:5},{wch:6},{wch:26},{wch:18},{wch:16},{wch:16},{wch:12},{wch:9},{wch:7},{wch:46},{wch:46}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Firearms');
   XLSX.writeFile(wb,fn);
@@ -365,7 +367,8 @@ function fstatXls(){
  sc.onload=build;
  sc.onerror=function(){
   var q=function(v){v=String(v==null?'':v);return '"'+v.replace(/"/g,'""')+'"';};
-  var csv='\uFEFF'+[hdr].concat(data).map(function(r){return r.map(q).join(',');}).join('\r\n');
+  var qs=function(v){v=String(v==null?'':v).replace(/"/g,'""');return '"=""'+v+'"""';}; // 텍스트 강제(앞 0 보존)
+  var csv='\uFEFF'+[hdr].concat(data).map(function(r,ri){return r.map(function(v,ci){return (ri>0&&ci===5)?qs(v):q(v);}).join(',');}).join('\r\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=fn.replace('.xlsx','.csv');a.click();
  };
  document.head.appendChild(sc);
