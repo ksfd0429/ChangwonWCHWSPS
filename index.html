@@ -13819,7 +13819,10 @@ function itChainOf(m){var A=itLegs(m,'arr_legs');if(!A.length)return '';
   return A.map(function(l){return l.flight}).filter(Boolean).join(' / ');}
 function itSeed(g){ /* 기존 그룹/개인 일정을 여정 첫 구간으로 채워 넣는다 */
   var mm=(g==='*ALL*'?_mem:scopeMembers(g));
-  var src=mm.find(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length});
+  var have=mm.filter(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length});
+  /* 전체 단위 패널은 모든 인원이 이미 같은 여정을 가진 경우에만 기존 값을 불러온다.
+     일부만 입력된 상태에서 남의 여정이 미리 채워져 전원에게 덮어써지는 사고 방지 */
+  var src=(g==='*ALL*'&&have.length!==mm.length)?null:have[0];
   if(src)return {A:itLegs(src,'arr_legs').map(function(l){return Object.assign(itBlank(),l)}),
                  D:itLegs(src,'dep_legs').map(function(l){return Object.assign(itBlank(),l)})};
   var b=mm[0]||{};var gf=(g==='*ALL*')?{}:(gfOf(g)||{});
