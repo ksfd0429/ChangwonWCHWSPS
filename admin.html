@@ -1290,7 +1290,7 @@ function _hxRegion(xml,tok,open,close){var i=xml.indexOf(tok);if(i<0)throw new E
 function _hxBlock(xml,tokA,tokB){var i=xml.indexOf(tokA),j=xml.indexOf(tokB);if(i<0||j<0)throw new Error('token missing: '+tokA);var a=xml.lastIndexOf('<hp:p',i);var b=xml.indexOf('</hp:p>',j)+7;return {a:a,b:b,tpl:xml.slice(a,b)};}
 function _hxFill(tpl,map){var o=tpl;for(var k in map){o=o.split('{{'+k+'}}').join(map[k]);}return o;}
 function _hxRenumber(xml){var parts=xml.split('<hp:tr');for(var i=1;i<parts.length;i++){parts[i]=parts[i].replace(/rowAddr="\d+"/g,'rowAddr="'+(i-1)+'"');}return parts.join('<hp:tr');}
-async function polHwpx(c,dryRun,_port){
+async function polHwpx(c,dryRun,_port,_incUn){
  try{
   var s=dataS();
   var mem=(s.members||[]).filter(function(m){return m.country===c});
@@ -1312,9 +1312,11 @@ async function polHwpx(c,dryRun,_port){
   var apSet=[];teams.forEach(function(t){[t.aA,t.dA].forEach(function(a){if((a==='인천'||a==='김해')&&apSet.indexOf(a)<0)apSet.push(a);});});
   if(!_port&&apSet.length>1){ // 관할청이 나뉘는 국가 → 관할별로 각각 생성
     var _ord=['인천','김해'].filter(function(a){return apSet.indexOf(a)>=0;});
-    for(var _i=0;_i<_ord.length;_i++){await polHwpx(c,dryRun,_ord[_i]);await new Promise(function(r){setTimeout(r,900);});}
+    for(var _i=0;_i<_ord.length;_i++){await polHwpx(c,dryRun,_ord[_i],_i===0);await new Promise(function(r){setTimeout(r,900);});}
     return;}
-  if(_port){teams=teams.filter(function(t){return t.aA===_port||t.dA===_port;});
+  if(_port){var _isP=function(v){return v==='인천'||v==='김해';};
+    teams=teams.filter(function(t){if(t.aA===_port||t.dA===_port)return true;
+      return _incUn&&!_isP(t.aA)&&!_isP(t.dA);});
     if(!teams.length){return;}
     apSet=[_port];
     guns=[];teams.forEach(function(t){t.guns.forEach(function(x){guns.push(x.g);});});
@@ -1326,6 +1328,11 @@ async function polHwpx(c,dryRun,_port){
   var pA='',pD='';teams.forEach(function(t){if(t.arrive&&(!pA||t.arrive<pA))pA=t.arrive;if(t.depart&&(t.depart>pD))pD=t.depart;});
   var single=teams.length===1;
   var ammoTxt=(function(){
+    if(_port){ /* 관할별 문서: 이 문서에 속한 팀의 실탄만 합산 */
+      var p0=0,r0=0,any=false;
+      teams.forEach(function(t){var g2=polAmmo(c,t);if(g2){any=true;p0+=(+g2.pellets||0);r0+=(+g2.rounds||0);}});
+      if(any)return (p0+r0).toLocaleString('en-US')+'발';
+      return '(      )발';}
     try{var e=(s.oc_settings||[]).find(function(x){return x.key==='ammo_flight:'+c});
       if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;var p=0,r=0;(v.groups||[]).forEach(function(g2){p+=(+g2.pellets||0);r+=(+g2.rounds||0);});if(p+r>0)return (p+r).toLocaleString('en-US')+'발';}
     }catch(err){}
@@ -1400,7 +1407,7 @@ async function polHwpx(c,dryRun,_port){
   document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);
  }catch(e){if(dryRun)return {error:String(e&&e.message||e)};alert('HWPX 생성 오류: '+(e&&e.message||e));}
 }
-function polGen(c,_port){
+function polGen(c,_port,_incUn){
   var s=dataS();
   var mem=(s.members||[]).filter(function(m){return m.country===c});
   var guns=(s.firearms||[]).filter(function(g){return g.country===c});
@@ -1426,8 +1433,10 @@ function polGen(c,_port){
       return (ai?'<div style="page-break-before:always;border-top:3px double #333;margin:26px 0 18px"></div>':'')+
         '<p style="text-align:center;font-size:13px;color:#A93226;font-weight:700;margin:0 0 10px">※ '+
         esc(polStation(a))+' 제출분 — '+esc(a)+' 관할 ('+_order.length+'부 중 '+(ai+1)+'부)</p>'+
-        polGen(c,a);}).join('');}
-  if(_port){teams=teams.filter(function(t){return t.aA===_port||t.dA===_port;});
+        polGen(c,a,ai===0);}).join('');}
+  if(_port){var _isP=function(v){return v==='인천'||v==='김해';};
+    teams=teams.filter(function(t){if(t.aA===_port||t.dA===_port)return true;
+      return _incUn&&!_isP(t.aA)&&!_isP(t.dA);});
     _apSet=[_port];}
   var _permA='',_permD='';
   teams.forEach(function(t){if(t.arrive&&(!_permA||t.arrive<_permA))_permA=t.arrive;if(t.depart&&(!_permD||t.depart>_permD))_permD=t.depart;});
@@ -1471,11 +1480,19 @@ function polGen(c,_port){
   var H='';
   H+='<h1 style="text-align:center;font-size:21px;letter-spacing:8px;margin:4px 0 14px">총포 내역</h1>';
   H+='<p><b>'+esc(cn)+' ('+esc(c)+') 선수단</b>'+(teams.length>1?' — 출입국 일정별 '+teams.length+'개 팀':'')+'</p>';
-  var _ammoTot=(function(){try{var e=(s.oc_settings||[]).find(function(x){return x.key==='ammo_flight:'+c});
+  var _docGuns=0;teams.forEach(function(t){_docGuns+=t.guns.length;});
+  if(!_port)_docGuns=guns.length;
+  var _ammoTot=(function(){
+    if(_port){ /* 관할별 문서: 이 문서에 속한 팀의 실탄만 합산 */
+      var p=0,r=0,any=false;
+      teams.forEach(function(t){var g2=polAmmo(c,t);if(g2){any=true;p+=(+g2.pellets||0);r+=(+g2.rounds||0);}});
+      return any?{p:p,r:r}:null;}
+    try{var e=(s.oc_settings||[]).find(function(x){return x.key==='ammo_flight:'+c});
     if(!e||!e.value)return null;var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;
     var p=0,r=0;(v.groups||[]).forEach(function(g2){p+=(+g2.pellets||0);r+=(+g2.rounds||0);});
-    return {p:p,r:r};}catch(err){return null;}})();if(!_ammoTot){var _aa=ammoOfA(s,c);if(_aa&&(((+_aa.p)||0)+((+_aa.b)||0)>0))_ammoTot={p:(+_aa.p)||0,r:(+_aa.b)||0};}
-  H+='<p style="border:1.5px solid #333;padding:7px 12px;margin:6px 0 12px;font-size:14px"><b>총포 전체 : '+guns.length+'정</b>'+
+    return {p:p,r:r};}catch(err){return null;}})();
+  if(!_ammoTot&&!_port){var _aa=ammoOfA(s,c);if(_aa&&(((+_aa.p)||0)+((+_aa.b)||0)>0))_ammoTot={p:(+_aa.p)||0,r:(+_aa.b)||0};}
+  H+='<p style="border:1.5px solid #333;padding:7px 12px;margin:6px 0 12px;font-size:14px"><b>총포 전체 : '+_docGuns+'정</b>'+
     ' &nbsp;·&nbsp; <b>탄약 전체 : '+(_ammoTot?(polAmmoTxt(_ammoTot.p,_ammoTot.r).replace(/^총 /,'')+'</b>'):'(미접수)</b>')+'</p>';
   if(!teams.length)H+='<p>(등록된 총기가 없습니다. 총기 없이 이동하는 일정은 총포내역을 생성하지 않습니다.)</p>';
   teams.forEach(function(t,i){
