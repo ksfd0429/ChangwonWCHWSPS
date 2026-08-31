@@ -1290,6 +1290,38 @@ function _hxRegion(xml,tok,open,close){var i=xml.indexOf(tok);if(i<0)throw new E
 function _hxBlock(xml,tokA,tokB){var i=xml.indexOf(tokA),j=xml.indexOf(tokB);if(i<0||j<0)throw new Error('token missing: '+tokA);var a=xml.lastIndexOf('<hp:p',i);var b=xml.indexOf('</hp:p>',j)+7;return {a:a,b:b,tpl:xml.slice(a,b)};}
 function _hxFill(tpl,map){var o=tpl;for(var k in map){o=o.split('{{'+k+'}}').join(map[k]);}return o;}
 function _hxUniqTbl(xml,base){var i=0;return xml.replace(/<hp:tbl\b[^>]*>/g,function(tag){var _id=base+i,_z=i;i++;return tag.replace(/\bid="\d+"/,'id="'+_id+'"').replace(/\bzOrder="\d+"/,'zOrder="'+_z+'"');});}
+/* lineseg 캐시를 실제 텍스트에 맞게 재구성: 명시적 줄바꿈이 있으면 줄 수만큼 생성,
+   없으면 본문 길이를 벗어나는 textpos만 제거 (벗어나면 손상 판정, 부족하면 한 줄 압축 렌더링) */
+function _hxSegs(xml){
+  var BR=String.fromCharCode(1);
+  return xml.replace(/(<hp:p\b[^>]*>)((?:(?!<hp:p\b)[\s\S])*?)(<hp:linesegarray>[\s\S]*?<\/hp:linesegarray>)/g,
+    function(_,open,runs,lsa){
+      var txt='';runs.replace(/<hp:t>([\s\S]*?)<\/hp:t>/g,function(m2,t){txt+=t;return m2;});
+      var plain=txt.replace(/<hp:lineBreak\/>/g,BR).replace(/&(amp|lt|gt|quot|apos);/g,'x').replace(/&#\d+;/g,'x');
+      var protos=lsa.match(/<hp:lineseg\b[^>]*\/>/g)||[];
+      if(!protos.length)return _;
+      var lines=plain.split(BR);
+      if(lines.length>1){
+        var p0=protos[0];
+        var vs=+((/vertsize="(\d+)"/.exec(p0)||[0,1000])[1]);
+        var sp=+((/spacing="(\d+)"/.exec(p0)||[0,Math.round(vs*0.5)])[1]);
+        var v0=+((/vertpos="(\d+)"/.exec(p0)||[0,0])[1]);
+        var d=(vs+sp);
+        if(protos.length>1){var v1=+((/vertpos="(\d+)"/.exec(protos[1])||[0,0])[1]);if(v1>v0)d=v1-v0;}
+        var out='',pos=0;
+        for(var k=0;k<lines.length;k++){
+          out+=p0.replace(/textpos="\d+"/,'textpos="'+pos+'"').replace(/vertpos="\d+"/,'vertpos="'+(v0+d*k)+'"');
+          pos+=lines[k].length+1;}
+        return open+runs+'<hp:linesegarray>'+out+'</hp:linesegarray>';
+      }
+      var L=plain.length;
+      var kept=protos.filter(function(sg,ix){return ix===0||(+(/textpos="(\d+)"/.exec(sg)[1])<L);});
+      if(kept.length===protos.length)return _;
+      return open+runs+'<hp:linesegarray>'+kept.join('')+'</hp:linesegarray>';
+    });}
+function _hxSegTok(xml,tok){var i=xml.indexOf(tok);if(i<0)return xml;
+var a=xml.lastIndexOf('<hp:p ',i);var b=xml.indexOf('</hp:p>',i)+7;
+return xml.slice(0,a)+_hxSegs(xml.slice(a,b))+xml.slice(b);}
 function _hxRenumber(xml){var parts=xml.split('<hp:tr');for(var i=1;i<parts.length;i++){parts[i]=parts[i].replace(/rowAddr="\d+"/g,'rowAddr="'+(i-1)+'"');}return parts.join('<hp:tr');}
 async function polHwpx(c,dryRun,_port,_incUn){
  try{
@@ -1386,19 +1418,20 @@ async function polHwpx(c,dryRun,_port,_incUn){
     var one=runTpl.slice(0,rowReg.a)+rows+runTpl.slice(rowReg.b);
     one=one.replace(/(<hp:tbl[^>]*?rowCnt=")(\d+)(")/,function(_,x1,n,x3){return x1+(4+no)+x3;});
     one=_hxRenumber(one);
-    return _hxFill(one,{TEAM_LABEL:esc(t._label),S_PERSONS:t._persons,S_GUNS:'ㅇ 총    기 : '+t._gunsum,
-      S_AMMO:'ㅇ 실    탄 : '+t._ammo,S_FLT_IN:t._fin,S_FLT_OUT:t._fout});});
+    return _hxSegs(_hxFill(one,{TEAM_LABEL:esc(t._label),S_PERSONS:t._persons,S_GUNS:'ㅇ 총    기 : '+t._gunsum.replace(/ \/ /g,'<hp:lineBreak/>              '),
+      S_AMMO:'ㅇ 실    탄 : '+t._ammo,S_FLT_IN:t._fin,S_FLT_OUT:t._fout}));});
   s1=s1.slice(0,runA)+tblRuns.join('')+s1.slice(runB);
   s1=_hxUniqTbl(s1,1440087314);
   var bT=_hxBlock(s2,'{{T_HDR}}','{{T_AMMO}}');
-  s2=s2.slice(0,bT.a)+teams.map(function(t){return _hxFill(bT.tpl,{T_HDR:t._short,T_GUNS:'- 총    기 : '+t._gunsum,T_AMMO:'- 실    탄 : '+t._ammo});}).join('')+s2.slice(bT.b);
+  s2=s2.slice(0,bT.a)+teams.map(function(t){return _hxSegs(_hxFill(bT.tpl,{T_HDR:t._short,T_GUNS:'- 총    기 : '+t._gunsum.replace(/ \/ /g,'<hp:lineBreak/>              '),T_AMMO:'- 실    탄 : '+t._ammo}));}).join('')+s2.slice(bT.b);
   var bF=_hxBlock(s2,'{{F_HDR}}','{{F_OUT}}');
-  s2=s2.slice(0,bF.a)+teams.map(function(t){return _hxFill(bF.tpl,{F_HDR:t._short,F_IN:t._fin,F_OUT:t._fout});}).join('')+s2.slice(bF.b);
+  s2=s2.slice(0,bF.a)+teams.map(function(t){return _hxSegs(_hxFill(bF.tpl,{F_HDR:t._short,F_IN:t._fin,F_OUT:t._fout}));}).join('')+s2.slice(bF.b);
   var bH=_hxBlock(s2,'{{H_HDR}}','{{H_OUT}}');
-  s2=s2.slice(0,bH.a)+teams.map(function(t){return _hxFill(bH.tpl,{H_HDR:t._short,H_IN:t._hin,H_OUT:t._hout});}).join('')+s2.slice(bH.b);
+  s2=s2.slice(0,bH.a)+teams.map(function(t){return _hxSegs(_hxFill(bH.tpl,{H_HDR:t._short,H_IN:t._hin,H_OUT:t._hout}));}).join('')+s2.slice(bH.b);
   var bH2=_hxBlock(s2,'{{H2_HDR}}','{{H2_AMMO}}');
-  s2=s2.slice(0,bH2.a)+teams.map(function(t){return _hxFill(bH2.tpl,{H2_HDR:t._short,H2_GUNS:'- 총    기 : '+t._gunsum,H2_AMMO:'- 실    탄 : '+t._ammo});}).join('')+s2.slice(bH2.b);
+  s2=s2.slice(0,bH2.a)+teams.map(function(t){return _hxSegs(_hxFill(bH2.tpl,{H2_HDR:t._short,H2_GUNS:'- 총    기 : '+t._gunsum.replace(/ \/ /g,'<hp:lineBreak/>              '),H2_AMMO:'- 실    탄 : '+t._ammo}));}).join('')+s2.slice(bH2.b);
   var permPeriod=_hxKd(pA)+polDW(pA).trim()+' - '+_hxKd(pD).replace(/^\d{4}\.\s*/,'')+polDW(pD).trim();
+  s2=_hxSegTok(s2,'{{COUNTRY}}');
   s2=_hxFill(s2,{COUNTRY:esc(cn),PERMIT_PERIOD:permPeriod,ROUTE_IN:routeIn});
   var left=(s0+s1+s2).match(/\{\{[A-Z_0-9]+\}\}/g);
   if(dryRun)return {teams:teams.length,guns:guns.length,port:port,police:police,ammo:ammoTxt,leftoverTokens:left||[],s1len:s1.length,s2len:s2.length};
