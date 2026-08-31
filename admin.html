@@ -328,7 +328,7 @@ async function scrMain(){
    '<div style="overflow:auto"><table><thead><tr><th style="width:40px">순번</th><th>NPC</th><th>국가명</th><th>최초 입국일</th><th>총기</th><th>산탄총</th><th>탄약</th><th>저장본</th><th>처리</th><th></th></tr></thead><tbody>'+
    (_polCs.length?_polCs.map(function(c,_pi){var fg=(s.firearms||[]).filter(function(g){return g.country===c});var sg=fg.filter(function(g){return /shot/i.test(g.type||'')}).length;var sv=null;try{var e=(s.oc_settings||[]).find(function(x){return x.key==='police_kit:'+c});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v&&v.html)sv=v;}}catch(err){}var am=null;try{var ae=(s.oc_settings||[]).find(function(x){return x.key==='ammo_flight:'+c});if(ae&&ae.value){var av=(typeof ae.value==='string')?JSON.parse(ae.value):ae.value;var ap=0,ar=0;(av.groups||[]).forEach(function(g2){ap+=(+g2.pellets||0);ar+=(+g2.rounds||0);});am=ap+ar;}}catch(e2){}if(am==null){var aa=ammoOfA(s,c);if(aa&&(((+aa.p)||0)+((+aa.b)||0)>0))am=((+aa.p)||0)+((+aa.b)||0);}
      return '<tr id="polrow_'+esc(c)+'" class="'+polStCls(polStMap()[c])+'"><td style="text-align:center">'+(_pi+1)+'</td><td><b>'+esc(c)+'</b></td><td>'+esc(cnameA(c))+'</td><td style="white-space:nowrap">'+(polFirstArr(s,c)||'-')+'</td><td>'+fg.length+'정</td><td>'+(sg?sg+'정':'-')+'</td><td style="white-space:nowrap">'+(am!=null?'<b>'+am.toLocaleString('en-US')+'발</b>':'<span class="tag y">미접수</span>')+'</td><td>'+(sv?'<span class="tag" style="background:#E7F2EA;color:#1F6B42">저장 '+esc(String(sv.at||'').slice(0,10))+'</span>':'<span class="muted" style="font-size:11px">자동생성</span>')+'</td>'+
-     '<td>'+polStBtns(c)+'</td><td><button class="btn sec" style="padding:4px 12px;font-size:12px;min-height:0" onclick="polOpen(\''+c+'\')">열람·편집</button></td></tr>';}).join(''):'<tr><td colspan="10" class="muted">등록된 총기가 없습니다.</td></tr>')+
+     '<td>'+polStBtns(c)+'</td><td><button class="btn sec" style="padding:4px 12px;font-size:12px;min-height:0" onclick="polOpen(\''+c+'\')">열람·편집</button> <button class="btn sec" style="padding:4px 10px;font-size:12px;min-height:0" onclick="polHwpx(\''+c+'\')">⬇ HWPX</button></td></tr>';}).join(''):'<tr><td colspan="10" class="muted">등록된 총기가 없습니다.</td></tr>')+
    '</tbody></table></div></div>';
   _SEC={ammo:{t:'산탄 실탄 수요조사',h:AMMO},act:{t:'0. Account activation requests',h:ACT},inv:{t:'1. Invitation letters',h:INV},f:{t:'2. Firearm submission confirmations',h:FR},v:{t:'3. Invoices',h:VC},bank:{t:'Banking information (납부 계좌 관리)',h:BANK},price:{t:'Invoice pricing (단가 관리)',h:PRICE},acc:{t:'NPC accounts',h:ACC},roster:{t:'All delegations roster ('+s.members.length+')',h:ROSTER},pstat:{t:'참가자 총 현황',h:PSTAT},fstat:{t:'총기 총 현황',h:FSTAT},rev:{t:'수입 총현황 (예정 수입)',h:REV},pol:{t:'총포서류 (경찰청 제출) — 총포내역 · 사유서 · 호송계획서',h:POL}};
   function navb(k,label,n){return '<button class="snb" onclick="openSec(\''+k+'\')"><span>'+label+'</span>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';}
@@ -1242,6 +1242,112 @@ function polGunSum(gl){
   if(pow)parts.push('화약총 '+pow+'정 (화약소총 '+(cnt['화약소총']||0)+'정, 화약권총 '+(cnt['화약권총']||0)+'정)');
   if(sg)parts.push('산탄총 '+sg+'정');
   return gl.length+'정'+(parts.length?' — '+parts.join(' / '):'');}
+/* ── HWPX 다운로드: 템플릿 치환 방식 (신청서·총포내역·사유서·호송계획서) ── */
+var _hwpxTplBuf=null;
+function _hxKd(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?(m[1]+'. '+m[2]+'. '+m[3]+'.'):'';}
+function _hxRegion(xml,tok,open,close){var i=xml.indexOf(tok);if(i<0)throw new Error('token missing: '+tok);var a=xml.lastIndexOf('<'+open,i);var b=xml.indexOf('</'+close+'>',i)+close.length+3;if(a<0||b<close.length+3)throw new Error('region fail: '+tok);return {a:a,b:b,tpl:xml.slice(a,b)};}
+function _hxBlock(xml,tokA,tokB){var i=xml.indexOf(tokA),j=xml.indexOf(tokB);if(i<0||j<0)throw new Error('token missing: '+tokA);var a=xml.lastIndexOf('<hp:p',i);var b=xml.indexOf('</hp:p>',j)+7;return {a:a,b:b,tpl:xml.slice(a,b)};}
+function _hxFill(tpl,map){var o=tpl;for(var k in map){o=o.split('{{'+k+'}}').join(map[k]);}return o;}
+function _hxRenumber(xml){var parts=xml.split('<hp:tr');for(var i=1;i<parts.length;i++){parts[i]=parts[i].replace(/rowAddr="\d+"/g,'rowAddr="'+(i-1)+'"');}return parts.join('<hp:tr');}
+async function polHwpx(c,dryRun){
+ try{
+  var s=dataS();
+  var mem=(s.members||[]).filter(function(m){return m.country===c});
+  var guns=(s.firearms||[]).filter(function(g){return g.country===c});
+  if(!guns.length){alert('등록된 총기가 없습니다.');return;}
+  var cn=cnameK(c);
+  var groups={},go=[];
+  guns.forEach(function(g){var m=polMatch(mem,g.owner);var k=m?polSched(m):'|||||';
+    if(!groups[k]){groups[k]={key:k,guns:[]};go.push(k);}
+    groups[k].guns.push({g:g,m:m});});
+  go.sort();
+  var teams=go.map(function(k){var G=groups[k];var p=k.split('|');
+    return {key:k,arrive:p[0],arr_flight:p[1],arr_time:p[2],depart:p[3],dep_flight:p[4],dep_time:p[5],
+            guns:G.guns,members:mem.filter(function(m){return polSched(m)===k;})};});
+  teams.forEach(function(t){t.aA=gunAirp(t.arr_flight,'arr');t.dA=gunAirp(t.dep_flight,'dep');});
+  var apSet=[];teams.forEach(function(t){[t.aA,t.dA].forEach(function(a){if((a==='인천'||a==='김해')&&apSet.indexOf(a)<0)apSet.push(a);});});
+  if(apSet.length>1){var fa='';teams.slice().sort(function(a,b){return String(a.arrive||'9999').localeCompare(String(b.arrive||'9999'));})
+    .some(function(t){if(t.aA==='인천'||t.aA==='김해'){fa=t.aA;return true;}return false;});
+    if(fa){teams.forEach(function(t){t.aA=fa;t.dA=fa;});apSet=[fa];}}
+  var port=apSet[0]||'인천';
+  var police=port==='김해'?'부산광역시경찰청장':'인천광역시경찰청장';
+  var routeIn=port==='김해'?'∎ 김해국제공항 → 서부산IC → 창원대삼거리 → 창원국제사격장':'∎ 인천국제공항 → 인천대교고속도로 → 중부내륙고속도로 → 창원국제사격장';
+  var pA='',pD='';teams.forEach(function(t){if(t.arrive&&(!pA||t.arrive<pA))pA=t.arrive;if(t.depart&&(t.depart>pD))pD=t.depart;});
+  var single=teams.length===1;
+  var ammoTxt=(function(){
+    try{var e=(s.oc_settings||[]).find(function(x){return x.key==='ammo_flight:'+c});
+      if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;var p=0,r=0;(v.groups||[]).forEach(function(g2){p+=(+g2.pellets||0);r+=(+g2.rounds||0);});if(p+r>0)return (p+r).toLocaleString('en-US')+'발';}
+    }catch(err){}
+    var aa=ammoOfA(s,c);if(aa&&(((+aa.p)||0)+((+aa.b)||0)>0))return (((+aa.p)||0)+((+aa.b)||0)).toLocaleString('en-US')+'발';
+    return '(      )발';})();
+  function flightHalf(t,role){
+    var L=polLegs(role==='in'?t.arr_flight:t.dep_flight);
+    var date=role==='in'?t.arrive:t.depart,time=role==='in'?t.arr_time:t.dep_time,fl=role==='in'?t.arr_flight:t.dep_flight;
+    var head=(role==='in'?'입 국 : ':'출 국 : ');
+    if(!L.length)return head+esc(date||'')+polDW(date||'')+' '+esc(fl||'')+' '+esc(time||'');
+    return head+L.map(function(f,i){var edge=(role==='in')?(i===L.length-1):(i===0);
+      return polFlLine(edge?date:'',f,edge?time:'');}).join('<hp:lineBreak/>');}
+  teams.forEach(function(t,i){
+    var ath=t.members.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;
+    var tg=t.guns.map(function(x){return x.g;});
+    t._label='팀'+(i+1)+' – '+polMD(t.arrive)+' 도착 / '+polMD(t.depart)+' 귀국';
+    t._short=(function(){var a=/-(\d{2})-(\d{2})/.exec(t.arrive||''),d=/-(\d{2})-(\d{2})/.exec(t.depart||'');
+      return 'ㅇ '+(a?parseInt(a[1],10)+'/'+parseInt(a[2],10):'?')+' 도착 / '+(d?parseInt(d[1],10)+'/'+parseInt(d[2],10):'?')+' 귀국 팀';})();
+    t._persons='ㅇ 입국인원 : '+t.members.length+'명 (선수 '+ath+'명, 임원 '+(t.members.length-ath)+'명)';
+    t._gunsum=polGunSum(tg);
+    t._ammo=polAmmoLine(c,t,single).replace(/&nbsp;/g,' ');
+    t._fin=flightHalf(t,'in');t._fout=flightHalf(t,'out');
+    t._hin='국내 입국 시: '+esc(t.arrive||'')+polDW(t.arrive||'')+' '+(t.aA==='김해'?'김해국제공항':'인천국제공항')+' → 창원국제사격장 무기고';
+    t._hout='국내 출국 시: '+esc(t.depart||'')+polDW(t.depart||'')+' 창원국제사격장 무기고 → '+(t.aA==='김해'?'김해국제공항':'인천국제공항');});
+  if(!window.JSZip){await new Promise(function(res,rej){var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';sc.onload=res;sc.onerror=function(){rej(new Error('JSZip 로드 실패'));};document.head.appendChild(sc);});}
+  if(!_hwpxTplBuf)_hwpxTplBuf=await fetch('assets/police_kit_template.hwpx').then(function(r){if(!r.ok)throw new Error('템플릿 로드 실패 ('+r.status+')');return r.arrayBuffer();});
+  var zip=await JSZip.loadAsync(_hwpxTplBuf.slice(0));
+  var s0=await zip.file('Contents/section0.xml').async('string');
+  var s1=await zip.file('Contents/section1.xml').async('string');
+  var s2=await zip.file('Contents/section2.xml').async('string');
+  var td=new Date();
+  var appDate=td.getFullYear()+'년    '+String(td.getMonth()+1).padStart(2,'0')+'월    '+String(td.getDate()).padStart(2,'0')+'일';
+  s0=_hxFill(s0,{L_GUNS:' 총기 : '+guns.length+'정',L_AMMO:' 실탄 : '+ammoTxt,COUNTRY:esc(cn),PORT:port,
+    PERIOD:_hxKd(pA)+' - '+_hxKd(pD),POLICE:police,APP_DATE:appDate});
+  var reg=_hxRegion(s1,'{{TEAM_LABEL}}','hp:tbl','hp:tbl');
+  var runA=s1.lastIndexOf('<hp:run',reg.a),runB=s1.indexOf('</hp:run>',reg.b)+9;
+  var runTpl=s1.slice(runA,runB);
+  var rowReg=_hxRegion(runTpl,'{{R_NO}}','hp:tr','hp:tr');
+  var tblRuns=teams.map(function(t){
+    var no=0,order=[],by={};
+    t.guns.forEach(function(x){var k2=x.g.owner||'(미지정)';if(!by[k2]){by[k2]=[];order.push(k2);}by[k2].push(x);});
+    var rows='';
+    order.forEach(function(o){var gl=by[o],m=gl[0].m;
+      gl.forEach(function(x,gi){no++;var g=x.g;
+        rows+=_hxFill(rowReg.tpl,{R_NO:String(no),R_NAME:gi===0?esc(o):'',R_DOB:gi===0?esc(m?polDate(m.dob):''):'',
+          R_TYPE:esc(polTypeK(g.type)),R_MAKE:esc(g.manufacturer||''),R_MODEL:esc(g.model||''),R_SERIAL:esc(g.serial||''),
+          R_CAL:esc(g.caliber||''),R_PASS:gi===0?esc(m?(m.passport||''):''):''});});});
+    var one=runTpl.slice(0,rowReg.a)+rows+runTpl.slice(rowReg.b);
+    one=one.replace(/(<hp:tbl[^>]*?rowCnt=")(\d+)(")/,function(_,x1,n,x3){return x1+(4+no)+x3;});
+    one=_hxRenumber(one);
+    return _hxFill(one,{TEAM_LABEL:esc(t._label),S_PERSONS:t._persons,S_GUNS:'ㅇ 총    기 : '+t._gunsum,
+      S_AMMO:'ㅇ 실    탄 : '+t._ammo,S_FLT_IN:t._fin,S_FLT_OUT:t._fout});});
+  s1=s1.slice(0,runA)+tblRuns.join('')+s1.slice(runB);
+  var bT=_hxBlock(s2,'{{T_HDR}}','{{T_AMMO}}');
+  s2=s2.slice(0,bT.a)+teams.map(function(t){return _hxFill(bT.tpl,{T_HDR:t._short,T_GUNS:'- 총    기 : '+t._gunsum,T_AMMO:'- 실    탄 : '+t._ammo});}).join('')+s2.slice(bT.b);
+  var bF=_hxBlock(s2,'{{F_HDR}}','{{F_OUT}}');
+  s2=s2.slice(0,bF.a)+teams.map(function(t){return _hxFill(bF.tpl,{F_HDR:t._short,F_IN:t._fin,F_OUT:t._fout});}).join('')+s2.slice(bF.b);
+  var bH=_hxBlock(s2,'{{H_HDR}}','{{H_OUT}}');
+  s2=s2.slice(0,bH.a)+teams.map(function(t){return _hxFill(bH.tpl,{H_HDR:t._short,H_IN:t._hin,H_OUT:t._hout});}).join('')+s2.slice(bH.b);
+  var bH2=_hxBlock(s2,'{{H2_HDR}}','{{H2_AMMO}}');
+  s2=s2.slice(0,bH2.a)+teams.map(function(t){return _hxFill(bH2.tpl,{H2_HDR:t._short,H2_GUNS:'- 총    기 : '+t._gunsum,H2_AMMO:'- 실    탄 : '+t._ammo});}).join('')+s2.slice(bH2.b);
+  var permPeriod=_hxKd(pA)+polDW(pA).trim()+' - '+_hxKd(pD).replace(/^\d{4}\.\s*/,'')+polDW(pD).trim();
+  s2=_hxFill(s2,{COUNTRY:esc(cn),PERMIT_PERIOD:permPeriod,ROUTE_IN:routeIn});
+  var left=(s0+s1+s2).match(/\{\{[A-Z_0-9]+\}\}/g);
+  if(dryRun)return {teams:teams.length,guns:guns.length,port:port,police:police,ammo:ammoTxt,leftoverTokens:left||[],s1len:s1.length,s2len:s2.length};
+  if(left)throw new Error('미치환 토큰: '+left.join(','));
+  zip.file('Contents/section0.xml',s0);zip.file('Contents/section1.xml',s1);zip.file('Contents/section2.xml',s2);
+  var blob=await zip.generateAsync({type:'blob'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=c+'_총포서류_'+new Date().toISOString().slice(0,10)+'.hwpx';
+  document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);
+ }catch(e){if(dryRun)return {error:String(e&&e.message||e)};alert('HWPX 생성 오류: '+(e&&e.message||e));}
+}
 function polGen(c){
   var s=dataS();
   var mem=(s.members||[]).filter(function(m){return m.country===c});
