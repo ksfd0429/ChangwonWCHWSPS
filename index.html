@@ -13896,6 +13896,13 @@ async function itSave(){var t=itTargets();if(!t.length){alert(T('No members in t
   for(var k=0;k<t.length;k++){var r=await db.updMember(t[k].id,patch);pbStep();
     if(r&&r.error){alert(r.error.message);return;}}
   _mem=await db.members(S.country);pbStep();itClose();renderTeam();}
+function itGrpLegs(g){var mm=(g==='*ALL*'?_mem:scopeMembers(g));
+  var e=mm.find(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length});
+  if(!e)return 0;return itLegs(e,'arr_legs').length+itLegs(e,'dep_legs').length;}
+function itBtn(scope,key){var n=itGrpLegs(scope==='all'?'*ALL*':key);
+  var arg=(scope==='all')?"'all'":"'group',"+JSON.stringify(key).replace(/"/g,'&quot;');
+  return '<button class="btn sec" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="itOpen('+arg+')">'+
+    Li('Connections')+(n?' <span class="tag g">'+n+'</span>':'')+'</button>';}
 function itChainOf(m){var A=itLegs(m,'arr_legs');if(!A.length)return '';
   return A.map(function(l){return l.flight}).filter(Boolean).join(' / ')+(A.length>1?' ('+(A.length-1)+T(' stop(s)')+')':'');}
 function itCardHtml(){if(!_mem.length)return '';
@@ -13924,12 +13931,12 @@ function gfInputs(sfx,gf){gf=gf||{};
    '<td><input id="gfdt'+sfx+'" inputmode="numeric" maxlength="5" placeholder="10:05" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(gf.dep_time||'')+'" style="width:66px"></td>';}
 function gfCardHtml(){_gfGroups=groupsOf();
   if(!_mem.length)return '';
-  var rows=_gfGroups.map(function(g,i){return '<tr><td style="white-space:nowrap"><b>'+(g==='(Ungrouped)'?Li('Ungrouped'):esc(g))+'</b><span class="muted" style="display:block;font-size:10.5px">'+scopeMembers(g).length+' member(s)</span></td>'+gfInputs(i,gfOf(g))+'<td><button class="btn g" style="padding:4px 10px;font-size:11px" onclick="gfSave('+i+')">'+Li('Save')+'</button></td></tr>';}).join('');
+  var rows=_gfGroups.map(function(g,i){return '<tr><td style="white-space:nowrap"><b>'+(g==='(Ungrouped)'?Li('Ungrouped'):esc(g))+'</b><span class="muted" style="display:block;font-size:10.5px">'+scopeMembers(g).length+' member(s)</span></td>'+gfInputs(i,gfOf(g))+'<td><button class="btn g" style="padding:4px 10px;font-size:11px" onclick="gfSave('+i+')">'+Li('Save')+'</button></td><td>'+itBtn('group',g)+'</td></tr>';}).join('');
   return '<div class="card"><b>'+L('Group flight schedules')+'</b>'+
    '<p class="muted" style="font-size:12px;margin:6px 0 8px">'+L('Saving a group schedule automatically applies it to every member with "Use group flight schedule" checked.')+'</p>'+
-   '<div class="tbl"><table><thead><tr><th>'+L('Group')+'</th><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+   '<div class="tbl"><table><thead><tr><th>'+L('Group')+'</th><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th><th>'+L('Connections')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
    '<div class="msec" style="margin-top:14px">'+L('UNIFY ALL GROUPS')+'</div>'+
-   '<div class="tbl" style="margin-top:6px;border-color:var(--y)"><table><thead><tr><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th></tr></thead><tbody><tr>'+gfInputs('_all',null)+'<td><button class="btn y" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="gfSaveAll()">'+Li('Apply one schedule to ALL groups')+'</button></td></tr></tbody></table></div></div>';}
+   '<div class="tbl" style="margin-top:6px;border-color:var(--y)"><table><thead><tr><th>'+L('Arr. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Landing')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Flight')+'</th><th>'+L('Take-off')+'</th><th></th><th>'+L('Connections')+'</th></tr></thead><tbody><tr>'+gfInputs('_all',null)+'<td><button class="btn y" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="gfSaveAll()">'+Li('Apply one schedule to ALL groups')+'</button></td><td>'+itBtn('all')+'</td></tr></tbody></table></div></div>';}
 function gfCollect(sfx){var ids=['gfa','gfaf','gfat','gfd','gfdf','gfdt'];var ks=['arrive','arr_flight','arr_time','depart','dep_flight','dep_time'];var o={};var bad=0;
   for(var j=0;j<6;j++){var el=document.getElementById(ids[j]+sfx);var v=el?(el.value||'').trim():'';var ok=v!==''&&((ids[j]!=='gfat'&&ids[j]!=='gfdt')||timeOk(v));if(el)el.classList.toggle('fmiss',!ok);if(!ok)bad++;o[ks[j]]=v;}
   return bad?null:o;}
