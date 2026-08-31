@@ -1290,6 +1290,12 @@ function polGen(c){
   var H='';
   H+='<h1 style="text-align:center;font-size:21px;letter-spacing:8px;margin:4px 0 14px">총포 내역</h1>';
   H+='<p><b>'+esc(cn)+' ('+esc(c)+') 선수단</b>'+(teams.length>1?' — 출입국 일정별 '+teams.length+'개 팀':'')+'</p>';
+  var _ammoTot=(function(){try{var e=(s.oc_settings||[]).find(function(x){return x.key==='ammo_flight:'+c});
+    if(!e||!e.value)return null;var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;
+    var p=0,r=0;(v.groups||[]).forEach(function(g2){p+=(+g2.pellets||0);r+=(+g2.rounds||0);});
+    return {p:p,r:r};}catch(err){return null;}})();
+  H+='<p style="border:1.5px solid #333;padding:7px 12px;margin:6px 0 12px;font-size:14px"><b>총포 전체 : '+guns.length+'정</b>'+
+    ' &nbsp;·&nbsp; <b>탄약 전체 : '+(_ammoTot?((_ammoTot.p+_ammoTot.r).toLocaleString('en-US')+'발</b> (공기총탄 '+_ammoTot.p.toLocaleString('en-US')+'발, 화약총탄 '+_ammoTot.r.toLocaleString('en-US')+'발)'):'(미접수)</b>')+'</p>';
   if(!teams.length)H+='<p>(등록된 총기가 없습니다. 총기 없이 이동하는 일정은 총포내역을 생성하지 않습니다.)</p>';
   teams.forEach(function(t,i){
     var tg=t.guns.map(function(x){return x.g;});
