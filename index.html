@@ -13809,11 +13809,12 @@ function renderTeam(){
 
 /* ===== Full itinerary (connecting flights) — inline leg rows ===== */
 var _itX={};
+function jsq(v){return "'"+String(v==null?'':v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+"'";}
 function itBlank(){return {flight:'',from:'',to:'',dep_date:'',dep_time:'',arr_date:'',arr_time:''};}
 function itLegs(m,k){try{var v=m?m[k]:null;if(typeof v==='string')v=JSON.parse(v||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
 function itGrpLegs(g){var mm=(g==='*ALL*'?_mem:scopeMembers(g));
-  var e=mm.find(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length});
-  return e?(itLegs(e,'arr_legs').length+itLegs(e,'dep_legs').length):0;}
+  var n=mm.filter(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length}).length;
+  return {n:n,tot:mm.length};}
 function itChainOf(m){var A=itLegs(m,'arr_legs');if(!A.length)return '';
   return A.map(function(l){return l.flight}).filter(Boolean).join(' / ');}
 function itSeed(g){ /* 기존 그룹/개인 일정을 여정 첫 구간으로 채워 넣는다 */
@@ -13853,13 +13854,13 @@ function itLegRow(kind,i,l,n){var p=kind+i;
   '<td><input id="itdt_'+p+'" inputmode="numeric" maxlength="5" placeholder="21:40" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(l.dep_time||'')+'" style="width:62px"></td>'+
   '<td><input id="itad_'+p+'" type="date" min="1900-01-01" max="2099-12-31" value="'+esc(l.arr_date||'')+'" style="min-width:124px"></td>'+
   '<td><input id="itat_'+p+'" inputmode="numeric" maxlength="5" placeholder="14:35" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(l.arr_time||'')+'" style="width:62px"></td>'+
-  '<td>'+(n>1?'<button class="btn r" style="padding:3px 8px;font-size:11px;min-height:0" onclick="itDelLeg('+JSON.stringify(kind)+','+i+')">×</button>':'')+'</td></tr>';}
+  '<td>'+(n>1?'<button class="btn r" style="padding:3px 8px;font-size:11px;min-height:0" onclick="itDelLeg('+jsq(kind)+','+i+')">×</button>':'')+'</td></tr>';}
 function itLegTable(kind,arr,title){
   return '<div class="msec">'+title+'</div>'+
    '<div class="tbl" style="margin-top:4px"><table><thead><tr><th style="width:20px"></th><th>'+L('Flight')+'</th><th>'+L('From')+'</th><th>'+L('To')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Dep.')+'</th><th>'+L('Arr. date')+'</th><th>'+L('Arr.')+'</th><th></th></tr></thead><tbody>'+
    arr.map(function(l,i){return itLegRow(kind,i,l,arr.length)}).join('')+
    '</tbody></table></div>'+
-   '<div class="row" style="margin-top:5px"><button class="btn sec" style="padding:4px 12px;font-size:12px" onclick="itAddLeg('+JSON.stringify(kind)+')">'+Li('+ Add leg')+'</button></div>';}
+   '<div class="row" style="margin-top:5px"><button class="btn sec" style="padding:4px 12px;font-size:12px" onclick="itAddLeg('+jsq(kind)+')">'+Li('+ Add leg')+'</button></div>';}
 function itPanel(i,g){var st=_itX[i];if(!st)return '';
   var n=(g==='*ALL*'?_mem:scopeMembers(g)).length;
   return '<tr><td colspan="10" style="background:#F7FAFC;padding:12px 14px">'+
@@ -13869,8 +13870,8 @@ function itPanel(i,g){var st=_itX[i];if(!st)return '';
    '<div style="height:10px"></div>'+
    itLegTable(itKind(i,'D'),st.D,L('DEPARTURE — Korea to final destination'))+
    '<div class="row" style="margin-top:10px;gap:8px;align-items:center">'+
-     '<button class="btn g" style="padding:6px 16px;font-size:12px" onclick="itSaveLegs('+i+','+JSON.stringify(g)+')">'+Li('Save itinerary')+'</button>'+
-     '<button class="btn sec" style="padding:6px 12px;font-size:12px" onclick="itToggle('+i+','+JSON.stringify(g)+')">'+Li('Close')+'</button>'+
+     '<button class="btn g" style="padding:6px 16px;font-size:12px" onclick="itSaveLegs('+i+','+jsq(g)+')">'+Li('Save itinerary')+'</button>'+
+     '<button class="btn sec" style="padding:6px 12px;font-size:12px" onclick="itToggle('+i+','+jsq(g)+')">'+Li('Close')+'</button>'+
    '</div></td></tr>';}
 function itToggle(i,g){
   if(_itX[i]){itPull(i);delete _itX[i];}
@@ -13893,9 +13894,11 @@ async function itSaveLegs(i,g){itPull(i);var st=_itX[i];if(!st)return;
   for(var k=0;k<t.length;k++){var r=await db.updMember(t[k].id,patch);pbStep();
     if(r&&r.error){alert(r.error.message);return;}}
   _mem=await db.members(S.country);pbStep();delete _itX[i];renderTeam();}
-function itBtn(i,g){var n=itGrpLegs(g);var open=!!_itX[i];
-  return '<button class="btn '+(open?'y':'sec')+'" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="itToggle('+i+','+JSON.stringify(g)+')">'+
-    (open?'▾ ':'▸ ')+Li('Itinerary')+(n?' <span class="tag g">'+n+'</span>':'')+'</button>';}
+function itBtn(i,g){var c=itGrpLegs(g);var open=!!_itX[i];
+  var full=(c.n>0&&c.n===c.tot);
+  var badge=c.n?(' <span class="tag '+(full?'g':'y')+'">'+c.n+'/'+c.tot+'</span>'):'';
+  return '<button class="btn '+(open?'y':'sec')+'" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="itToggle('+i+','+jsq(g)+')">'+
+    (open?'▾ ':'▸ ')+Li('Itinerary')+badge+'</button>';}
 
 /* ===== Group flight schedules ===== */
 function gfOf(g){return (_gf||[]).find(function(x){return x.grp===g})||{};}

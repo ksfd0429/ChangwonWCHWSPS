@@ -1340,11 +1340,13 @@ async function polHwpx(c,dryRun,_port,_incUn){
     var aa=ammoOfA(s,c);if(aa&&(((+aa.p)||0)+((+aa.b)||0)>0))return (((+aa.p)||0)+((+aa.b)||0)).toLocaleString('en-US')+'발';
     return '(      )발';})();
   function flightHalf(t,role){
+    var hd=(role==='in'?'입 국 :':'출 국 :');
+    var LG=polTeamLegs(t,role==='in'?'arr':'dep');
+    if(LG&&LG.length)return hd+(LG.length>1?'<hp:lineBreak/>':' ')+LG.map(polLegLine).join('<hp:lineBreak/>');
     var L=polLegs(role==='in'?t.arr_flight:t.dep_flight);
     var date=role==='in'?t.arrive:t.depart,time=role==='in'?t.arr_time:t.dep_time,fl=role==='in'?t.arr_flight:t.dep_flight;
-    var head=(role==='in'?'입 국 : ':'출 국 : ');
-    if(!L.length)return head+esc(date||'')+polDW(date||'')+' '+esc(fl||'')+' '+esc(time||'');
-    return head+L.map(function(f,i){var edge=(role==='in')?(i===L.length-1):(i===0);
+    if(!L.length)return hd+' '+esc(date||'')+polDW(date||'')+' '+esc(fl||'')+' '+esc(time||'');
+    return hd+(L.length>1?'<hp:lineBreak/>':' ')+L.map(function(f,i){var edge=(role==='in')?(i===L.length-1):(i===0);
       return polFlLine(edge?date:'',f,edge?time:'');}).join('<hp:lineBreak/>');}
   teams.forEach(function(t,i){
     var ath=t.members.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;
