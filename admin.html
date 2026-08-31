@@ -915,6 +915,8 @@ async function aprAct(id,ok){var s=dataS();var r=(s.activation_requests||[]).fin
 /* ===== 문서 열람 (항시) + 납부계좌 관리 ===== */
 var NPCS_A=[['ARG','Argentina','ar'],['AUS','Australia','au'],['AUT','Austria','at'],['AZE','Azerbaijan','az'],['BHU','Bhutan','bt'],['BIH','Bosnia and Herzegovina','ba'],['BRA','Brazil','br'],['BUL','Bulgaria','bg'],['CAN','Canada','ca'],['CHI','Chile','cl'],['CHN','China','cn'],['COL','Colombia','co'],['CRC','Costa Rica','cr'],['CRO','Croatia','hr'],['CUB','Cuba','cu'],['CYP','Cyprus','cy'],['CZE','Czechia','cz'],['DEN','Denmark','dk'],['EGY','Egypt','eg'],['ESP','Spain','es'],['FIN','Finland','fi'],['FRA','France','fr'],['GBR','Great Britain','gb'],['GEO','Georgia','ge'],['GER','Germany','de'],['GRE','Greece','gr'],['HKG','Hong Kong','hk'],['HUN','Hungary','hu'],['INA','Indonesia','id'],['IND','India','in'],['IRI','Iran','ir'],['IRQ','Iraq','iq'],['ISL','Iceland','is'],['ISR','Israel','il'],['ITA','Italy','it'],['JPN','Japan','jp'],['KAZ','Kazakhstan','kz'],['KEN','Kenya','ke'],['KOR','Korea','kr'],['KUW','Kuwait','kw'],['LAT','Latvia','lv'],['LTU','Lithuania','lt'],['LUX','Luxembourg','lu'],['MAS','Malaysia','my'],['MEX','Mexico','mx'],['MGL','Mongolia','mn'],['MKD','North Macedonia','mk'],['MLT','Malta','mt'],['MNE','Montenegro','me'],['NED','Netherlands','nl'],['NGA','Nigeria','ng'],['NOR','Norway','no'],['NZL','New Zealand','nz'],['PAN','Panama','pa'],['PER','Peru','pe'],['POL','Poland','pl'],['POR','Portugal','pt'],['PUR','Puerto Rico','pr'],['ROU','Romania','ro'],['RSA','South Africa','za'],['RUS','Russia','ru'],['SGP','Singapore','sg'],['SLO','Slovenia','si'],['SRB','Serbia','rs'],['SRI','Sri Lanka','lk'],['SUI','Switzerland','ch'],['SVK','Slovakia','sk'],['SWE','Sweden','se'],['THA','Thailand','th'],['TPE','Chinese Taipei','tw'],['TUR','Turkey','tr'],['UAE','United Arab Emirates','ae'],['UKR','Ukraine','ua'],['URU','Uruguay','uy'],['USA','United States','us'],['UZB','Uzbekistan','uz'],['VEN','Venezuela','ve']];
 function cnameA(c){var x=NPCS_A.find(function(n){return n[0]===c});return x?x[1]:c}
+var CNAME_K={ARG:'아르헨티나',AUS:'호주',AUT:'오스트리아',AZE:'아제르바이잔',BHU:'부탄',BIH:'보스니아 헤르체고비나',BRA:'브라질',BUL:'불가리아',CAN:'캐나다',CHI:'칠레',CHN:'중국',COL:'콜롬비아',CRC:'코스타리카',CRO:'크로아티아',CUB:'쿠바',CYP:'키프로스',CZE:'체코',DEN:'덴마크',EGY:'이집트',ESP:'스페인',FIN:'핀란드',FRA:'프랑스',GBR:'영국',GEO:'조지아',GER:'독일',GRE:'그리스',HKG:'홍콩',HUN:'헝가리',INA:'인도네시아',IND:'인도',IRI:'이란',IRQ:'이라크',ISL:'아이슬란드',ISR:'이스라엘',ITA:'이탈리아',JPN:'일본',KAZ:'카자흐스탄',KEN:'케냐',KOR:'대한민국',KUW:'쿠웨이트',LAT:'라트비아',LTU:'리투아니아',LUX:'룩셈부르크',MAS:'말레이시아',MEX:'멕시코',MGL:'몽골',MKD:'북마케도니아',MLT:'몰타',MNE:'몬테네그로',NED:'네덜란드',NGA:'나이지리아',NOR:'노르웨이',NZL:'뉴질랜드',PAN:'파나마',PER:'페루',POL:'폴란드',POR:'포르투갈',PUR:'푸에르토리코',ROU:'루마니아',RSA:'남아프리카공화국',RUS:'러시아',SGP:'싱가포르',SLO:'슬로베니아',SRB:'세르비아',SRI:'스리랑카',SUI:'스위스',SVK:'슬로바키아',SWE:'스웨덴',THA:'태국',TPE:'차이니스타이베이',TUR:'튀르키예',UAE:'아랍에미리트',UKR:'우크라이나',URU:'우루과이',USA:'미국',UZB:'우즈베키스탄',VEN:'베네수엘라'};
+function cnameK(c){return CNAME_K[c]||cnameA(c);}
 function nightsA(a,d){if(!a||!d)return '';var n=Math.round((new Date(d)-new Date(a))/86400000);return n>0?n:'';}
 var PRICING_DEFAULT={single:300,twin:220,tr1:280,tr2:450,firearm:30,training:10};
 function pricingS(s){try{var e=(s.oc_settings||[]).find(function(x){return x.key==='pricing'});if(e&&e.value)return Object.assign({},PRICING_DEFAULT,JSON.parse(e.value));}catch(e2){}return PRICING_DEFAULT;}
@@ -1223,8 +1225,9 @@ function polAmmo(c,t){
     var ls=function(f){return polLegs(f).map(nf).sort().join('/');};
     return (v.groups||[]).find(function(x){return x.arrive===t.arrive&&x.depart===t.depart&&ls(x.arr_flight)===ls(t.arr_flight)&&ls(x.dep_flight)===ls(t.dep_flight);})||null;
   }catch(err){return null;}}
-function polAmmoLine(c,t){
+function polAmmoLine(c,t,single){
   var g=t?polAmmo(c,t):null;
+  if(!g&&single){try{var aa=ammoOfA(dataS(),c);if(aa&&(((+aa.p)||0)+((+aa.b)||0)>0)){var p2=(+aa.p)||0,r2=(+aa.b)||0;return '총 '+(p2+r2).toLocaleString('en-US')+'발 (공기총탄 '+p2.toLocaleString('en-US')+'발, 화약총탄 '+r2.toLocaleString('en-US')+'발)';}}catch(e3){}}
   if(!g)return '총 (&nbsp;&nbsp;&nbsp;&nbsp;)발 (공기총탄 (&nbsp;&nbsp;)발, 화약총탄 (&nbsp;&nbsp;)발)';
   var p=(+g.pellets||0),r=(+g.rounds||0);
   return '총 '+(p+r).toLocaleString('en-US')+'발 (공기총탄 '+p.toLocaleString('en-US')+'발, 화약총탄 '+r.toLocaleString('en-US')+'발)';}
@@ -1243,7 +1246,7 @@ function polGen(c){
   var s=dataS();
   var mem=(s.members||[]).filter(function(m){return m.country===c});
   var guns=(s.firearms||[]).filter(function(g){return g.country===c});
-  var cn=cnameA(c);
+  var cn=cnameK(c);
   /* 총기별 소유자 매칭 → 소유자의 출입국 일정으로 팀 구성 (총기 없는 일정은 총포내역 미생성) */
   var groups={},go=[];
   guns.forEach(function(g){var m=polMatch(mem,g.owner);var k=m?polSched(m):'|||||';
@@ -1313,12 +1316,12 @@ function polGen(c){
     H+='<p style="margin-top:8px"><b>계</b><br>'+
        ' ㅇ 입국인원 : '+t.members.length+'명 (선수 '+ath+'명, 임원 '+off+'명)<br>'+
        ' ㅇ 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>'+
-       ' ㅇ 실&nbsp;&nbsp;탄 : '+polAmmoLine(c,t)+'<br>'+
+       ' ㅇ 실&nbsp;&nbsp;탄 : '+polAmmoLine(c,t,teams.length===1)+'<br>'+
        ' ㅇ 출·입국 항공일정 :<br>'+teamFlights(t)+'<br>'+
        ' ㅇ 호송책임자 : 호송계획서 참조<br>'+
        ' ㅇ 입고 장소 : 창원국제사격장</p>';});
   var teamStatus=teams.map(function(t){var tg=t.guns.map(function(x){return x.g;});
-    return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;- 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>&nbsp;&nbsp;- 실&nbsp;&nbsp;탄 : '+polAmmoLine(c,t);}).join('<br>');
+    return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;- 총&nbsp;&nbsp;기 : '+polGunSum(tg)+'<br>&nbsp;&nbsp;- 실&nbsp;&nbsp;탄 : '+polAmmoLine(c,t,teams.length===1);}).join('<br>');
   var teamFl=teams.map(function(t){
     return 'ㅇ '+esc(teamShort(t))+'<br>&nbsp;&nbsp;'+teamFlights(t).replace(/<br>/g,'<br>&nbsp;&nbsp;');}).join('<br>');
   H+='<hr style="margin:22px 0;border:none;border-top:1px dashed #999">';
