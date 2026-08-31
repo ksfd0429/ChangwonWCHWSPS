@@ -90,6 +90,8 @@ summary{cursor:pointer;padding:8px 0;font-size:13px;font-weight:600}
 .revm .revtot th{background:#E3EDF5 !important;color:#16456B;font-size:12.5px;text-align:right}
 .revm .revtot th:first-child{text-align:left}
 .tbl tr.gok>td:first-child{box-shadow:inset 4px 0 0 0 #1F8A4C}
+tr.polw>td:first-child{box-shadow:inset 4px 0 0 0 #C9A227}
+tr.pols>td:first-child{box-shadow:inset 4px 0 0 0 #1F8A4C}
 </style>
 </head>
 <body>
@@ -323,10 +325,10 @@ async function scrMain(){
   var _polCs=[];(function(){var seen={};(s.firearms||[]).forEach(function(g){if(g.country&&!seen[g.country]){seen[g.country]=1;_polCs.push(g.country);}});_polCs.sort();})();
   var POL='<div class="card"><b>경찰청 제출용 총포서류</b>'+
    '<p class="muted" style="font-size:12px;margin:6px 0 10px">총기를 등록한 국가별로 <b>총포내역 · 사유서 · 호송계획서</b>를 자동 생성합니다. 열면 내용을 직접 편집하고 글꼴을 바꿔 저장할 수 있으며, 표는 드래그로 필요한 셀 범위만 선택해 복사한 뒤 한글(HWP) 문서에 붙여넣을 수 있습니다.</p>'+
-   '<div style="overflow:auto"><table><thead><tr><th style="width:40px">순번</th><th>NPC</th><th>국가명</th><th>총기</th><th>산탄총</th><th>저장본</th><th></th></tr></thead><tbody>'+
+   '<div style="overflow:auto"><table><thead><tr><th style="width:40px">순번</th><th>NPC</th><th>국가명</th><th>최초 입국일</th><th>총기</th><th>산탄총</th><th>저장본</th><th>처리</th><th></th></tr></thead><tbody>'+
    (_polCs.length?_polCs.map(function(c,_pi){var fg=(s.firearms||[]).filter(function(g){return g.country===c});var sg=fg.filter(function(g){return /shot/i.test(g.type||'')}).length;var sv=null;try{var e=(s.oc_settings||[]).find(function(x){return x.key==='police_kit:'+c});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v&&v.html)sv=v;}}catch(err){}
-     return '<tr><td style="text-align:center">'+(_pi+1)+'</td><td><b>'+esc(c)+'</b></td><td>'+esc(cnameA(c))+'</td><td>'+fg.length+'정</td><td>'+(sg?sg+'정':'-')+'</td><td>'+(sv?'<span class="tag" style="background:#E7F2EA;color:#1F6B42">저장 '+esc(String(sv.at||'').slice(0,10))+'</span>':'<span class="muted" style="font-size:11px">자동생성</span>')+'</td>'+
-     '<td><button class="btn sec" style="padding:4px 12px;font-size:12px;min-height:0" onclick="polOpen(\''+c+'\')">열람·편집</button></td></tr>';}).join(''):'<tr><td colspan="6" class="muted">등록된 총기가 없습니다.</td></tr>')+
+     return '<tr id="polrow_'+esc(c)+'" class="'+polStCls(polStMap()[c])+'"><td style="text-align:center">'+(_pi+1)+'</td><td><b>'+esc(c)+'</b></td><td>'+esc(cnameA(c))+'</td><td style="white-space:nowrap">'+(polFirstArr(s,c)||'-')+'</td><td>'+fg.length+'정</td><td>'+(sg?sg+'정':'-')+'</td><td>'+(sv?'<span class="tag" style="background:#E7F2EA;color:#1F6B42">저장 '+esc(String(sv.at||'').slice(0,10))+'</span>':'<span class="muted" style="font-size:11px">자동생성</span>')+'</td>'+
+     '<td>'+polStBtns(c)+'</td><td><button class="btn sec" style="padding:4px 12px;font-size:12px;min-height:0" onclick="polOpen(\''+c+'\')">열람·편집</button></td></tr>';}).join(''):'<tr><td colspan="9" class="muted">등록된 총기가 없습니다.</td></tr>')+
    '</tbody></table></div></div>';
   _SEC={ammo:{t:'산탄 실탄 수요조사',h:AMMO},act:{t:'0. Account activation requests',h:ACT},inv:{t:'1. Invitation letters',h:INV},f:{t:'2. Firearm submission confirmations',h:FR},v:{t:'3. Invoices',h:VC},bank:{t:'Banking information (납부 계좌 관리)',h:BANK},price:{t:'Invoice pricing (단가 관리)',h:PRICE},acc:{t:'NPC accounts',h:ACC},roster:{t:'All delegations roster ('+s.members.length+')',h:ROSTER},pstat:{t:'참가자 총 현황',h:PSTAT},fstat:{t:'총기 총 현황',h:FSTAT},rev:{t:'수입 총현황 (예정 수입)',h:REV},pol:{t:'총포서류 (경찰청 제출) — 총포내역 · 사유서 · 호송계획서',h:POL}};
   function navb(k,label,n){return '<button class="snb" onclick="openSec(\''+k+'\')"><span>'+label+'</span>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';}
@@ -740,6 +742,31 @@ async function approveV2(id,note){var s=dataS();var V=(s.invoices||[]).find(func
 async function revokeV(id){var s=dataS();var V=(s.invoices||[]).find(function(x){return x.id===id});if(!V)return;if(!confirm('승인을 취소할까요?'))return;
   if(LIVE){await sbc.from('invoices').update({status:'pending',no:'',account:'',approved_at:''}).eq('id',id);}else{V.status='pending';V.no='';V.account='';V.approved_at='';mS(s);}scrMain();}
 async function issueF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');if(x.reg_no){alert('이미 발행됨: '+docNoFmt(x.reg_no));return;}if(!confirm('총기정보제출확인서를 발행하고 문서장부에 등재할까요?'))return;if(LIVE){var reg=await issueDocno('firearms',x.country,sc,'firearm_submissions',x.country+'/'+sc);if(reg==null)return;await sbc.from('firearm_submissions').update({reg_no:reg,issued_at:today()}).eq('country',x.country).eq('grp',x.grp);}else{x.reg_no=mockIssue(s,'firearms',x.country,sc,'firearm_submissions',x.country+'/'+sc);x.issued_at=today();mS(s);}scrMain();}
+/* ---- 총포서류 처리 상태(작성/발송) — oc_settings pol_status ---- */
+function polStMap(){try{var e=(dataS().oc_settings||[]).find(function(x){return x.key==='pol_status'});if(!e||!e.value)return {};return (typeof e.value==='string')?JSON.parse(e.value):e.value;}catch(err){return {};}}
+function polStCls(st){return st&&st.s?'pols':(st&&st.w?'polw':'');}
+function polStBtns(c){var st=polStMap()[c]||{};
+  return '<span id="polst_'+esc(c)+'" style="display:inline-flex;gap:5px;align-items:center">'+
+   '<button class="btn '+(st.w?'y':'sec')+'" style="padding:3px 10px;font-size:11px;min-height:0" title="'+(st.w?('작성 완료 · '+esc(fmtKST(st.w))):'작성 완료로 표시')+'" onclick="polSt(\''+esc(c)+'\',\'w\')">작성</button>'+
+   '<button class="btn '+(st.s?'g':'sec')+'" style="padding:3px 10px;font-size:11px;min-height:0" title="'+(st.s?('발송 완료 · '+esc(fmtKST(st.s))):'발송 완료로 표시')+'" onclick="polSt(\''+esc(c)+'\',\'s\')">발송</button></span>';}
+async function polSt(c,k){
+  var m=polStMap();var st=m[c]||{};
+  if(st[k])delete st[k];else st[k]=new Date().toISOString();   // 재클릭 = 해제
+  if(st.w||st.s)m[c]=st;else delete m[c];
+  var val=JSON.stringify(m);
+  if(LIVE){var u=await sbc.from('oc_settings').upsert({key:'pol_status',value:val},{onConflict:'key'});
+    if(u.error){alert('상태 저장 실패: '+u.error.message);return;}
+    if(_S){_S.oc_settings=_S.oc_settings||[];var e=_S.oc_settings.find(function(x){return x.key==='pol_status'});if(e)e.value=val;else _S.oc_settings.push({key:'pol_status',value:val});}}
+  else{var sm=mL();sm.oc_settings=sm.oc_settings||[];var e2=sm.oc_settings.find(function(x){return x.key==='pol_status'});if(e2)e2.value=val;else sm.oc_settings.push({key:'pol_status',value:val});mS(sm);}
+  var sp=document.getElementById('polst_'+c);if(sp)sp.outerHTML=polStBtns(c);
+  var tr=document.getElementById('polrow_'+c);if(tr)tr.className=polStCls(m[c]);
+}
+function polFirstArr(s,c){ // 총기 소지자들의 최초 입국일
+  var fg=(s.firearms||[]).filter(function(g){return g.country===c});var min='';
+  fg.forEach(function(g){var m=gunMem(s,g);if(!m||!m.arrive)return;
+    var d=String(m.arrive).slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return;
+    if(!min||d<min)min=d;});
+  return min;}
 /* ===== 총기 사진 검토 (발행 전 확인) ===== */
 /* ---- SN(총기번호) 수동 편집: 편집모드 토글 ---- */
 var _gunEd=false,_phL=[],_phX=null;
