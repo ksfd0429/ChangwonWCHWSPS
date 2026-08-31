@@ -1259,6 +1259,7 @@ function polLegLine(l){var d=l.dep_date||'',tm=l.dep_time||'';
   var r=apKo(l.from,l.from_name)+'/'+apKo(l.to,l.to_name);
   if(r==='/')r='출발지/도착지';
   return esc(d||'0000-00-00')+(d?polDW(d):' (  )')+' '+esc(l.flight||'')+' '+esc(tm||'00:00')+' ('+esc(r)+')';}
+function polStation(a){return a==='김해'?'부산광역시경찰청장':'인천광역시경찰청장';}
 function polGunSum(gl){
   var cnt={};gl.forEach(function(g){var k=polTypeK(g.type);cnt[k]=(cnt[k]||0)+1;});
   var air=(cnt['공기소총']||0)+(cnt['공기권총']||0),pow=(cnt['화약소총']||0)+(cnt['화약권총']||0),sg=cnt['산탄총']||0;
@@ -1275,7 +1276,7 @@ function _hxRegion(xml,tok,open,close){var i=xml.indexOf(tok);if(i<0)throw new E
 function _hxBlock(xml,tokA,tokB){var i=xml.indexOf(tokA),j=xml.indexOf(tokB);if(i<0||j<0)throw new Error('token missing: '+tokA);var a=xml.lastIndexOf('<hp:p',i);var b=xml.indexOf('</hp:p>',j)+7;return {a:a,b:b,tpl:xml.slice(a,b)};}
 function _hxFill(tpl,map){var o=tpl;for(var k in map){o=o.split('{{'+k+'}}').join(map[k]);}return o;}
 function _hxRenumber(xml){var parts=xml.split('<hp:tr');for(var i=1;i<parts.length;i++){parts[i]=parts[i].replace(/rowAddr="\d+"/g,'rowAddr="'+(i-1)+'"');}return parts.join('<hp:tr');}
-async function polHwpx(c,dryRun){
+async function polHwpx(c,dryRun,_port){
  try{
   var s=dataS();
   var mem=(s.members||[]).filter(function(m){return m.country===c});
@@ -1295,11 +1296,18 @@ async function polHwpx(c,dryRun){
     t.aA=(_a&&_a!=='TBD')?_a:gunAirp(t.arr_flight,'arr');
     t.dA=(_d&&_d!=='TBD')?_d:gunAirp(t.dep_flight,'dep');});
   var apSet=[];teams.forEach(function(t){[t.aA,t.dA].forEach(function(a){if((a==='인천'||a==='김해')&&apSet.indexOf(a)<0)apSet.push(a);});});
-  if(apSet.length>1){var fa='';teams.slice().sort(function(a,b){return String(a.arrive||'9999').localeCompare(String(b.arrive||'9999'));})
-    .some(function(t){if(t.aA==='인천'||t.aA==='김해'){fa=t.aA;return true;}return false;});
-    if(fa){teams.forEach(function(t){t.aA=fa;t.dA=fa;});apSet=[fa];}}
+  if(!_port&&apSet.length>1){ // 관할청이 나뉘는 국가 → 관할별로 각각 생성
+    var _ord=['인천','김해'].filter(function(a){return apSet.indexOf(a)>=0;});
+    for(var _i=0;_i<_ord.length;_i++){await polHwpx(c,dryRun,_ord[_i]);await new Promise(function(r){setTimeout(r,900);});}
+    return;}
+  if(_port){teams=teams.filter(function(t){return t.aA===_port||t.dA===_port;});
+    if(!teams.length){return;}
+    apSet=[_port];
+    guns=[];teams.forEach(function(t){t.guns.forEach(function(x){guns.push(x.g);});});
+    single=(teams.length===1);
+    pA='';pD='';teams.forEach(function(t){if(t.arrive&&(!pA||t.arrive<pA))pA=t.arrive;if(t.depart&&(t.depart>pD))pD=t.depart;});}
   var port=apSet[0]||'인천';
-  var police=port==='김해'?'부산광역시경찰청장':'인천광역시경찰청장';
+  var police=polStation(port);
   var routeIn=port==='김해'?'∎ 김해국제공항 → 서부산IC → 창원대삼거리 → 창원국제사격장':'∎ 인천국제공항 → 인천대교고속도로 → 중부내륙고속도로 → 창원국제사격장';
   var pA='',pD='';teams.forEach(function(t){if(t.arrive&&(!pA||t.arrive<pA))pA=t.arrive;if(t.depart&&(t.depart>pD))pD=t.depart;});
   var single=teams.length===1;
@@ -1374,11 +1382,11 @@ async function polHwpx(c,dryRun){
   var _mt=await zip.file('mimetype').async('string');zip.file('mimetype',_mt,{compression:'STORE'});
   var blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',mimeType:'application/hwp+zip'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=c+'_총포서류_'+new Date().toISOString().slice(0,10)+'.hwpx';
+  a.download=c+'_총포서류'+(_port?('_'+_port):'')+'_'+new Date().toISOString().slice(0,10)+'.hwpx';
   document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);
  }catch(e){if(dryRun)return {error:String(e&&e.message||e)};alert('HWPX 생성 오류: '+(e&&e.message||e));}
 }
-function polGen(c){
+function polGen(c,_port){
   var s=dataS();
   var mem=(s.members||[]).filter(function(m){return m.country===c});
   var guns=(s.firearms||[]).filter(function(g){return g.country===c});
@@ -1398,10 +1406,15 @@ function polGen(c){
     t.aA=(_a&&_a!=='TBD')?_a:gunAirp(t.arr_flight,'arr');
     t.dA=(_d&&_d!=='TBD')?_d:gunAirp(t.dep_flight,'dep');});
   var _apSet=[];teams.forEach(function(t){[t.aA,t.dA].forEach(function(a){if((a==='인천'||a==='김해')&&_apSet.indexOf(a)<0)_apSet.push(a);});});
-  if(_apSet.length>1){ // 인천·김해 혼합국: 최초 입국팀의 공항으로 전체 통일
-    var _fa='';teams.slice().sort(function(a,b){return String(a.arrive||'9999').localeCompare(String(b.arrive||'9999'));})
-      .some(function(t){if(t.aA==='인천'||t.aA==='김해'){_fa=t.aA;return true;}return false;});
-    if(_fa){teams.forEach(function(t){t.aA=_fa;t.dA=_fa;});_apSet=[_fa];}}
+  if(!_port&&_apSet.length>1){ // 인천·김해 혼합국: 관할청별로 서류를 나누어 생성
+    var _order=['인천','김해'].filter(function(a){return _apSet.indexOf(a)>=0;});
+    return _order.map(function(a,ai){
+      return (ai?'<div style="page-break-before:always;border-top:3px double #333;margin:26px 0 18px"></div>':'')+
+        '<p style="text-align:center;font-size:13px;color:#A93226;font-weight:700;margin:0 0 10px">※ '+
+        esc(polStation(a))+' 제출분 — '+esc(a)+' 관할 ('+_order.length+'부 중 '+(ai+1)+'부)</p>'+
+        polGen(c,a);}).join('');}
+  if(_port){teams=teams.filter(function(t){return t.aA===_port||t.dA===_port;});
+    _apSet=[_port];}
   var _permA='',_permD='';
   teams.forEach(function(t){if(t.arrive&&(!_permA||t.arrive<_permA))_permA=t.arrive;if(t.depart&&(!_permD||t.depart>_permD))_permD=t.depart;});
   function polKd(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));if(!m)return '';return m[1]+'. '+m[2]+'. '+m[3]+'.'+polDW(d);}
@@ -1493,7 +1506,7 @@ function polGen(c){
   H+='<p>&nbsp;다. 호송책임자 : '+POL_ESCORTS+'</p>';
   var _routes={'인천':'∎ 인천국제공항 → 인천대교고속도로 → 중부내륙고속도로 → 창원국제사격장',
                '김해':'∎ 김해국제공항 → 서부산IC → 창원대삼거리 → 창원국제사격장'};
-  var _routeLines=(_apSet.length?_apSet:['인천']).map(function(a){return '&nbsp;&nbsp;'+_routes[a];}).join('<br>');
+  var _routeLines=(_port?[_port]:(_apSet.length?_apSet:['인천'])).map(function(a){return '&nbsp;&nbsp;'+_routes[a];}).join('<br>');
   H+='<p>&nbsp;라. 국내 입국 시 운반로<br>'+_routeLines+'<br>'+
      '&nbsp;&nbsp;※ 상기 운반로는 당일 교통 사정으로 인하여 변경될 수 있음</p>';
   H+='<p>&nbsp;마. 국내 출국 시 운반로<br>&nbsp;&nbsp;∎ 입국 시의 역순</p>';
