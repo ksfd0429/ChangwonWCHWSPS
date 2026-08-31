@@ -1222,8 +1222,22 @@ function polAmmo(c,t){
     if(!e||!e.value)return null;
     var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;
     var nf=function(f){return String(f||'').toUpperCase().replace(/[\s\-]/g,'').replace(/^([A-Z]{1,3})0*(\d+)$/,function(_,a,b){return a+parseInt(b,10);});};
-    var ls=function(f){return polLegs(f).map(nf).sort().join('/');};
-    return (v.groups||[]).find(function(x){return x.arrive===t.arrive&&x.depart===t.depart&&ls(x.arr_flight)===ls(t.arr_flight)&&ls(x.dep_flight)===ls(t.dep_flight);})||null;
+    var lset=function(f){return polLegs(f).map(nf).sort();};
+    var ls=function(f){return lset(f).join('/');};
+    var over=function(a,b){var A=lset(a),B=lset(b);if(!A.length||!B.length)return false;
+      return A.some(function(k){return B.indexOf(k)>=0;});};
+    var G=(v.groups||[]);
+    /* 1단계: 일정 4요소 완전 일치 */
+    var hit=G.find(function(x){return x.arrive===t.arrive&&x.depart===t.depart&&ls(x.arr_flight)===ls(t.arr_flight)&&ls(x.dep_flight)===ls(t.dep_flight);});
+    if(hit)return hit;
+    /* 2단계: 도착일·귀국일이 같고 편명이 일부라도 겹치면 동일 일정으로 간주
+       (탄약 회신 이후 경유편이 추가되어 편명 체인이 길어진 경우) */
+    hit=G.find(function(x){return x.arrive===t.arrive&&x.depart===t.depart&&
+      (over(x.arr_flight,t.arr_flight)||over(x.dep_flight,t.dep_flight));});
+    if(hit)return hit;
+    /* 3단계: 도착일·귀국일이 같은 그룹이 유일할 때만 채택 */
+    var cand=G.filter(function(x){return x.arrive===t.arrive&&x.depart===t.depart;});
+    return (cand.length===1)?cand[0]:null;
   }catch(err){return null;}}
 function polAmmoTxt(p,r){p=(+p)||0;r=(+r)||0;var q=[];
   if(p)q.push('공기총탄 '+p.toLocaleString('en-US')+'발');
