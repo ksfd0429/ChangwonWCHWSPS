@@ -1256,6 +1256,10 @@ function polGen(c){
   function apName(a){return a==='인천'?'인천국제공항':a==='김해'?'김해국제공항':'(공항 미확정)';}
   teams.forEach(function(t){t.aA=gunAirp(t.arr_flight,'arr');t.dA=gunAirp(t.dep_flight,'dep');});
   var _apSet=[];teams.forEach(function(t){[t.aA,t.dA].forEach(function(a){if((a==='인천'||a==='김해')&&_apSet.indexOf(a)<0)_apSet.push(a);});});
+  if(_apSet.length>1){ // 인천·김해 혼합국: 최초 입국팀의 공항으로 전체 통일
+    var _fa='';teams.slice().sort(function(a,b){return String(a.arrive||'9999').localeCompare(String(b.arrive||'9999'));})
+      .some(function(t){if(t.aA==='인천'||t.aA==='김해'){_fa=t.aA;return true;}return false;});
+    if(_fa){teams.forEach(function(t){t.aA=_fa;t.dA=_fa;});_apSet=[_fa];}}
   var _permA='',_permD='';
   teams.forEach(function(t){if(t.arrive&&(!_permA||t.arrive<_permA))_permA=t.arrive;if(t.depart&&(!_permD||t.depart>_permD))_permD=t.depart;});
   function polKd(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));if(!m)return '';return m[1]+'. '+m[2]+'. '+m[3]+'.'+polDW(d);}
