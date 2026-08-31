@@ -683,6 +683,33 @@ async function revokeV(id){var s=dataS();var V=(s.invoices||[]).find(function(x)
   if(LIVE){await sbc.from('invoices').update({status:'pending',no:'',account:'',approved_at:''}).eq('id',id);}else{V.status='pending';V.no='';V.account='';V.approved_at='';mS(s);}scrMain();}
 async function issueF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');if(x.reg_no){alert('이미 발행됨: '+docNoFmt(x.reg_no));return;}if(!confirm('총기정보제출확인서를 발행하고 문서장부에 등재할까요?'))return;if(LIVE){var reg=await issueDocno('firearms',x.country,sc,'firearm_submissions',x.country+'/'+sc);if(reg==null)return;await sbc.from('firearm_submissions').update({reg_no:reg,issued_at:today()}).eq('country',x.country).eq('grp',x.grp);}else{x.reg_no=mockIssue(s,'firearms',x.country,sc,'firearm_submissions',x.country+'/'+sc);x.issued_at=today();mS(s);}scrMain();}
 /* ===== 총기 사진 검토 (발행 전 확인) ===== */
+/* ---- SN(총기번호) 수동 편집: 편집모드 토글 ---- */
+var _gunEd=false,_phL=[],_phX=null;
+function gunSnHtml(g){
+  if(!_gunEd) return '<span id="gsn_'+esc(String(g.id))+'">SN <b>'+esc(g.serial||'')+'</b></span>';
+  return '<span id="gsn_'+esc(String(g.id))+'" style="display:inline-flex;gap:4px;align-items:center">SN '+
+   '<input id="gsni_'+esc(String(g.id))+'" value="'+esc(g.serial||'')+'" style="width:120px;padding:2px 6px;font-size:12px;border:1.5px solid #C9A227;border-radius:4px;font-weight:bold">'+
+   '<button class="btn y" style="padding:2px 10px;font-size:11px;min-height:0" onclick="gunSnSave(\''+esc(String(g.id))+'\')">저장</button></span>';}
+function gunEdToggle(){_gunEd=!_gunEd;
+  var b=document.getElementById('guned_btn');
+  if(b){b.textContent=_gunEd?'✏ SN 편집모드 ON':'✏ SN 편집모드 OFF';b.className='btn '+(_gunEd?'y':'sec');}
+  _phL.forEach(function(g){var el=document.getElementById('gsn_'+String(g.id));if(el)el.outerHTML=gunSnHtml(g);});}
+async function gunSnSave(id){
+  var g=_phL.find(function(x){return String(x.id)===String(id)});
+  var inp=document.getElementById('gsni_'+String(id));if(!g||!inp)return;
+  var v=inp.value.trim();
+  if(!v){alert('총기번호(SN)가 비어 있습니다.');return;}
+  if(v===String(g.serial||'')){return;}
+  if(!confirm('총기번호를 \''+(g.serial||'')+'\' → \''+v+'\' (으)로 변경할까요?\nDB의 총기 명단(firearms)에 즉시 반영됩니다.'))return;
+  if(LIVE){var u=await sbc.from('firearms').update({serial:v}).eq('id',g.id);
+    if(u.error){alert('저장 실패: '+u.error.message);return;}
+    var gg=((_S&&_S.firearms)||[]).find(function(x){return x.id===g.id});if(gg)gg.serial=v;}
+  else{var sm=mL();var g2=(sm.firearms||[]).find(function(x){return x.id===g.id});if(g2)g2.serial=v;mS(sm);}
+  g.serial=v;
+  var el=document.getElementById('gsn_'+String(id));if(el)el.outerHTML=gunSnHtml(g);
+  scrMain(); // 뒤 화면(총기 총 현황·확인서 미리보기 데이터) 갱신
+}
+
 /* ---- 총기별 확인/보류 기록 (oc_settings gun_check:<NPC>) ---- */
 function gunChkMap(c){try{var e=(dataS().oc_settings||[]).find(function(x){return x.key==='gun_check:'+c});if(!e||!e.value)return {};return (typeof e.value==='string')?JSON.parse(e.value):e.value;}catch(err){return {};}}
 function gunAllOk(s,c){var fs=(s.firearms||[]).filter(function(g){return g.country===c});if(!fs.length)return false;var m=gunChkMap(c);return fs.every(function(g){var r=m[String(g.id)];return r&&r.s==='ok';});}
@@ -712,14 +739,15 @@ function fscopeList(s,x){var sc=(x.grp||'*ALL*');return s.firearms.filter(functi
 function fphCell(lb,u){return '<div style="flex:1;min-width:150px"><div style="font-size:11px;color:#666;margin-bottom:3px">'+lb+'</div>'+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" style="width:100%;max-height:240px;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:#f4f4f4"></a>':'<div style="height:120px;display:flex;align-items:center;justify-content:center;border:1px dashed #c33;border-radius:6px;color:#c33;font-size:12px">미업로드</div>')+'</div>';}
 async function photoF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');var scL=(sc==='*ALL*'?'Entire delegation':sc);
   var list=fscopeList(s,x);
+  _phX=x;_phL=list;_gunEd=false;
   var title='총기 사진 검토 — '+esc(x.country)+' · '+esc(scL);
   if(!list.length){infoModal(title,'<p class="muted">해당 범위에 총기가 없습니다.</p>');return;}
   infoModal(title,'<p class="muted" style="font-size:12px;padding:8px">사진을 불러오는 중…</p>');
   var cells='';
   for(var j=0;j<list.length;j++){var g=list[j];var uF=await fsigned(g.photo_full);var uN=await fsigned(g.photo_num);
-    cells+='<div style="border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:12px"><div style="font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span><b>'+esc(g.owner)+'</b> · '+esc(g.manufacturer)+' '+esc(g.model)+' · SN <b>'+esc(g.serial)+'</b> · '+esc(g.type)+' '+esc(g.caliber)+'</span>'+gunChkHtml(x.country,g.id)+'</div><div class="row" style="gap:12px;flex-wrap:wrap">'+fphCell('총기 전체 사진',uF)+fphCell('일련번호 클로즈업',uN)+'</div></div>';}
+    cells+='<div style="border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:12px"><div style="font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span><b>'+esc(g.owner)+'</b> · '+esc(g.manufacturer)+' '+esc(g.model)+' · '+gunSnHtml(g)+' · '+esc(g.type)+' '+esc(g.caliber)+'</span>'+gunChkHtml(x.country,g.id)+'</div><div class="row" style="gap:12px;flex-wrap:wrap">'+fphCell('총기 전체 사진',uF)+fphCell('일련번호 클로즈업',uN)+'</div></div>';}
   var issueBtn=x.reg_no?'<span class="tag g" style="margin-left:auto">발행됨 · #'+esc(x.reg_no)+'</span>':'<button class="btn g" style="margin-left:auto;padding:8px 20px" onclick="var d=document.getElementById(\'dm\');if(d)d.remove();issueF('+i+')">사진 확인 완료 · 발행</button>';
-  var foot='<div class="row" style="margin-top:4px;padding-top:10px;border-top:1px solid var(--line);align-items:center"><span class="muted" style="font-size:11px">업로드된 사진을 확인한 뒤 총기별 확인/보류를 기록하세요.</span><span class="tag" id="gchk_cnt_'+esc(x.country)+'" style="margin-left:10px;font-size:10.5px">'+gunChkCntTxt(x.country)+'</span>'+issueBtn+'</div>';
+  var foot='<div class="row" style="margin-top:4px;padding-top:10px;border-top:1px solid var(--line);align-items:center"><span class="muted" style="font-size:11px">업로드된 사진을 확인한 뒤 총기별 확인/보류를 기록하세요.</span><button id="guned_btn" class="btn sec" style="padding:3px 11px;font-size:11px;min-height:0;margin-left:10px" onclick="gunEdToggle()">✏ SN 편집모드 OFF</button><span class="tag" id="gchk_cnt_'+esc(x.country)+'" style="margin-left:10px;font-size:10.5px">'+gunChkCntTxt(x.country)+'</span>'+issueBtn+'</div>';
   infoModal(title,cells+foot);}
 /* ===== 총기 확인서 편집기 (발행 전 수정) ===== */
 var _frm=null,_frmI=0,_frmX=null,_frmList=[];
