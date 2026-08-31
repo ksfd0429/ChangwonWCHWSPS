@@ -1253,6 +1253,9 @@ function polGen(c){
   var teams=go.map(function(k){var G=groups[k];var p=k.split('|');
     return {key:k,arrive:p[0],arr_flight:p[1],arr_time:p[2],depart:p[3],dep_flight:p[4],dep_time:p[5],
             guns:G.guns,members:mem.filter(function(m){return polSched(m)===k;})};});
+  function apName(a){return a==='인천'?'인천국제공항':a==='김해'?'김해국제공항':'(공항 미확정)';}
+  teams.forEach(function(t){t.aA=gunAirp(t.arr_flight,'arr');t.dA=gunAirp(t.dep_flight,'dep');});
+  var _apSet=[];teams.forEach(function(t){[t.aA,t.dA].forEach(function(a){if((a==='인천'||a==='김해')&&_apSet.indexOf(a)<0)_apSet.push(a);});});
   var _permA='',_permD='';
   teams.forEach(function(t){if(t.arrive&&(!_permA||t.arrive<_permA))_permA=t.arrive;if(t.depart&&(!_permD||t.depart>_permD))_permD=t.depart;});
   function polKd(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));if(!m)return '';return m[1]+'. '+m[2]+'. '+m[3]+'.'+polDW(d);}
@@ -1333,12 +1336,14 @@ function polGen(c){
   H+='<p>&nbsp;※ 경기용 총포 일시수출·입 허가기간 : '+_permStr+'</p>';
   H+='<p>&nbsp;가. 호송일시 및 장소<br>'+
      teams.map(function(t){return 'ㅇ '+esc(teamShort(t))+'<br>'+
-       '&nbsp;&nbsp;국내 입국 시: '+(t.arrive?esc(t.arrive)+polDW(t.arrive)+' ':'')+'인천국제공항 → 창원국제사격장 무기고<br>'+
-       '&nbsp;&nbsp;국내 출국 시: '+(t.depart?esc(t.depart)+polDW(t.depart)+' ':'')+'창원국제사격장 무기고 → 인천국제공항';}).join('<br>')+'</p>';
+       '&nbsp;&nbsp;국내 입국 시: '+(t.arrive?esc(t.arrive)+polDW(t.arrive)+' ':'')+apName(t.aA)+' → 창원국제사격장 무기고<br>'+
+       '&nbsp;&nbsp;국내 출국 시: '+(t.depart?esc(t.depart)+polDW(t.depart)+' ':'')+'창원국제사격장 무기고 → '+apName(t.dA);}).join('<br>')+'</p>';
   H+='<p>&nbsp;나. 세부총기 및 실탄<br>'+teamStatus+'</p>';
   H+='<p>&nbsp;다. 호송책임자 : '+POL_ESCORTS+'</p>';
-  H+='<p>&nbsp;라. 국내 입국 시 운반로<br>'+
-     '&nbsp;&nbsp;∎ 인천국제공항 → 인천대교고속도로 → 중부내륙고속도로 → 창원국제사격장<br>'+
+  var _routes={'인천':'∎ 인천국제공항 → 인천대교고속도로 → 중부내륙고속도로 → 창원국제사격장',
+               '김해':'∎ 김해국제공항 → 서부산IC → 창원대삼거리 → 창원국제사격장'};
+  var _routeLines=(_apSet.length?_apSet:['인천']).map(function(a){return '&nbsp;&nbsp;'+_routes[a];}).join('<br>');
+  H+='<p>&nbsp;라. 국내 입국 시 운반로<br>'+_routeLines+'<br>'+
      '&nbsp;&nbsp;※ 상기 운반로는 당일 교통 사정으로 인하여 변경될 수 있음</p>';
   H+='<p>&nbsp;마. 국내 출국 시 운반로<br>&nbsp;&nbsp;∎ 입국 시의 역순</p>';
   H+='<p>&nbsp;바. 인적사항 및 총포내역 : 인적사항 및 총포내역(별첨참조).&nbsp; 끝.</p>';
