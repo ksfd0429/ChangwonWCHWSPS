@@ -1369,7 +1369,7 @@ async function polHwpx(c,dryRun,_port,_incUn){
   s0=_hxFill(s0,{L_GUNS:' 총기 : '+guns.length+'정',L_AMMO:' 실탄 : '+ammoTxt,COUNTRY:esc(cn),PORT:port,
     PERIOD:_hxKd(pA)+' - '+_hxKd(pD),POLICE:police,APP_DATE:appDate});
   var reg=_hxRegion(s1,'{{TEAM_LABEL}}','hp:tbl','hp:tbl');
-  var runA=s1.lastIndexOf('<hp:run',reg.a),runB=s1.indexOf('</hp:run>',reg.b)+9;
+  var runA=s1.lastIndexOf('<hp:p ',reg.a),runB=s1.indexOf('</hp:p>',reg.b)+7;
   var runTpl=s1.slice(runA,runB);
   var rowReg=_hxRegion(runTpl,'{{R_NO}}','hp:tr','hp:tr');
   var tblRuns=teams.map(function(t){
