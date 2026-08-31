@@ -1342,7 +1342,8 @@ async function polHwpx(c,dryRun){
   if(dryRun)return {teams:teams.length,guns:guns.length,port:port,police:police,ammo:ammoTxt,leftoverTokens:left||[],s1len:s1.length,s2len:s2.length};
   if(left)throw new Error('미치환 토큰: '+left.join(','));
   zip.file('Contents/section0.xml',s0);zip.file('Contents/section1.xml',s1);zip.file('Contents/section2.xml',s2);
-  var blob=await zip.generateAsync({type:'blob'});
+  var _mt=await zip.file('mimetype').async('string');zip.file('mimetype',_mt,{compression:'STORE'});
+  var blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',mimeType:'application/hwp+zip'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=c+'_총포서류_'+new Date().toISOString().slice(0,10)+'.hwpx';
   document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);
