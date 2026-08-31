@@ -13804,8 +13804,114 @@ function renderTeam(){
   var rows=_mem.map(function(m,i){return '<tr onclick="mEdit('+i+')" style="cursor:pointer"><td><b>'+esc(mName(m)||'(new member)')+'</b></td><td>'+esc(m.position||'')+'</td><td>'+esc(m.dob||'')+'</td><td>'+esc(m.passport||'')+'</td><td>'+esc(m.sub_group||'')+'</td><td>'+esc(m.arrive||'')+(m.arr_flight?' · '+esc(m.arr_flight):'')+(m.arr_time?' '+esc(m.arr_time):'')+'</td><td>'+esc(m.depart||'')+(m.dep_flight?' · '+esc(m.dep_flight):'')+(m.dep_time?' '+esc(m.dep_time):'')+'</td><td>'+esc(m.room||'')+'</td><td>'+esc(m.wheelchair||'')+'</td><td><button class="btn r" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();mDel('+m.id+')">×</button></td></tr>';}).join('');
   stage('<div class="card"><div class="row"><button class="btn sec" onclick="scrMain()">&larr; '+Li('Back')+'</button><b style="margin-left:6px">'+L('Delegation info')+'</b></div><div style="margin-top:10px">'+sdmsNotice()+'</div></div>'+
    '<div class="card"><b>'+L('Roster')+'</b><span class="muted" style="font-size:12px"> — '+_mem.length+' member(s)</span><p class="muted" style="font-size:12px;margin:6px 0 8px">'+L('Click a row to open the editor. Use ‹ › at the top to move between members (auto-saved on switch).')+'</p><div class="tbl"><table><thead><tr><th>'+L('Name')+'</th><th>'+L('Position')+'</th><th>'+L('Date of Birth')+'</th><th>'+L('Passport')+'</th><th>'+L('Group')+'</th><th>'+L('Arrival')+'</th><th>'+L('Departure')+'</th><th>'+L('Room')+'</th><th>'+L('Wheelchair')+'</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="10" class="muted">'+L('No members yet.')+'</td></tr>')+'</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn g" onclick="mAdd()">'+Li('+ Add member')+'</button></div></div>'+
-   gfCardHtml());
+   gfCardHtml()+itCardHtml());
 }
+
+/* ===== Full itinerary (connecting flights) → members.arr_legs / dep_legs ===== */
+var _itScope=null,_itA=[],_itD=[];
+function itBlank(){return {flight:'',from:'',to:'',dep_date:'',dep_time:'',arr_date:'',arr_time:''};}
+function itLegs(m,k){try{var v=m?m[k]:null;if(typeof v==='string')v=JSON.parse(v||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
+function itTargets(){if(!_itScope)return [];
+  if(_itScope.type==='member')return _mem.filter(function(m){return m.id===_itScope.id});
+  if(_itScope.type==='group')return _mem.filter(function(m){return grpOf(m)===_itScope.grp});
+  return _mem.slice();}
+function itScopeName(){if(!_itScope)return '';
+  if(_itScope.type==='member'){var m=_mem.find(function(x){return x.id===_itScope.id});return m?mName(m):'';}
+  if(_itScope.type==='group')return (_itScope.grp==='(Ungrouped)'?T('Ungrouped'):_itScope.grp);
+  return T('ALL members');}
+function itOpen(type,key){
+  _itScope=(type==='member')?{type:'member',id:key}:(type==='group')?{type:'group',grp:key}:{type:'all'};
+  var t=itTargets();
+  var src=t.find(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length})||t[0];
+  _itA=itLegs(src,'arr_legs').map(function(l){return Object.assign(itBlank(),l)});
+  _itD=itLegs(src,'dep_legs').map(function(l){return Object.assign(itBlank(),l)});
+  if(!_itA.length)_itA=[Object.assign(itBlank(),{flight:(src&&src.arr_flight)||'',to:'ICN',arr_date:(src&&src.arrive)||'',arr_time:(src&&src.arr_time)||''})];
+  if(!_itD.length)_itD=[Object.assign(itBlank(),{flight:(src&&src.dep_flight)||'',from:'ICN',dep_date:(src&&src.depart)||'',dep_time:(src&&src.dep_time)||''})];
+  var old=document.getElementById('itm');if(old)old.remove();
+  document.body.insertAdjacentHTML('beforeend',
+   '<div class="mback" id="itm" onclick="if(event.target===this)itClose()"><div class="modal mwide">'+
+   '<div class="mtop"><b style="flex:1;font-size:14px">'+L('Full itinerary')+' — '+esc(itScopeName())+'</b>'+
+   '<button class="btn g" style="min-height:0;padding:8px 14px" onclick="itSave()">'+Li('Save')+'</button>'+
+   '<button class="mnav" style="color:#C94A3D" onclick="itClose()">×</button></div>'+
+   '<p class="muted" style="font-size:12px;margin:8px 0">'+L('Enter every leg including connections, in travel order. The leg that lands in / departs from Korea is used for the official documents.')+
+   ' <b>'+esc(t.length)+'</b> '+L('member(s) will be updated.')+'</p>'+
+   '<div id="itbody"></div></div></div>');
+  itRender();
+  var bd=document.getElementById('itbody');
+  if(bd){bd.addEventListener('input',itPreview);bd.addEventListener('change',itPreview);}}
+async function itFromModal(id){if(!await memSave(false))return;closeMemModal();_mem=await db.members(S.country);renderTeam();itOpen('member',id);}
+function itClose(){var e=document.getElementById('itm');if(e)e.remove();_itScope=null;}
+function itLegRow(kind,i,l){var p=kind+i;
+  return '<tr>'+
+  '<td style="text-align:center;color:#5D758B;font-size:11px">'+(i+1)+'</td>'+
+  '<td><input id="itf_'+p+'" value="'+esc(l.flight||'')+'" placeholder="LH718" style="width:82px;text-transform:uppercase"></td>'+
+  '<td><input id="ito_'+p+'" value="'+esc(l.from||'')+'" placeholder="FRA" maxlength="4" style="width:58px;text-transform:uppercase"></td>'+
+  '<td><input id="itt_'+p+'" value="'+esc(l.to||'')+'" placeholder="ICN" maxlength="4" style="width:58px;text-transform:uppercase"></td>'+
+  '<td><input id="itdd_'+p+'" type="date" min="1900-01-01" max="2099-12-31" value="'+esc(l.dep_date||'')+'" style="min-width:126px"></td>'+
+  '<td><input id="itdt_'+p+'" inputmode="numeric" maxlength="5" placeholder="21:40" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(l.dep_time||'')+'" style="width:64px"></td>'+
+  '<td><input id="itad_'+p+'" type="date" min="1900-01-01" max="2099-12-31" value="'+esc(l.arr_date||'')+'" style="min-width:126px"></td>'+
+  '<td><input id="itat_'+p+'" inputmode="numeric" maxlength="5" placeholder="14:35" oninput="tFmt(this)" onblur="tBlur(this)" value="'+esc(l.arr_time||'')+'" style="width:64px"></td>'+
+  '<td><button class="btn r" style="padding:3px 8px;font-size:11px;min-height:0" onclick="itDel(\''+kind+'\','+i+')">×</button></td></tr>';}
+function itTable(kind,arr){
+  return '<div class="tbl" style="margin-top:6px"><table><thead><tr><th style="width:22px"></th><th>'+L('Flight')+'</th><th>'+L('From')+'</th><th>'+L('To')+'</th><th>'+L('Dep. date')+'</th><th>'+L('Dep.')+'</th><th>'+L('Arr. date')+'</th><th>'+L('Arr.')+'</th><th></th></tr></thead><tbody>'+
+   (arr.length?arr.map(function(l,i){return itLegRow(kind,i,l)}).join(''):'<tr><td colspan="9" class="muted">'+L('No legs yet.')+'</td></tr>')+
+   '</tbody></table></div><div class="row" style="margin-top:6px"><button class="btn sec" style="padding:4px 12px;font-size:12px" onclick="itAdd(\''+kind+'\')">'+Li('+ Add leg')+'</button></div>';}
+function itRender(){var b=document.getElementById('itbody');if(!b)return;
+  b.innerHTML='<div class="msec">'+L('ARRIVAL — origin to Korea')+'</div>'+itTable('a',_itA)+
+   '<div class="msec" style="margin-top:16px">'+L('DEPARTURE — Korea to final destination')+'</div>'+itTable('d',_itD)+
+   '<div id="itprev" class="muted" style="font-size:12px;margin-top:14px;padding:10px;background:#F1F6FA;border-radius:10px"></div>';
+  itPreview();}
+function itRead(kind,n){var a=[];for(var i=0;i<n;i++){var p=kind+i;
+  function g(x){var e=document.getElementById(x+'_'+p);return e?(e.value||'').trim():'';}
+  a.push({seq:i+1,flight:g('itf').toUpperCase(),from:g('ito').toUpperCase(),to:g('itt').toUpperCase(),
+    dep_date:g('itdd'),dep_time:g('itdt'),arr_date:g('itad')||g('itdd'),arr_time:g('itat')});}
+  return a;}
+function itSync(){var A=itRead('a',_itA.length).filter(function(l){return l.flight||l.from||l.to}),
+  D=itRead('d',_itD.length).filter(function(l){return l.flight||l.from||l.to});
+  var o={};
+  if(A.length){var la=A[A.length-1];o.arrive=la.arr_date||'';o.arr_time=la.arr_time||'';
+    o.arr_flight=A.map(function(l){return l.flight}).filter(Boolean).join(' / ');}
+  if(D.length){var fd=D[0];o.depart=fd.dep_date||'';o.dep_time=fd.dep_time||'';
+    o.dep_flight=D.map(function(l){return l.flight}).filter(Boolean).join(' / ');}
+  return {A:A,D:D,rep:o};}
+function itPreview(){var e=document.getElementById('itprev');if(!e)return;var s=itSync();
+  function line(lb,f,d,t){return f?('<b>'+lb+'</b> '+esc(f)+' · '+esc(d||'?')+' '+esc(t||'?')):('<b>'+lb+'</b> —');}
+  e.innerHTML=L('Official documents will use:')+'<br>'+
+    line(T('Arrival'),s.rep.arr_flight,s.rep.arrive,s.rep.arr_time)+'<br>'+
+    line(T('Departure'),s.rep.dep_flight,s.rep.depart,s.rep.dep_time);}
+function itAdd(kind){var s=itSync();_itA=s.A.length?s.A:_itA;_itD=s.D.length?s.D:_itD;
+  if(kind==='a')_itA=itRead('a',_itA.length).concat([itBlank()]);else _itD=itRead('d',_itD.length).concat([itBlank()]);
+  itRender();}
+function itDel(kind,i){var A=itRead('a',_itA.length),D=itRead('d',_itD.length);
+  if(kind==='a'){A.splice(i,1);}else{D.splice(i,1);}
+  _itA=A;_itD=D;itRender();}
+async function itSave(){var t=itTargets();if(!t.length){alert(T('No members in this scope.'));return;}
+  var s=itSync();
+  for(var i=0;i<s.A.length;i++){var l=s.A[i];if(!l.flight||!l.dep_date){alert(T('Every arrival leg needs a flight number and a departure date.'));return;}}
+  for(var j=0;j<s.D.length;j++){var l2=s.D[j];if(!l2.flight||!l2.dep_date){alert(T('Every departure leg needs a flight number and a departure date.'));return;}}
+  var patch={arr_legs:s.A,dep_legs:s.D,itinerary_at:new Date().toISOString(),
+    itinerary_src:(_itScope.type==='member'?'NPC portal (individual)':_itScope.type==='group'?'NPC portal (group)':'NPC portal (all)')};
+  Object.keys(s.rep).forEach(function(k){patch[k]=s.rep[k];});
+  pbStart(t.length+1);
+  for(var k=0;k<t.length;k++){var r=await db.updMember(t[k].id,patch);pbStep();
+    if(r&&r.error){alert(r.error.message);return;}}
+  _mem=await db.members(S.country);pbStep();itClose();renderTeam();}
+function itChainOf(m){var A=itLegs(m,'arr_legs');if(!A.length)return '';
+  return A.map(function(l){return l.flight}).filter(Boolean).join(' / ')+(A.length>1?' ('+(A.length-1)+T(' stop(s)')+')':'');}
+function itCardHtml(){if(!_mem.length)return '';
+  var done=_mem.filter(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length}).length;
+  var rows=groupsOf().map(function(g){var mm=scopeMembers(g);
+    var d=mm.filter(function(m){return itLegs(m,'arr_legs').length}).length;
+    var ex=mm.find(function(m){return itLegs(m,'arr_legs').length});
+    return '<tr><td style="white-space:nowrap"><b>'+(g==='(Ungrouped)'?Li('Ungrouped'):esc(g))+'</b><span class="muted" style="display:block;font-size:10.5px">'+mm.length+' member(s)</span></td>'+
+      '<td>'+(d?('<span class="tag g">'+d+' / '+mm.length+'</span>'):'<span class="muted" style="font-size:11px">'+L('not entered')+'</span>')+'</td>'+
+      '<td class="muted" style="font-size:11.5px">'+esc(ex?itChainOf(ex):'')+'</td>'+
+      '<td><button class="btn sec" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="itOpen(\'group\','+JSON.stringify(g).replace(/"/g,'&quot;')+')">'+Li('Edit')+'</button></td></tr>';}).join('');
+  return '<div class="card"><b>'+L('Full itinerary (connecting flights)')+'</b>'+
+   '<p class="muted" style="font-size:12px;margin:6px 0 8px">'+L('Record every leg of the journey, including connections. Individual members can be edited from the roster editor.')+
+   ' <b>'+done+' / '+_mem.length+'</b> '+L('entered')+'</p>'+
+   '<div class="tbl"><table><thead><tr><th>'+L('Group')+'</th><th>'+L('Entered')+'</th><th>'+L('Flights')+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+   '<div class="row" style="margin-top:8px"><button class="btn y" style="padding:5px 12px;font-size:12px" onclick="itOpen(\'all\')">'+Li('Apply one itinerary to ALL members')+'</button></div></div>';}
 
 /* ===== Group flight schedules ===== */
 function gfOf(g){return (_gf||[]).find(function(x){return x.grp===g})||{};}
@@ -13876,6 +13982,10 @@ function memModalHtml(m,i){
   '<div class="msec">'+L('DEPARTURE')+'</div>'+
   '<div class="row" style="gap:8px">'+fld(L('Date'),inp('ef_dep',m.depart,'date'))+fld(L('Flight'),inp('ef_depf',m.dep_flight))+fld(L('Take-off'),inp('ef_dept',m.dep_time,'time'))+'</div>'+
   '</div>'+
+  '<div class="msec">'+L('CONNECTING FLIGHTS')+'</div>'+
+  '<div class="row" style="gap:8px;align-items:center;margin:4px 0 2px"><div style="flex:1;font-size:12px" class="muted">'+
+    (itLegs(m,'arr_legs').length?(L('Entered')+' — '+esc(itChainOf(m))):L('Not entered yet — add every leg incl. connections.'))+
+  '</div><button class="btn sec" style="padding:5px 12px;font-size:12px;min-height:0" onclick="itFromModal('+m.id+')">'+Li('Edit itinerary')+'</button></div>'+
   '<div class="msec">'+L('STAY')+'</div>'+
   '<div class="row" style="gap:8px">'+fld(L('Room type'),sel('ef_room',m.room,['Twin','Single']))+fld(L('Wheelchair'),sel('ef_wc',m.wheelchair,['No','Yes']))+'</div>'+
   '</div></div></div></div>';
