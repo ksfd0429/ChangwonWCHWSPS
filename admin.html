@@ -1181,7 +1181,10 @@ function docSideAttach(kind,hostId){
    · HWP 바이너리 생성은 브라우저에서 불가하므로 열람+편집+복사 방식 지원.
    · 표는 드래그 시 사각형 범위 셀만 선택되고(HWP식), Ctrl+C로 표 구조 유지 복사.
    · 저장: oc_settings key 'police_kit:<NPC>' 에 HTML 보관(국가당 1건, 덮어쓰기). */
-var POL_ESCORTS='허이욱 (대한장애인사격연맹 대회운영지원인력 / 010-3384-3060)<br>나정아 (대한장애인사격연맹 대회운영지원인력 / 010-5015-3060)<br>김사명 (대한장애인사격연맹 대회운영지원인력 / 010-5251-3153)<br>신연우 (대한장애인사격연맹 대회운영지원인력 / 010-5632-1699)<br>이종욱 (대한장애인사격연맹 국제전문인력 / 010-4225-7237)';
+var POL_ESCORT_ICN='허이욱 (대한장애인사격연맹 대회운영지원인력 / 010-3384-3060)';
+var POL_ESCORT_GH ='서아라 (대한장애인사격연맹 대회운영지원인력 / 010-8652-3076)';
+function polEscorts(port){return (port==='김해'?POL_ESCORT_GH:POL_ESCORT_ICN)+'<br>'+POL_ESCORTS_REST;}
+var POL_ESCORTS_REST='나정아 (대한장애인사격연맹 대회운영지원인력 / 010-5015-3060)<br>김사명 (대한장애인사격연맹 대회운영지원인력 / 010-5251-3153)<br>신연우 (대한장애인사격연맹 대회운영지원인력 / 010-5632-1699)<br>이종욱 (대한장애인사격연맹 국제전문인력 / 010-4225-7237)';
 function polTypeK(t){t=String(t||'').trim();if(/shot/i.test(t))return '산탄총';if(/air/i.test(t))return (/pistol/i.test(t)?'공기권총':'공기소총');return (/pistol/i.test(t)?'화약권총':'화약소총');}
 function polKey(c){return 'police_kit:'+c;}
 function polSaved(c){try{var e=(dataS().oc_settings||[]).find(function(x){return x.key===polKey(c)});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v&&v.html)return v;}}catch(err){}return null;}
@@ -1428,6 +1431,7 @@ async function polHwpx(c,dryRun,_port,_incUn){
   var s0=await zip.file('Contents/section0.xml').async('string');
   var s1=await zip.file('Contents/section1.xml').async('string');
   var s2=await zip.file('Contents/section2.xml').async('string');
+  if(port==='김해')s2=s2.split(POL_ESCORT_ICN).join(POL_ESCORT_GH); /* 같은 글자수라 lineseg 영향 없음 */
   var td=new Date();
   var appDate=td.getFullYear()+'년    '+String(td.getMonth()+1).padStart(2,'0')+'월    '+String(td.getDate()).padStart(2,'0')+'일';
   s0=_hxFill(s0,{L_GUNS:' 총기 : '+guns.length+'정',L_AMMO:' 실탄 : '+ammoTxt,COUNTRY:esc(cn),PORT:port,
@@ -1601,7 +1605,7 @@ function polGen(c,_port,_incUn){
        '&nbsp;&nbsp;국내 입국 시: '+(t.arrive?esc(t.arrive)+polDW(t.arrive)+' ':'')+apName(t.aA)+' → 창원국제사격장 무기고<br>'+
        '&nbsp;&nbsp;국내 출국 시: '+(t.depart?esc(t.depart)+polDW(t.depart)+' ':'')+'창원국제사격장 무기고 → '+apName(t.dA);}).join('<br>')+'</p>';
   H+='<p>&nbsp;나. 세부총기 및 실탄<br>'+teamStatus+'</p>';
-  H+='<p>&nbsp;다. 호송책임자 : '+POL_ESCORTS+'</p>';
+  H+='<p>&nbsp;다. 호송책임자 : '+polEscorts(_apSet[0]||'인천')+'</p>';
   var _routes={'인천':'∎ 인천국제공항 → 인천대교고속도로 → 중부내륙고속도로 → 창원국제사격장',
                '김해':'∎ 김해국제공항 → 서부산IC → 창원대삼거리 → 창원국제사격장'};
   var _routeLines=(_port?[_port]:(_apSet.length?_apSet:['인천'])).map(function(a){return '&nbsp;&nbsp;'+_routes[a];}).join('<br>');
