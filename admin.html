@@ -385,7 +385,8 @@ function gunKrCell(date,base,time,fl){ /* 기준일이 대표일과 다르면 �
   var d=String(date||''),b=String(base||'');
   var out=(d&&d!==b)?(d.slice(5)+' '+t):t;
   return fl?(out+' ('+fl+')'):out;}
-function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
+async function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
+ await polFresh();
  var s=dataS();var rows=(s.firearms||[]).slice().sort(function(a,b){return String(a.country+'|'+a.owner).localeCompare(String(b.country+'|'+b.owner));});
  if(!rows.length){alert('등록된 총기가 없습니다.');return;}
  var recs=rows.map(function(g){var m=gunMem(s,g);
@@ -400,6 +401,45 @@ function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
    return [i+1,g.country||'',g.owner||'',(m&&m.passport)||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||'',
      (m&&m.arrive)||'',(m&&m.arr_flight)||'',r.aA,gunKrCell(kt.aDate,(m&&m.arrive)||'',kt.aTime,kt.aFl),(m&&m.depart)||'',(m&&m.dep_flight)||'',r.dA,gunKrCell(kt.dDate,(m&&m.depart)||'',kt.dTime,kt.dFl),
      ((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),pu(g.photo_full),pu(g.photo_num)];});
+/* ── 선수단(일정)별 시트: 1행=한 국가의 한 일정, 총기 종류별 정수 + 탄약 ── */
+ var teamRows=[];
+ if(!filt){
+  var _cl=[];(s.firearms||[]).forEach(function(g){if(_cl.indexOf(g.country)<0)_cl.push(g.country);});
+  _cl.sort();
+  var _no=0;
+  _cl.forEach(function(c){
+   var mem=(s.members||[]).filter(function(m){return m.country===c});
+   var guns=(s.firearms||[]).filter(function(g){return g.country===c});
+   var groups={},go=[];
+   guns.forEach(function(g){var m=polMatch(mem,g.owner);var k=m?polSched(m):'|||||';
+     if(!groups[k]){groups[k]={key:k,guns:[]};go.push(k);}groups[k].guns.push({g:g,m:m});});
+   go.sort();
+   var teams=go.map(function(k){var G=groups[k];var pz=k.split('|');
+     return {key:k,arrive:pz[0],arr_flight:pz[1],arr_time:pz[2],depart:pz[3],dep_flight:pz[4],dep_time:pz[5],
+             guns:G.guns,members:mem.filter(function(m){return polSched(m)===k;})};});
+   teams.forEach(function(t,ti){
+     var AL=polTeamLegs(t,'arr'),DL=polTeamLegs(t,'dep');
+     var aA=(AL&&AL.length)?apPort(AL[AL.length-1].to):gunAirp(t.arr_flight,'arr');
+     var dA=(DL&&DL.length)?apPort(DL[0].from):gunAirp(t.dep_flight,'dep');
+     var cnt={};t.guns.forEach(function(x){var k2=polTypeK(x.g.type);cnt[k2]=(cnt[k2]||0)+1;});
+     var am=polAmmo(c,t);var ap=null,ar=null,note='';
+     if(am){ap=(+am.pellets)||0;ar=(+am.rounds)||0;}
+     else if(teams.length===1){var aa=ammoOfA(s,c);
+       if(aa&&(((+aa.p)||0)+((+aa.b)||0)>0)){ap=(+aa.p)||0;ar=(+aa.b)||0;note='포털 총계 기준';}}
+     if(ap==null)note=(t.key==='|||||')?'선수단 미매칭 총기':'탄약 미접수';
+     if(t.key==='|||||'&&ap!=null)note='선수단 미매칭 총기';
+     var ath=t.members.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;
+     _no++;
+     teamRows.push([_no,c,cnameK(c),(t.key==='|||||')?'(일정미상)':('팀'+(ti+1)),
+       t.members.length,ath,t.members.length-ath,
+       t.arrive||'',t.arr_flight||'',t.arr_time||'',(aA&&aA!=='TBD')?aA:'',
+       t.depart||'',t.dep_flight||'',t.dep_time||'',(dA&&dA!=='TBD')?dA:'',
+       t.guns.length,cnt['공기소총']||0,cnt['공기권총']||0,cnt['화약소총']||0,cnt['화약권총']||0,cnt['산탄총']||0,
+       (ap==null?'':ap),(ar==null?'':ar),(ap==null?'':ap+ar),note]);
+   });
+  });
+ }
+ var hdr2=['No.','국가','국가명','선수단','인원','선수','임원','입국일','입국편','착륙시각','입국공항','출국일','출국편','이륙시각','출국공항','총기 계','공기소총','공기권총','화약소총','화약권총','산탄총','연지탄(발)','화약총탄(발)','탄약 계(발)','비고'];
  var tag=filt==='인천'?'ICN':filt==='김해'?'GIMHAE':'ALL';
  var fn='Changwon2026_Firearms_'+tag+'_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx';
  var TXT=[3,6]; // 여권번호·총번 = 텍스트 강제(앞 0 보존)
@@ -410,6 +450,11 @@ function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
     if(cc){cc.t='s';cc.v=String(data[ri][ci]==null?'':data[ri][ci]);cc.z='@';}}}
   ws['!cols']=[{wch:5},{wch:6},{wch:24},{wch:13},{wch:16},{wch:14},{wch:14},{wch:11},{wch:8},{wch:11},{wch:15},{wch:9},{wch:17},{wch:11},{wch:15},{wch:9},{wch:17},{wch:6},{wch:40},{wch:40}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,filt?('Firearms_'+tag):'Firearms');
+  if(teamRows.length){
+    var ws2=XLSX.utils.aoa_to_sheet([hdr2].concat(teamRows));
+    ws2['!cols']=[{wch:5},{wch:6},{wch:14},{wch:9},{wch:6},{wch:6},{wch:6},{wch:11},{wch:16},{wch:9},{wch:9},{wch:11},{wch:16},{wch:9},{wch:9},{wch:8},{wch:9},{wch:9},{wch:9},{wch:9},{wch:8},{wch:10},{wch:12},{wch:10},{wch:16}];
+    XLSX.utils.book_append_sheet(wb,ws2,'선수단별 일정·총기·탄약');
+  }
   XLSX.writeFile(wb,fn);
  }
  if(window.XLSX){build();return;}
