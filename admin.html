@@ -1346,8 +1346,15 @@ function _hxSegTok(xml,tok){var i=xml.indexOf(tok);if(i<0)return xml;
 var a=xml.lastIndexOf('<hp:p ',i);var b=xml.indexOf('</hp:p>',i)+7;
 return xml.slice(0,a)+_hxSegs(xml.slice(a,b))+xml.slice(b);}
 function _hxRenumber(xml){var parts=xml.split('<hp:tr');for(var i=1;i<parts.length;i++){parts[i]=parts[i].replace(/rowAddr="\d+"/g,'rowAddr="'+(i-1)+'"');}return parts.join('<hp:tr');}
+async function polFresh(){ /* 총포서류는 항상 생성 시점의 DB를 본다 (열려있는 Admin 탭의 낡은 스냅샷 방지) */
+  if(typeof LIVE==='undefined'||!LIVE||typeof sbc==='undefined'||!sbc||!_S)return;
+  try{
+    var ts=['members','firearms','oc_settings','invoice_addresses','group_flights'];
+    for(var i=0;i<ts.length;i++){var r=await sbc.from(ts[i]).select('*');if(r&&r.data)_S[ts[i]]=r.data;}
+  }catch(e){}}
 async function polHwpx(c,dryRun,_port,_incUn){
  try{
+  if(!_port)await polFresh();
   var s=dataS();
   var mem=(s.members||[]).filter(function(m){return m.country===c});
   var guns=(s.firearms||[]).filter(function(g){return g.country===c});
@@ -1604,8 +1611,10 @@ function polGen(c,_port,_incUn){
   H+='<p>&nbsp;바. 인적사항 및 총포내역 : 인적사항 및 총포내역(별첨참조).&nbsp; 끝.</p>';
   return H;}
 var _polC='';
-function polOpen(c){
-  _polC=c;var saved=polSaved(c);var html=saved?saved.html:polGen(c);
+async function polOpen(c){
+  _polC=c;var saved=polSaved(c);
+  if(!saved)await polFresh();
+  var html=saved?saved.html:polGen(c);
   var old=document.getElementById('pm');if(old)old.remove();
   if(!document.getElementById('pol-css')){var st=document.createElement('style');st.id='pol-css';
     st.textContent='#poled table{border-collapse:collapse;margin:8px 0;width:100%}#poled td,#poled th{border:1px solid #555;padding:3px 7px;font-size:13px;vertical-align:middle}#poled th{background:#F0F3F7}#poled h1{font-weight:700}#poled td.csel,#poled th.csel{background:#C9E0F8 !important;outline:1.5px solid #5B96D6;outline-offset:-1.5px}#poled.nosel{-webkit-user-select:none;user-select:none}';
