@@ -13883,9 +13883,13 @@ function itToggle(i,g){
   if(_itX[i]){itPull(i);delete _itX[i];}
   else{_itX[i]=itSeed(g);}
   renderTeam();}
-function itAddLeg(kind){var i=parseInt(kind.slice(1),10);var r=kind[0];var st=_itX[i];if(!st)return;
+function itAddLeg(kind){
+  if(kind==='AM'||kind==='DM'){if(!_itM)return;itmPull();(kind==='AM'?_itM.A:_itM.D).push(itBlank());itmRender();return;}
+  var i=parseInt(kind.slice(1),10);var r=kind[0];var st=_itX[i];if(!st)return;
   itPull(i);(r==='A'?st.A:st.D).push(itBlank());renderTeam();}
-function itDelLeg(kind,idx){var i=parseInt(kind.slice(1),10);var r=kind[0];var st=_itX[i];if(!st)return;
+function itDelLeg(kind,idx){
+  if(kind==='AM'||kind==='DM'){if(!_itM)return;itmPull();var a2=(kind==='AM'?_itM.A:_itM.D);if(a2.length>1)a2.splice(idx,1);itmRender();return;}
+  var i=parseInt(kind.slice(1),10);var r=kind[0];var st=_itX[i];if(!st)return;
   itPull(i);var arr=(r==='A'?st.A:st.D);if(arr.length>1)arr.splice(idx,1);renderTeam();}
 async function itSaveLegs(i,g){itPull(i);var st=_itX[i];if(!st)return;
   var A=st.A.filter(function(l){return l.flight}),D=st.D.filter(function(l){return l.flight});
@@ -13915,6 +13919,53 @@ function itBtn(i,g){var c=itGrpLegs(g);var open=!!_itX[i];
   return '<button class="btn '+(open?'y':'sec')+'" style="padding:4px 10px;font-size:11px;white-space:nowrap" onclick="itToggle('+i+','+jsq(g)+')">'+
     (open?'▾ ':'▸ ')+Li('Itinerary')+badge+'</button>';}
 
+/* ===== 개인(멤버 모달) 전체 여정 — 그룹 일정 미사용 인원용 ===== */
+var _itM=null;
+function itmHtml(m){
+  var n=itLegs(m,'arr_legs').length+itLegs(m,'dep_legs').length;
+  var h='<div class="msec">'+L('CONNECTING FLIGHTS')+'</div>'+
+   '<div class="row" style="gap:8px;align-items:center;margin:4px 0 2px"><div style="flex:1;font-size:12px" class="muted">'+
+   (n?(L('Entered')+' — '+esc(itChainOf(m))):L('Not entered yet — add every leg incl. connections.'))+'</div>'+
+   '<button type="button" class="btn '+(_itM?'y':'sec')+'" style="padding:4px 10px;font-size:11px;min-height:0" onclick="itmToggle()">'+(_itM?'&#9662; ':'&#9656; ')+Li('Itinerary')+'</button></div>';
+  if(_itM){
+    h+='<p class="muted" style="font-size:11.5px;margin:4px 0 4px">'+L('Enter the whole journey in travel order — the flight already entered above is included as one leg. Airport codes: ICN Incheon, PUS Gimhae.')+'</p>';
+    h+='<div class="tbl"><table><thead>'+itSubHead()+'</thead><tbody>';
+    h+=_itM.A.map(function(l,k){return itLegRow('AM',k,l,_itM.A.length,tl('Inbound')+' '+(k+1))}).join('');
+    h+=itAddRow('AM',tl('Inbound'));
+    h+=_itM.D.map(function(l,k){return itLegRow('DM',k,l,_itM.D.length,tl('Outbound')+' '+(k+1))}).join('');
+    h+=itAddRow('DM',tl('Outbound'));
+    h+='</tbody></table></div>'+
+      '<div class="row" style="margin:6px 0 2px"><button type="button" class="btn g" style="padding:5px 14px;font-size:12px;min-height:0" onclick="itmSave()">'+Li('Save itinerary')+'</button></div>';
+  }
+  return h;}
+function itmRender(){var w=document.getElementById('itmwrap');if(w)w.innerHTML=itmHtml(_mem[_emIdx]||{});}
+function itmPull(){if(!_itM)return;
+  if(document.getElementById('itf_AM0')||!_itM.A.length)_itM.A=itRead('AM',_itM.A.length);
+  if(document.getElementById('itf_DM0')||!_itM.D.length)_itM.D=itRead('DM',_itM.D.length);}
+function itmSeed(m){
+  var A=itLegs(m,'arr_legs'),D=itLegs(m,'dep_legs');
+  if(A.length||D.length)return {A:A.map(function(l){return Object.assign(itBlank(),l)}),D:D.map(function(l){return Object.assign(itBlank(),l)})};
+  var g=function(id){var e=document.getElementById(id);return e?(e.value||'').trim():'';};
+  return {A:[Object.assign(itBlank(),{flight:g('ef_arrf'),dep_date:g('ef_arr'),arr_date:g('ef_arr'),arr_time:g('ef_arrt')})],
+          D:[Object.assign(itBlank(),{flight:g('ef_depf'),dep_date:g('ef_dep'),dep_time:g('ef_dept'),arr_date:g('ef_dep')})]};}
+function itmToggle(){var m=_mem[_emIdx];if(!m)return;
+  if(_itM){itmPull();_itM=null;}else{_itM=itmSeed(m);}
+  itmRender();}
+async function itmSave(){if(!_itM)return;itmPull();
+  var m=_mem[_emIdx];
+  if(!m||!m.id){alert(T('Save the member first, then add the itinerary.'));return;}
+  var A=_itM.A.filter(function(l){return l.flight}),D=_itM.D.filter(function(l){return l.flight});
+  var bad=A.concat(D).some(function(l){return !l.dep_date;});
+  if(bad){alert(T('Every leg needs a flight number and a departure date.'));return;}
+  var patch={arr_legs:A,dep_legs:D,itinerary_at:new Date().toISOString(),itinerary_src:'NPC portal (individual)'};
+  var rep=itRep(A,D);Object.keys(rep).forEach(function(k){patch[k]=rep[k];});
+  var r=await db.updMember(m.id,patch);
+  if(r&&r.error){alert(r.error.message);return;}
+  Object.assign(m,patch);
+  var setv=function(id,v){var e=document.getElementById(id);if(e&&v!=null)e.value=v;};
+  setv('ef_arr',rep.arrive);setv('ef_arrf',rep.arr_flight);setv('ef_arrt',rep.arr_time);
+  setv('ef_dep',rep.depart);setv('ef_depf',rep.dep_flight);setv('ef_dept',rep.dep_time);
+  _itM=null;itmRender();}
 /* ===== Group flight schedules ===== */
 function gfOf(g){return (_gf||[]).find(function(x){return x.grp===g})||{};}
 function gfInputs(sfx,gf){gf=gf||{};
@@ -13984,10 +14035,7 @@ function memModalHtml(m,i){
   '<div class="msec">'+L('DEPARTURE')+'</div>'+
   '<div class="row" style="gap:8px">'+fld(L('Date'),inp('ef_dep',m.depart,'date'))+fld(L('Flight'),inp('ef_depf',m.dep_flight))+fld(L('Take-off'),inp('ef_dept',m.dep_time,'time'))+'</div>'+
   '</div>'+
-  '<div class="msec">'+L('CONNECTING FLIGHTS')+'</div>'+
-  '<div class="row" style="gap:8px;align-items:center;margin:4px 0 2px"><div style="flex:1;font-size:12px" class="muted">'+
-    (itLegs(m,'arr_legs').length?(L('Entered')+' — '+esc(itChainOf(m))):L('Not entered yet — add every leg incl. connections.'))+
-  '</div><span class="muted" style="font-size:11px">'+L('Edit in the Group flight schedules card below.')+'</span></div>'+
+  '<div id="itmwrap">'+itmHtml(m)+'</div>'+
   '<div class="msec">'+L('STAY')+'</div>'+
   '<div class="row" style="gap:8px">'+fld(L('Room type'),sel('ef_room',m.room,['Twin','Single']))+fld(L('Wheelchair'),sel('ef_wc',m.wheelchair,['No','Yes']))+'</div>'+
   '</div></div></div></div>';
@@ -13996,7 +14044,7 @@ function efNoLastChg(){var cb=document.getElementById('ef_nolast'),el=document.g
   if(!cb||!el)return;
   if(cb.checked){el.value='';el.disabled=true;el.classList.remove('fmiss');el.style.background='#eceff3';}
   else{el.disabled=false;el.style.background='';el.focus();}}
-function openMemModal(){var m=_mem[_emIdx];if(!m)return;var old=document.getElementById('mm');if(old)old.remove();document.body.insertAdjacentHTML('beforeend',memModalHtml(m,_emIdx));
+function openMemModal(){_itM=null;var m=_mem[_emIdx];if(!m)return;var old=document.getElementById('mm');if(old)old.remove();document.body.insertAdjacentHTML('beforeend',memModalHtml(m,_emIdx));
   efNoLastChg();
   REQ_EF.forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',function(){el.classList.remove('fmiss')});});}
 function collectMem(){var _nl=document.getElementById('ef_nolast');return {first_name:$('#ef_first').value,last_name:(_nl&&_nl.checked)?'':$('#ef_last').value,position:$('#ef_pos').value,dob:$('#ef_dob').value,passport:$('#ef_pass').value,passport_expiry:$('#ef_pexp').value,sub_group:$('#ef_grp').value,arrive:$('#ef_arr').value,arr_flight:$('#ef_arrf').value,arr_time:$('#ef_arrt').value,depart:$('#ef_dep').value,dep_flight:$('#ef_depf').value,dep_time:$('#ef_dept').value,room:$('#ef_room').value,wheelchair:$('#ef_wc').value,follow_flight:(document.getElementById('ef_follow')&&document.getElementById('ef_follow').checked)?'Yes':'No'};}
