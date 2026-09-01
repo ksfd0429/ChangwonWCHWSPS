@@ -1233,8 +1233,11 @@ function polRoute(f){var k=String(f||'').toUpperCase().replace(/[\s\-]/g,'');
   k=k.replace(/^([A-Z]{1,3})0*(\d+)$/,function(_,a,b){return a+parseInt(b,10);});
   return POL_ROUTES[k]||'';}
 function polFlLine(date,fl,time){
-  var r=polRoute(fl);
-  return esc(date||'0000-00-00')+(date?polDW(date):' (  )')+' '+esc(fl)+' '+esc(time||'00:00')+' ('+(r?esc(r):'출발지/도착지')+')';}
+  var r=polRoute(fl);var q=[];
+  if(date)q.push(esc(date)+polDW(date));
+  q.push(esc(fl));
+  if(time)q.push(esc(time));
+  return q.join(' ')+' ('+(r?esc(r):'출발지/도착지')+')';}
 /* ── 일정별 실탄 회신(ammo_flight:<NPC>) 자동 반영 ── */
 function polAmmo(c,t){
   try{var e=(dataS().oc_settings||[]).find(function(x){return x.key==='ammo_flight:'+c});
@@ -1291,7 +1294,8 @@ function polTeamLegs(t,role){var k=(role==='arr')?'arr_legs':'dep_legs';var src=
 function polLegLine(l){var d=l.dep_date||'',tm=l.dep_time||'';
   var r=apKo(l.from,l.from_name)+'/'+apKo(l.to,l.to_name);
   if(r==='/')r='출발지/도착지';
-  return esc(d||'0000-00-00')+(d?polDW(d):' (  )')+' '+esc(l.flight||'')+' '+esc(tm||'00:00')+' ('+esc(r)+')';}
+  var q=[];if(d)q.push(esc(d)+polDW(d));q.push(esc(l.flight||''));if(tm)q.push(esc(tm));
+  return q.join(' ')+' ('+esc(r)+')';}
 function polStation(a){return a==='김해'?'부산광역시경찰청장':'인천광역시경찰청장';}
 function polGunSum(gl){
   var cnt={};gl.forEach(function(g){var k=polTypeK(g.type);cnt[k]=(cnt[k]||0)+1;});
@@ -1398,7 +1402,7 @@ async function polHwpx(c,dryRun,_port,_incUn){
     var date=role==='in'?t.arrive:t.depart,time=role==='in'?t.arr_time:t.dep_time,fl=role==='in'?t.arr_flight:t.dep_flight;
     if(!L.length)return hd+' '+esc(date||'')+polDW(date||'')+' '+esc(fl||'')+' '+esc(time||'');
     return hd+(L.length>1?'<hp:lineBreak/>':' ')+L.map(function(f,i){var edge=(role==='in')?(i===L.length-1):(i===0);
-      return polFlLine(edge?date:'',f,edge?time:'');}).join('<hp:lineBreak/>');}
+      return polFlLine(date||'',f,edge?(time||''):'');}).join('<hp:lineBreak/>');}
   teams.forEach(function(t,i){
     var ath=t.members.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;
     var tg=t.guns.map(function(x){return x.g;});
@@ -1516,11 +1520,11 @@ function polGen(c,_port,_incUn){
     h+='입 국 :'+(aL.length>1?'<br>':' ');
     if(!aL.length)h+=esc(t.arrive)+polDW(t.arrive)+' '+esc(t.arr_flight)+' '+esc(t.arr_time);
     else h+=aL.map(function(f,i){var last=(i===aL.length-1);
-      return polFlLine(last?t.arrive:'',f,last?t.arr_time:'');}).join('<br>');
+      return polFlLine(t.arrive||'',f,last?t.arr_time:'');}).join('<br>');
     h+='<br>출 국 :'+(dL.length>1?'<br>':' ');
     if(!dL.length)h+=esc(t.depart)+polDW(t.depart)+' '+esc(t.dep_flight)+' '+esc(t.dep_time);
     else h+=dL.map(function(f,i){var first=(i===0);
-      return polFlLine(first?t.depart:'',f,first?t.dep_time:'');}).join('<br>');
+      return polFlLine(t.depart||'',f,first?t.dep_time:'');}).join('<br>');
     return h;}
   function teamTable(t){
     var order=[],by={};
