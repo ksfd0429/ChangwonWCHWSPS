@@ -367,6 +367,24 @@ function gunAirp(fl,role){ // role:'arr'(마지막 구간 도착지)|'dep'(첫 �
   var r=polRoute(f);if(!r)return 'TBD';
   var p=r.split('/');var ap=(role==='arr')?p[p.length-1]:p[0];
   return ap.replace(/\(.*?\)/g,'');}
+function gunKrTimes(m){ /* 한국 최초 입국(해외→한국 구간) / 한국 최초 출국(한국→해외 구간) 기준 일시 */
+  var KR={ICN:1,GMP:1,PUS:1,CJU:1,TAE:1,KWJ:1,CJJ:1};
+  var r={aDate:(m&&m.arrive)||'',aTime:(m&&m.arr_time)||'',aFl:'',dDate:(m&&m.depart)||'',dTime:(m&&m.dep_time)||'',dFl:''};
+  if(!m)return r;
+  var A=polLegsArr(m,'arr_legs');
+  for(var i=0;i<A.length;i++){var l=A[i];
+    if(KR[String(l.to||'').toUpperCase()]&&!KR[String(l.from||'').toUpperCase()]){
+      r.aDate=l.arr_date||l.dep_date||r.aDate;r.aTime=l.arr_time||r.aTime;r.aFl=l.flight||'';break;}}
+  var D=polLegsArr(m,'dep_legs');
+  for(var j=0;j<D.length;j++){var l2=D[j];
+    if(KR[String(l2.from||'').toUpperCase()]&&!KR[String(l2.to||'').toUpperCase()]){
+      r.dDate=l2.dep_date||r.dDate;r.dTime=l2.dep_time||r.dTime;r.dFl=l2.flight||'';break;}}
+  return r;}
+function gunKrCell(date,base,time,fl){ /* 기준일이 대표일과 다르면 날짜까지 표기 */
+  var t=String(time||'');if(!t)return '';
+  var d=String(date||''),b=String(base||'');
+  var out=(d&&d!==b)?(d.slice(5)+' '+t):t;
+  return fl?(out+' ('+fl+')'):out;}
 function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
  var s=dataS();var rows=(s.firearms||[]).slice().sort(function(a,b){return String(a.country+'|'+a.owner).localeCompare(String(b.country+'|'+b.owner));});
  if(!rows.length){alert('등록된 총기가 없습니다.');return;}
@@ -375,11 +393,12 @@ function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
    return {g:g,m:m,aA:aA,dA:dA};});
  if(filt)recs=recs.filter(function(r){return r.aA===filt||r.dA===filt;});
  if(!recs.length){alert(filt+' 경유 총기가 없습니다.');return;}
- var hdr=['No.','국가','소지자','여권번호','제조사','모델','총번','종류','구경','입국일','입국편','입국공항','출국일','출국편','출국공항','사진','사진(전체) URL','사진(총번) URL'];
+ var hdr=['No.','국가','소지자','여권번호','제조사','모델','총번','종류','구경','입국일','입국편','입국공항','한국 입국시각','출국일','출국편','출국공항','한국 출국시각','사진','사진(전체) URL','사진(총번) URL'];
  var pu=function(u){u=String(u||'');if(!u)return '';if(u.slice(0,5)==='data:'||u.length>2000)return '(inline photo — admin 화면에서 열람)';return u;};
  var data=recs.map(function(r,i){var g=r.g,m=r.m;
+   var kt=gunKrTimes(m);
    return [i+1,g.country||'',g.owner||'',(m&&m.passport)||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||'',
-     (m&&m.arrive)||'',(m&&m.arr_flight)||'',r.aA,(m&&m.depart)||'',(m&&m.dep_flight)||'',r.dA,
+     (m&&m.arrive)||'',(m&&m.arr_flight)||'',r.aA,gunKrCell(kt.aDate,(m&&m.arrive)||'',kt.aTime,kt.aFl),(m&&m.depart)||'',(m&&m.dep_flight)||'',r.dA,gunKrCell(kt.dDate,(m&&m.depart)||'',kt.dTime,kt.dFl),
      ((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),pu(g.photo_full),pu(g.photo_num)];});
  var tag=filt==='인천'?'ICN':filt==='김해'?'GIMHAE':'ALL';
  var fn='Changwon2026_Firearms_'+tag+'_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx';
@@ -389,7 +408,7 @@ function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
   for(var ri=0;ri<data.length;ri++){for(var t=0;t<TXT.length;t++){var ci=TXT[t];
     var cc=ws[XLSX.utils.encode_cell({r:ri+1,c:ci})];
     if(cc){cc.t='s';cc.v=String(data[ri][ci]==null?'':data[ri][ci]);cc.z='@';}}}
-  ws['!cols']=[{wch:5},{wch:6},{wch:24},{wch:13},{wch:16},{wch:14},{wch:14},{wch:11},{wch:8},{wch:11},{wch:15},{wch:9},{wch:11},{wch:15},{wch:9},{wch:6},{wch:40},{wch:40}];
+  ws['!cols']=[{wch:5},{wch:6},{wch:24},{wch:13},{wch:16},{wch:14},{wch:14},{wch:11},{wch:8},{wch:11},{wch:15},{wch:9},{wch:17},{wch:11},{wch:15},{wch:9},{wch:17},{wch:6},{wch:40},{wch:40}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,filt?('Firearms_'+tag):'Firearms');
   XLSX.writeFile(wb,fn);
  }
