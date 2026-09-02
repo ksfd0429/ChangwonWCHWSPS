@@ -1359,7 +1359,8 @@ var _hwpxTplBuf=null;
 function _hxKd(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?(m[1]+'. '+m[2]+'. '+m[3]+'.'):'';}
 function _hxRegion(xml,tok,open,close){var i=xml.indexOf(tok);if(i<0)throw new Error('token missing: '+tok);var a=xml.lastIndexOf('<'+open,i);var b=xml.indexOf('</'+close+'>',i)+close.length+3;if(a<0||b<close.length+3)throw new Error('region fail: '+tok);return {a:a,b:b,tpl:xml.slice(a,b)};}
 function _hxBlock(xml,tokA,tokB){var i=xml.indexOf(tokA),j=xml.indexOf(tokB);if(i<0||j<0)throw new Error('token missing: '+tokA);var a=xml.lastIndexOf('<hp:p',i);var b=xml.indexOf('</hp:p>',j)+7;return {a:a,b:b,tpl:xml.slice(a,b)};}
-function _hxFill(tpl,map){var o=tpl;for(var k in map){o=o.split('{{'+k+'}}').join(map[k]);}return o;}
+function _hxClean(v){return String(v==null?'':v).replace(/[\u0000-\u0008\u0009\u000A-\u000D\u000E-\u001F\u007F]/g,' ');} /* 탭·개행·제어문자 → 공백 (한/글 무한 로딩 방지) */
+function _hxFill(tpl,map){var o=tpl;for(var k in map){o=o.split('{{'+k+'}}').join(_hxClean(map[k]));}return o;}
 function _hxUniqTbl(xml,base){var i=0;return xml.replace(/<hp:tbl\b[^>]*>/g,function(tag){var _id=base+i,_z=i;i++;return tag.replace(/\bid="\d+"/,'id="'+_id+'"').replace(/\bzOrder="\d+"/,'zOrder="'+_z+'"');});}
 /* lineseg 캐시를 실제 텍스트에 맞게 재구성: 명시적 줄바꿈이 있으면 줄 수만큼 생성,
    없으면 본문 길이를 벗어나는 textpos만 제거 (벗어나면 손상 판정, 부족하면 한 줄 압축 렌더링) */
