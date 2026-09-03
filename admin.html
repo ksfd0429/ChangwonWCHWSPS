@@ -1337,7 +1337,13 @@ function apPort(code){var c=String(code||'').toUpperCase();return c==='ICN'?'인
 function polLegsArr(m,k){try{var v=m?m[k]:null;if(typeof v==='string')v=JSON.parse(v||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
 function polTeamLegs(t,role){var k=(role==='arr')?'arr_legs':'dep_legs';var src=[];
   (t.guns||[]).forEach(function(x){if(x&&x.m)src.push(x.m);});(t.members||[]).forEach(function(m){src.push(m);});
-  for(var i=0;i<src.length;i++){var L=polLegsArr(src[i],k);if(L.length)return L;}
+  /* 여정의 편명 집합이 팀 대표 체인과 일치할 때만 채택 (그룹 이동·일정 변경 뒤 남은 낡은 여정 무시) */
+  var nf=function(f){return String(f||'').toUpperCase().replace(/[\s\-]/g,'').replace(/^([A-Z]{1,3})0*(\d+)$/,function(_,a,b){return a+parseInt(b,10);});};
+  var want=polLegs(role==='arr'?t.arr_flight:t.dep_flight).map(nf);
+  for(var i=0;i<src.length;i++){var L=polLegsArr(src[i],k);if(!L.length)continue;
+    var have=L.map(function(l){return nf(l.flight)});
+    var ok=want.every(function(f){return have.indexOf(f)>=0;}); /* 대표 체인의 편명이 모두 여정에 있어야 채택 */
+    if(ok)return L;}
   return null;}
 function polLegLine(l){var d=l.dep_date||'',tm=l.dep_time||'';
   var r=apKo(l.from,l.from_name)+'/'+apKo(l.to,l.to_name);
@@ -2012,7 +2018,29 @@ async function sendResetMail(c){var s=dataS();var a=s.npc_accounts.find(function
   s.outbox.push({id:s._seq,to:a.email,country:c,kind:'reset',token:'tk_'+s._seq+'_'+Math.random().toString(36).slice(2,10),sent_at:new Date().toISOString().slice(0,16).replace('T',' '),used:false});
   mS(s);alert('리셋 링크 발송(데모: NPC 화면 Inbox (demo)).');scrMain();}
 function detInv(id){var s=dataS();var L=s.invitations.find(function(x){return x.id===id});if(!L)return;var mem=s.members.filter(function(m){return (L.member_ids||[]).indexOf(m.id)>=0});
-  infoModal(esc(L.country)+' — '+esc(L.title),'<div class="tbl"><table><thead><tr><th>Name</th><th>Position</th><th>DOB</th><th>Passport</th><th>Stay</th></tr></thead><tbody>'+mem.map(function(m){return '<tr><td>'+esc(memName(m))+'</td><td>'+esc(m.position||'')+'</td><td>'+esc(m.dob||'')+'</td><td>'+esc(m.passport||'')+'</td><td>'+esc(m.arrive||'')+' ~ '+esc(m.depart||'')+'</td></tr>'}).join('')+'</tbody></table></div>');}
+  infoModal(esc(L.country)+' — '+esc(L.title),'<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="btn sm" onclick="invXls('+id+')">⬇ 엑셀</button></div><div class="tbl"><table><thead><tr><th>#</th><th>Name</th><th>Position</th><th>DOB</th><th>Passport</th><th>Stay</th></tr></thead><tbody>'+mem.map(function(m,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(memName(m))+'</td><td>'+esc(m.position||'')+'</td><td>'+esc(m.dob||'')+'</td><td>'+esc(m.passport||'')+'</td><td>'+esc(m.arrive||'')+' ~ '+esc(m.depart||'')+'</td></tr>'}).join('')+'</tbody></table></div>');}
+function invXls(id){var s=dataS();var L=s.invitations.find(function(x){return x.id===id});if(!L)return;var mem=s.members.filter(function(m){return (L.member_ids||[]).indexOf(m.id)>=0});
+ var title=(L.title||'Entire delegation');
+ var hdr=['#','Full Name','Position','Date of Birth','Passport No.','Passport Expiry','Arrival','Departure','Period of Stay'];
+ var data=mem.map(function(m,i){return [i+1,memName(m),m.position||'',m.dob||'',m.passport||'',m.passport_expiry||'',m.arrive||'',m.depart||'',(m.arrive||'')+' ~ '+(m.depart||'')];});
+ var fn=L.country+'_invitation_'+title.replace(/[^A-Za-z0-9가-힣]+/g,'_').replace(/^_+|_+$/g,'')+'_'+today().replace(/-/g,'')+'.xlsx';
+ function build(){
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet([[L.country+' — '+title+(L.reg_no?'  ('+L.reg_no+')':'')],[]].concat([hdr]).concat(data));
+  ws['!cols']=[{wch:4},{wch:32},{wch:16},{wch:12},{wch:14},{wch:14},{wch:12},{wch:12},{wch:24}];
+  for(var r=0;r<data.length;r++){var c=XLSX.utils.encode_cell({r:r+3,c:4});if(ws[c])ws[c].t='s';}
+  XLSX.utils.book_append_sheet(wb,ws,'Invitation');
+  XLSX.writeFile(wb,fn);
+ }
+ if(window.XLSX){build();return;}
+ var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+ sc.onload=build;
+ sc.onerror=function(){
+  var q=function(v){v=String(v==null?'':v);return '"'+v.replace(/"/g,'""')+'"';};
+  var csv='﻿'+[hdr].concat(data).map(function(r){return r.map(q).join(',');}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=fn.replace(/\.xlsx$/,'.csv');a.click();
+ };
+ document.head.appendChild(sc);}
 function detF(i){var s=dataS();var x=s.firearm_submissions[i];if(!x)return;var sc=(x.grp||'*ALL*');
   var list=s.firearms.filter(function(g){if(g.country!==x.country)return false;if(sc==='*ALL*')return true;var m=s.members.find(function(mm){return mm.country===g.country&&(memName(mm)===g.owner||mm.name===g.owner)});return m&&(((m.sub_group||'').trim())||'(Ungrouped)')===sc;});
   infoModal(esc(x.country)+' — firearms ('+esc(sc)+')','<div class="tbl"><table><thead><tr><th>Owner</th><th>Manufacturer</th><th>Model</th><th>Serial</th><th>Type</th><th>Caliber</th><th>Photos</th></tr></thead><tbody>'+list.map(function(g){return '<tr><td>'+esc(g.owner)+'</td><td>'+esc(g.manufacturer)+'</td><td>'+esc(g.model)+'</td><td>'+esc(g.serial)+'</td><td>'+esc(g.type)+'</td><td>'+esc(g.caliber)+'</td><td>'+((g.photo_full&&g.photo_num)?'2/2':'incomplete')+'</td></tr>'}).join('')+'</tbody></table></div>');}
