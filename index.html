@@ -13810,16 +13810,29 @@ function renderTeam(){
 /* ===== Full itinerary (connecting flights) — inline leg rows ===== */
 var _itX={};
 function jsq(v){return "'"+String(v==null?'':v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+"'";}
+/* 여정(legs)과 대표 편명 체인의 일치 여부 — 그룹 이동·일정 변경으로 낡은 여정이 남아 있으면 무시/정리 */
+function itNf(f){return String(f||'').toUpperCase().replace(/[\s\-]/g,'').replace(/^([A-Z]{1,3})0*(\d+)$/,function(_,a,b){return a+parseInt(b,10);});}
+function itChainArr(str){return String(str||'').split(/[,\/]+/).map(function(x){return itNf(x.trim())}).filter(Boolean);}
+function itCovers(L,chain){ /* 대표 체인의 편명이 모두 여정에 포함되면 일치로 본다(여정에 출발지 구간이 더 있어도 됨) */
+  var have=(L||[]).map(function(l){return itNf(l.flight)});var want=itChainArr(chain);
+  return want.length>0&&want.every(function(f){return have.indexOf(f)>=0});}
+function itLegsOk(m){var A=itLegs(m,'arr_legs'),D=itLegs(m,'dep_legs');if(!A.length&&!D.length)return false;
+  var okA=!A.length||itCovers(A,m.arr_flight);var okD=!D.length||itCovers(D,m.dep_flight);
+  return okA&&okD;}
+function itStalePatch(m,af,df){ /* 새 대표 편명(af/df)과 어긋나는 여정은 비운다 */
+  var A=itLegs(m,'arr_legs'),D=itLegs(m,'dep_legs');if(!A.length&&!D.length)return null;
+  var bad=(A.length&&!itCovers(A,af))||(D.length&&!itCovers(D,df));
+  return bad?{arr_legs:[],dep_legs:[],itinerary_src:'cleared: flights changed '+new Date().toISOString().slice(0,10)}:null;}
 function itBlank(){return {flight:'',from:'',to:'',dep_date:'',dep_time:'',arr_date:'',arr_time:''};}
 function itLegs(m,k){try{var v=m?m[k]:null;if(typeof v==='string')v=JSON.parse(v||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
 function itGrpLegs(g){var mm=(g==='*ALL*'?_mem:scopeMembers(g));
-  var n=mm.filter(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length}).length;
+  var n=mm.filter(function(m){return itLegsOk(m)}).length;
   return {n:n,tot:mm.length};}
-function itChainOf(m){var A=itLegs(m,'arr_legs');if(!A.length)return '';
+function itChainOf(m){if(!itLegsOk(m))return '';var A=itLegs(m,'arr_legs');if(!A.length)return '';
   return A.map(function(l){return l.flight}).filter(Boolean).join(' / ');}
 function itSeed(g){ /* 기존 그룹/개인 일정을 여정 첫 구간으로 채워 넣는다 */
   var mm=(g==='*ALL*'?_mem:scopeMembers(g));
-  var have=mm.filter(function(m){return itLegs(m,'arr_legs').length||itLegs(m,'dep_legs').length});
+  var have=mm.filter(function(m){return itLegsOk(m)});
   /* 전체 단위 패널은 모든 인원이 이미 같은 여정을 가진 경우에만 기존 값을 불러온다.
      일부만 입력된 상태에서 남의 여정이 미리 채워져 전원에게 덮어써지는 사고 방지 */
   var src=(g==='*ALL*'&&have.length!==mm.length)?null:have[0];
@@ -13925,7 +13938,7 @@ function itmHtml(m){
   var n=itLegs(m,'arr_legs').length+itLegs(m,'dep_legs').length;
   var h='<div class="msec">'+L('CONNECTING FLIGHTS')+'</div>'+
    '<div class="row" style="gap:8px;align-items:center;margin:4px 0 2px"><div style="flex:1;font-size:12px" class="muted">'+
-   (n?(L('Entered')+' — '+esc(itChainOf(m))):L('Not entered yet — add every leg incl. connections.'))+'</div>'+
+   (itLegsOk(m)?(L('Entered')+' — '+esc(itChainOf(m))):L('Not entered yet — add every leg incl. connections.'))+'</div>'+
    '<button type="button" class="btn '+(_itM?'y':'sec')+'" style="padding:4px 10px;font-size:11px;min-height:0" onclick="itmToggle()">'+(_itM?'&#9662; ':'&#9656; ')+Li('Itinerary')+'</button></div>';
   if(_itM){
     h+='<p class="muted" style="font-size:11.5px;margin:4px 0 4px">'+L('Enter the whole journey in travel order — the flight already entered above is included as one leg. Airport codes: ICN Incheon, PUS Gimhae.')+'</p>';
@@ -13944,7 +13957,7 @@ function itmPull(){if(!_itM)return;
   if(document.getElementById('itf_DM0')||!_itM.D.length)_itM.D=itRead('DM',_itM.D.length);}
 function itmSeed(m){
   var A=itLegs(m,'arr_legs'),D=itLegs(m,'dep_legs');
-  if(A.length||D.length)return {A:A.map(function(l){return Object.assign(itBlank(),l)}),D:D.map(function(l){return Object.assign(itBlank(),l)})};
+  if(itLegsOk(m)&&(A.length||D.length))return {A:A.map(function(l){return Object.assign(itBlank(),l)}),D:D.map(function(l){return Object.assign(itBlank(),l)})};
   var g=function(id){var e=document.getElementById(id);return e?(e.value||'').trim():'';};
   return {A:[Object.assign(itBlank(),{flight:g('ef_arrf'),dep_date:g('ef_arr'),arr_date:g('ef_arr'),arr_time:g('ef_arrt')})],
           D:[Object.assign(itBlank(),{flight:g('ef_depf'),dep_date:g('ef_dep'),dep_time:g('ef_dept'),arr_date:g('ef_dep')})]};}
@@ -13987,7 +14000,9 @@ function gfCollect(sfx){var ids=['gfa','gfaf','gfat','gfd','gfdf','gfdt'];var ks
   for(var j=0;j<6;j++){var el=document.getElementById(ids[j]+sfx);var v=el?(el.value||'').trim():'';var ok=v!==''&&((ids[j]!=='gfat'&&ids[j]!=='gfdt')||timeOk(v));if(el)el.classList.toggle('fmiss',!ok);if(!ok)bad++;o[ks[j]]=v;}
   return bad?null:o;}
 async function gfPropagate(g,o){var t=_mem.filter(function(m){return m.follow_flight==='Yes'&&grpOf(m)===g});
-  for(var j=0;j<t.length;j++){await db.updMember(t[j].id,{arrive:o.arrive,arr_flight:o.arr_flight,arr_time:o.arr_time,depart:o.depart,dep_flight:o.dep_flight,dep_time:o.dep_time});pbStep();}return t.length;}
+  for(var j=0;j<t.length;j++){var up={arrive:o.arrive,arr_flight:o.arr_flight,arr_time:o.arr_time,depart:o.depart,dep_flight:o.dep_flight,dep_time:o.dep_time};
+    var sp=itStalePatch(t[j],o.arr_flight,o.dep_flight);if(sp)Object.assign(up,sp);
+    await db.updMember(t[j].id,up);pbStep();}return t.length;}
 async function gfSave(i){var g=_gfGroups[i];if(!g)return;var o=gfCollect(i);if(!o){alert(T('Fill in every field. Times must be 24-hour HH:MM (e.g. 14:30).'));return;}
   var fw=_mem.filter(function(m){return m.follow_flight==='Yes'&&grpOf(m)===g}).length;
   pbStart(fw+2);var r=await db.setGFlight(S.country,g,o);pbStep();if(r&&r.error){alert(r.error.message);return;}
@@ -14064,6 +14079,7 @@ async function memSave(flash){var m=_mem[_emIdx];if(!m||!document.getElementById
   var p=collectMem();
   if(p.follow_flight==='Yes'){var gk=((p.sub_group||'').trim())||'(Ungrouped)';var gfr=(_gf||[]).find(function(x){return x.grp===gk});
     if(gfr){p.arrive=gfr.arrive;p.arr_flight=gfr.arr_flight;p.arr_time=gfr.arr_time;p.depart=gfr.depart;p.dep_flight=gfr.dep_flight;p.dep_time=gfr.dep_time;}}
+  var sp=itStalePatch(m,p.arr_flight,p.dep_flight);if(sp)Object.assign(p,sp);
   Object.assign(m,p);pbStart(1);var r=await db.updMember(m.id,p);pbStep();
   if(r&&r.error){alert(r.error.message);return false;}
   if(flash){var b=$('#msv');if(b){b.textContent=T('Saved')+' ✓';setTimeout(function(){var b2=$('#msv');if(b2)b2.textContent=T('Save');},900);}}
