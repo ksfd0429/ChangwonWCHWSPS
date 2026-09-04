@@ -1345,7 +1345,8 @@ function polTeamLegs(t,role){var k=(role==='arr')?'arr_legs':'dep_legs';var src=
     var ok=want.every(function(f){return have.indexOf(f)>=0;}); /* 대표 체인의 편명이 모두 여정에 있어야 채택 */
     if(ok)return L;}
   return null;}
-function polLegLine(l){var d=l.dep_date||'',tm=l.dep_time||'';
+function polLegLine(l,role){ /* 입국(arr) 구간은 도착일·도착시각, 출국(dep) 구간은 출발일·출발시각 기준 */
+  var isA=(role==='arr');var d=isA?(l.arr_date||l.dep_date||''):(l.dep_date||''),tm=isA?(l.arr_time||''):(l.dep_time||'');
   var r=apKo(l.from,l.from_name)+'/'+apKo(l.to,l.to_name);
   if(r==='/')r='출발지/도착지';
   var q=[];if(d)q.push(esc(d)+polDW(d));q.push(esc(l.flight||''));if(tm)q.push(esc(tm));
@@ -1459,7 +1460,7 @@ async function polHwpx(c,dryRun,_port,_incUn){
   function flightHalf(t,role){
     var hd=(role==='in'?'입 국 :':'출 국 :');
     var LG=polTeamLegs(t,role==='in'?'arr':'dep');
-    if(LG&&LG.length)return hd+(LG.length>1?'<hp:lineBreak/>':' ')+LG.map(polLegLine).join('<hp:lineBreak/>');
+    if(LG&&LG.length)return hd+(LG.length>1?'<hp:lineBreak/>':' ')+LG.map(function(l){return polLegLine(l,role==='in'?'arr':'dep');}).join('<hp:lineBreak/>');
     var L=polLegs(role==='in'?t.arr_flight:t.dep_flight);
     var date=role==='in'?t.arrive:t.depart,time=role==='in'?t.arr_time:t.dep_time,fl=role==='in'?t.arr_flight:t.dep_flight;
     if(!L.length)return hd+' '+esc(date||'')+polDW(date||'')+' '+esc(fl||'')+' '+esc(time||'');
@@ -1575,8 +1576,8 @@ function polGen(c,_port,_incUn){
   function teamFlights(t){
     var _AL=polTeamLegs(t,'arr'),_DL=polTeamLegs(t,'dep');
     if((_AL&&_AL.length)||(_DL&&_DL.length)){var hh='';
-      hh+='입 국 :'+((_AL&&_AL.length>1)?'<br>':' ')+((_AL&&_AL.length)?_AL.map(polLegLine).join('<br>'):'(기재)');
-      hh+='<br>출 국 :'+((_DL&&_DL.length>1)?'<br>':' ')+((_DL&&_DL.length)?_DL.map(polLegLine).join('<br>'):'(기재)');
+      hh+='입 국 :'+((_AL&&_AL.length>1)?'<br>':' ')+((_AL&&_AL.length)?_AL.map(function(l){return polLegLine(l,'arr');}).join('<br>'):'(기재)');
+      hh+='<br>출 국 :'+((_DL&&_DL.length>1)?'<br>':' ')+((_DL&&_DL.length)?_DL.map(function(l){return polLegLine(l,'dep');}).join('<br>'):'(기재)');
       return hh;}
     if(!t.arrive&&!t.depart)return '입 국 : (기재) / 출 국 : (기재)';
     var aL=polLegs(t.arr_flight),dL=polLegs(t.dep_flight),h='';
