@@ -106,7 +106,7 @@ details .f{margin:8px 0 4px}
    </div>
   </div>
   <div class="row" style="margin-top:6px">
-   <button class="btn g" style="flex:1" onclick="savePdf()">🖨 PDF로 저장 (앞·뒷면 A4)</button>
+   <button class="btn g" style="flex:1" onclick="savePdf()">🖨 PDF 저장 / 인쇄</button>
    <button class="btn sec" onclick="savePng()">PNG 저장 (앞면)</button>
   </div>
   <p class="hint">PDF: 인쇄 대화상자에서 <b>대상 = PDF로 저장</b>, 여백 없음, 배경 그래픽 켬. 파일명은 "AD - 성 이름"으로 제안됩니다. PNG는 앞면을 300 dpi로 바로 내려받습니다.</p>
@@ -132,7 +132,7 @@ var BAND={NPC:'#00A651',WSPS:'#0081C8',LOC:'#EE334E'};
 var POS={
  NPC:[['Athlete','Aa',[2]],['Team Leader','Ac',[2,4,5,6]],['Coach','Ao',[2]],['Administrative Personnel','Ao',[2]],['Medical Personnel','Ao',[2]],['Competition Assistant','Ao',[2]],['Technical Personnel','Ao',[2]],['Press Attaché','Ao',[2,4,5]],['NPC Representative','NPC',[6]],['Guest','NPC',[6]]],
  WSPS:[['Technical Delegate','WPSU',[2,4,5,6]],['Technical Official','WPSU',[2]],['Staff','WPSU',[2,4,5,6]],['Guest','WPSU',[6]]],
- LOC:[['LOC President','LOC',[2,4,5,6]],['LOC Executive Board Member','LOC',[2,4,5,6]],['Staff','LOC',[2,4,5,6]],['Volunteer','LOC',[2,4,5,6]]]
+ LOC:[['LOC President','LOC',[2,4,5,6]],['LOC Executive Board Member','LOC',[2,4,5,6]],['Staff','LOC',[2,4,5,6]],['Volunteer','LOC',[2,4,5,6]],['Guest','LOC',[6]]]
 };
 
 function $(s){return document.querySelector(s)}
