@@ -289,7 +289,7 @@ async function scrMain(){
   var pAM=_amMeta.filter(function(x){return x.status==='submitted';}).length;
   var _amCfg={open:false,deadline:'',pack:250};
   try{var _c=(s.oc_settings||[]).filter(function(x){return x.key==='ammo_survey';})[0];if(_c){_amCfg=Object.assign(_amCfg,(typeof _c.value==='string')?JSON.parse(_c.value):_c.value);}}catch(e){}
-  var _amP={};_amProd.forEach(function(p){_amP[p.id]=p;});
+  var _amP={};_amProd.forEach(function(p){_amP[p.id]=p;});var _amIR=ammoInvRate(s),_amInv=ammoInvAll(s);
   function _amUnit(id){var p=_amP[id];return p?(+p.price_eur)/((+p.pack)||250):0;}
   function _amEur(n){return '€ '+(Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
   var _amByC={};
@@ -308,13 +308,16 @@ async function scrMain(){
    '<div class="stat"><b>'+_amTotR.toLocaleString()+'</b><span>초안 포함 발수</span></div>'+
    '<div class="stat"><b>'+_amEur(_amTotE)+'</b><span>탄약 금액만</span></div></div>'+
    '<p class="muted" style="font-size:11.5px;margin:6px 0 0">금액은 <b>탄약 대금만</b>이며 <b>운송비는 미포함·미정</b>입니다. 발주 시 250발 케이스 단위 환산이 필요합니다. 마감 '+esc(_amCfg.deadline||'—')+'</p>'+
-   '<div class="row" style="margin-top:10px"><button class="btn sec" style="padding:4px 11px;font-size:12px" onclick="amXls()">⬇ 엑셀 다운로드</button></div></div>'+
-   '<div class="card"><b>국가별 제출 현황</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>NPC</th><th>선수</th><th>발수</th><th>케이스(250)</th><th>탄약 금액</th><th>상태</th><th>제출일</th><th>문서번호</th></tr></thead><tbody>'+
+   '<div class="row" style="margin-top:10px"><button class="btn sec" style="padding:4px 11px;font-size:12px" onclick="amXls()">⬇ 엑셀 다운로드</button><button class="btn sec" style="padding:4px 11px;font-size:12px" onclick="ammoInvXls()">⬇ 실탄 인보이스 내역 엑셀</button></div>'+
+   '<p class="muted" style="font-size:11.5px;margin:8px 0 0"><b>실탄 인보이스</b>: NPC별 1장 · <b>EUR 전용</b> · 참가 인보이스(CW26INV-)와 <b>별도 문서·별도 번호(CW26AMM-)</b> · 단가 <b>'+_amIR.unit+' EUR / '+_amIR.per+'발</b> (케이스 250발 = '+(_amIR.unit*250/_amIR.per)+' EUR, 제품 구분 없음). 아래 표의 "인보이스 금액"이 청구액입니다.</p></div>'+
+   '<div class="card"><b>국가별 제출 현황</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>NPC</th><th>선수</th><th>발수</th><th>케이스(250)</th><th>탄약 금액<br><span style="font-weight:400;font-size:10px">(제품단가)</span></th><th>인보이스 금액<br><span style="font-weight:400;font-size:10px">('+_amIR.unit+' EUR/'+_amIR.per+'발)</span></th><th>상태</th><th>제출일</th><th>문서번호</th><th>실탄 인보이스</th></tr></thead><tbody>'+
    (_amCList.length?_amCList.map(function(c){
      var o=_amByC[c];var m=_amMeta.filter(function(x){return x.country===c;})[0]||{};
      var st=m.status==='submitted'?'<span class="tag g">제출</span>':(m.status==='received'?'<span class="tag b">접수</span>':'<span class="tag y">작성 중</span>');
-     return '<tr><td><b>'+esc(c)+'</b></td><td>'+Object.keys(o.ath).length+'</td><td><b>'+o.r.toLocaleString()+'</b></td><td>'+(o.r/((+_amCfg.pack)||250)).toFixed(1)+'</td><td>'+_amEur(o.e)+'</td><td>'+st+'</td><td>'+esc(String(m.submitted_at||'').slice(0,10))+'</td><td>'+esc(m.doc_no||m.remarks||'')+'</td></tr>';}).join('')
-    :'<tr><td colspan="8" class="muted">아직 제출된 수요조사가 없습니다.</td></tr>')+
+     var AI=_amInv[c]||{status:'draft'};var aiT=o.r/_amIR.per*_amIR.unit;
+     var aiH=(o.r>0?'<span class="tag '+(AI.status==='approved'?'g':'y')+'">'+(AI.status==='approved'?'CW26AMM-'+esc(AI.no):'미발행')+'</span> <button class="btn sec" style="padding:3px 9px;font-size:11.5px;min-height:0" onclick="ammoInvOpen(\''+c+'\')">열람·인쇄</button>':'<span class="muted">-</span>');
+     return '<tr><td><b>'+esc(c)+'</b></td><td>'+Object.keys(o.ath).length+'</td><td><b>'+o.r.toLocaleString()+'</b></td><td>'+(o.r/((+_amCfg.pack)||250)).toFixed(1)+'</td><td>'+_amEur(o.e)+'</td><td><b>'+_amEur(aiT)+'</b></td><td>'+st+'</td><td>'+esc(String(m.submitted_at||'').slice(0,10))+'</td><td>'+esc(m.doc_no||m.remarks||'')+'</td><td style="white-space:nowrap">'+aiH+'</td></tr>';}).join('')
+    :'<tr><td colspan="10" class="muted">아직 제출된 수요조사가 없습니다.</td></tr>')+
    '</tbody></table></div></div>'+
    '<div class="card"><b>제품별 집계 (발주용)</b><div class="tbl" style="margin-top:8px"><table><thead><tr><th>제품</th><th>발수</th><th>케이스(250)</th><th>금액</th></tr></thead><tbody>'+
    (Object.keys(_amProdAgg).length?Object.keys(_amProdAgg).sort(function(a,b){return _amProdAgg[b]-_amProdAgg[a];}).map(function(id){
@@ -401,7 +404,7 @@ async function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
    return [i+1,g.country||'',g.owner||'',(m&&m.passport)||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||'',
      (m&&m.arrive)||'',(m&&m.arr_flight)||'',r.aA,gunKrCell(kt.aDate,(m&&m.arrive)||'',kt.aTime,kt.aFl),(m&&m.depart)||'',(m&&m.dep_flight)||'',r.dA,gunKrCell(kt.dDate,(m&&m.depart)||'',kt.dTime,kt.dFl),
      ((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),pu(g.photo_full),pu(g.photo_num)];});
-/* ── 선수단(일정)별 시트: 1행=한 국가의 한 일정, 총기 종류별 정수 + 탄약 ── */
+ /* ── 선수단(일정)별 시트: 1행=한 국가의 한 일정, 총기 종류별 정수 + 탄약 ── */
  var teamRows=[];
  if(!filt){
   var _cl=[];(s.firearms||[]).forEach(function(g){if(_cl.indexOf(g.country)<0)_cl.push(g.country);});
@@ -522,6 +525,71 @@ function amXls(){
   var csv='﻿'+[hdr].concat(rows).map(function(r){return r.map(q).join(',');}).join('\r\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=fn.replace('.xlsx','.csv');a.click();};
  document.head.appendChild(sc);}
+/* ===== 산탄 실탄 인보이스 (NPC별 1장 · EUR 전용 · 기존 인보이스와 분리 · 번호 CW26AMM-) ===== */
+var AMMO_INV_RATE={unit:20,per:25}; /* 25발당 20 EUR (제품 구분 없이 동일) — oc_settings ammo_survey.inv_unit/inv_per 로 덮어쓰기 가능 */
+function ammoInvRate(s){var r=Object.assign({},AMMO_INV_RATE);try{var c=(s.oc_settings||[]).filter(function(x){return x.key==='ammo_survey';})[0];if(c){var v=(typeof c.value==='string')?JSON.parse(c.value):c.value;if(v&&+v.inv_unit>0)r.unit=+v.inv_unit;if(v&&+v.inv_per>0)r.per=+v.inv_per;}}catch(e){}return r;}
+function ammoInvEur(n){return (Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' EUR';}
+function ammoInvOf(s,c){try{var e=(s.oc_settings||[]).find(function(x){return x.key==='ammo_inv:'+c});if(e&&e.value){var v=(typeof e.value==='string')?JSON.parse(e.value):e.value;if(v)return v;}}catch(err){}return {status:'draft'};}
+function ammoInvAll(s){var o={};(s.oc_settings||[]).forEach(function(x){if(String(x.key||'').indexOf('ammo_inv:')===0){try{o[x.key.slice(9)]=(typeof x.value==='string')?JSON.parse(x.value):x.value;}catch(e){}}});return o;}
+function ammoInvNextNo(s){var mx=0,all=ammoInvAll(s);Object.keys(all).forEach(function(c){var n=parseInt(all[c].no,10);if(n>mx)mx=n;});return String(mx+1).padStart(3,'0');}
+function ammoInvItems(s,c){var P={};(s.ammo_products||[]).forEach(function(p){P[p.id]=p;});var R=ammoInvRate(s);
+  var mem={};(s.members||[]).forEach(function(m){mem[m.id]=m;});
+  var rows=(s.ammo_survey||[]).filter(function(r){return r.country===c&&((+r.rounds)||0)>0;}).slice().sort(function(a,b){var na=mem[a.member_id]?memName(mem[a.member_id]):'',nb=mem[b.member_id]?memName(mem[b.member_id]):'';return na<nb?-1:na>nb?1:0;});
+  return rows.map(function(r){var p=P[r.product_id]||{name:'',pack:250};var m=mem[r.member_id];var n=(+r.rounds)||0;var nm=m?((m.first_name||'')+' '+(m.last_name||'')).trim()||memName(m):('#'+r.member_id);
+    return {d:'Shotgun cartridges \u2014 '+(p.name||'')+'\n\u2014 '+nm,q:n.toLocaleString('en-US')+' rounds',m:(n/((+p.pack)||250)).toLocaleString('en-US',{maximumFractionDigits:2})+' case(s)',p:'* '+R.unit+' EUR / '+R.per+' rds =',t:n/R.per*R.unit,cur:'EUR',rounds:n,member_id:r.member_id,product:p.name||''};});}
+function ammoInvTotal(s,c){return ammoInvItems(s,c).reduce(function(a,b){return a+(+b.t||0)},0);}
+function ammoInvTableA(items){var R=null;
+  var h='<table style="width:100%;margin:10px 0;border-collapse:collapse;font-size:12px"><thead><tr><th style="border:1px solid #444;padding:5px 8px;width:36%">Description</th><th style="border:1px solid #444;padding:5px 8px">Quantity</th><th style="border:1px solid #444;padding:5px 8px">Cases (250)</th><th style="border:1px solid #444;padding:5px 8px">Price</th><th style="border:1px solid #444;padding:5px 8px;width:18%">Total</th></tr></thead><tbody>';
+  var tot=0,rd=0;items.forEach(function(r){tot+=(+r.t||0);rd+=(+r.rounds||0);
+    h+='<tr><td style="border:1px solid #bbb;padding:4px 8px">'+nl2brA(esc(r.d))+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.q||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.m||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+esc(r.p||'')+'</td><td style="border:1px solid #bbb;padding:4px 8px;text-align:right">'+ammoInvEur(+r.t||0)+'</td></tr>';});
+  h+='<tr><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:right" colspan="1">'+rd.toLocaleString('en-US')+' rounds in total</td><td colspan="2" style="border:none;padding:6px 8px"></td><td style="border:1px solid #444;padding:6px 8px;font-weight:bold;text-align:center;font-size:14px">TOTAL (EUR)</td><td style="border:1px solid #444;padding:6px 8px;text-align:right;font-weight:bold;font-size:14px">'+ammoInvEur(tot)+'</td></tr></tbody></table>';
+  return h;}
+function ammoInvAddr(s,c){var A=ammoInvOf(s,c);if(A.to||A.addr)return {to:A.to||'',addr:A.addr||''};
+  var vs=(s.invoices||[]).filter(function(v){return v.country===c;}).sort(function(a,b){return (b.id||0)-(a.id||0);});
+  if(vs.length)return {to:vs[0].title||'',addr:vs[0].addr||''};
+  var ia=(s.invoice_addresses||[]).find(function(a){return a.country===c&&a.grp==='*ALL*';})||(s.invoice_addresses||[]).find(function(a){return a.country===c&&a.grp!=='*AMMO*';});
+  return {to:cnameA(c)+' \u2014 NPC',addr:(ia&&ia.addr)||''};}
+function ammoInvBodyA(c){var s=dataS();var A=ammoInvOf(s,c);var isA=A.status==='approved';var ad=ammoInvAddr(s,c);var items=ammoInvItems(s,c);var R=ammoInvRate(s);
+  var ath={};items.forEach(function(i){ath[i.member_id]=1;});
+  return '<h2 style="font-size:20px;margin:8px 0 2px">INVOICE</h2><p style="text-align:center;font-weight:bold;margin:0 0 2px">Changwon 2026 WSPS World Championships</p><p style="text-align:center;font-weight:bold;margin:0 0 10px;font-size:13px">Shotgun Ammunition (Cartridges) \u2014 Separate invoice, payable in EUR</p>'+
+  '<table style="width:100%;font-size:12.5px;margin:0 0 8px;border-collapse:collapse"><tr><td style="border:none;padding:2px 4px;width:13%"><b>To:</b></td><td style="border:none;padding:2px 4px;font-weight:bold">'+esc(ad.to||'\u2014')+'</td><td style="border:none;padding:2px 4px;text-align:right;width:10%"><b>NPC:</b></td><td style="border:none;padding:2px 4px;width:14%;text-align:center;font-weight:bold;font-size:16px;color:#16456B">'+esc(c)+'</td></tr>'+
+  '<tr><td style="border:none;padding:2px 4px"><b>Address:</b></td><td style="border:none;padding:2px 4px" colspan="3">'+esc(ad.addr||'\u2014')+'</td></tr>'+
+  '<tr><td style="border:none;padding:2px 4px"><b>DATE</b></td><td style="border:none;padding:2px 4px"><span data-inv="date">'+(isA?dfmtA(A.approved_at):'\u2014')+'</span></td><td style="border:none;padding:2px 4px;text-align:right"><b>Invoice No.</b></td><td style="border:none;padding:2px 4px;text-align:center;font-weight:bold"><span data-inv="no">'+(isA?'CW26AMM-'+esc(A.no):'\u2014')+'</span></td></tr></table><hr class="docrule">'+
+  '<p style="font-size:11px;color:#555;margin:0 0 2px">'+esc(cnameA(c))+' delegation \u00b7 '+Object.keys(ath).length+' athlete(s) \u00b7 Shotgun ammunition demand survey \u00b7 '+R.unit+' EUR per '+R.per+' rounds ('+(R.unit*250/R.per)+' EUR per case of 250)</p>'+
+  ammoInvTableA(items)+
+  '<p style="font-size:11.5px;margin:6px 0 0">This invoice covers the <b>shotgun ammunition only</b> and is issued separately from the participation invoice (accommodation / transportation / firearms fee). It must not be combined with any other invoice. Transport of the ammunition, if any, is invoiced separately.</p>';}
+function ammoInvFootOpt(c){var s=dataS();var A=ammoInvOf(s,c);var isA=A.status==='approved';var b=bankS(s);
+  return {no:(isA?A.reg_no:null),date:A.approved_at,mid:(isA?'<div style="border:1px solid #999;padding:9px 12px;margin:10px 0;font-size:12.5px;line-height:1.6"><b>Banking Information</b><br>Bank: '+esc(b.bank)+'<br>SWIFT Code: '+esc(b.swift)+'<br>Account Holder: '+esc(b.holder)+'<br>Account No.: '+esc(A.account||b.account)+'<br>Address: '+esc(b.addr)+'</div><p style="font-size:11.5px"><b>NOTE:</b> Please make all the payments in <b>EUR (Euro)</b>. Any bank fees or charges must be paid by the payee on top of the balance at the time of payment. Ammunition is handed over only after the payment has been received.</p><p style="text-align:center;font-size:11px;color:#666">Issued electronically, valid without stamp and signature</p>':'')};}
+function ammoInvDocA(c,idOpt){var s=dataS();var A=ammoInvOf(s,c);var isA=A.status==='approved';
+  var body=A.doc_html?String(A.doc_html).replace(/(<span data-inv="date">)[\s\S]*?(<\/span>)/g,'$1'+(isA?dfmtA(A.approved_at):'\u2014')+'$2').replace(/(<span data-inv="no">)[\s\S]*?(<\/span>)/g,'$1'+(isA?'CW26AMM-'+esc(A.no):'\u2014')+'$2'):ammoInvBodyA(c);
+  return '<div class="doc" id="'+(idOpt||'adm_doc')+'">'+(isA?'':'<div class="wm"><span>PENDING<br>APPROVAL</span></div>')+docHeadA()+body+(isA?'':'<p>This is a <b>draft ammunition invoice</b>. Invoice number, date and Banking Information are entered by the OC upon approval.</p>')+docFootA(ammoInvFootOpt(c))+'</div>';}
+function ammoInvOpen(c){var s=dataS();if(!ammoInvItems(s,c).length){alert(c+': 수요조사에 신청 발수가 없습니다.');return;}var A=ammoInvOf(s,c);var isA=A.status==='approved';
+  _DRAFTSRC={kind:'ammo_inv',country:c};
+  docShow('실탄 인보이스 \u2014 '+esc(c)+' \u00b7 EUR'+(isA?' <span class="tag g">CW26AMM-'+esc(A.no)+'</span>':' <span class="tag y">pending</span>')+
+    ' <button class="btn" style="background:#1F6B42;padding:5px 12px;min-height:0;font-size:12px" onclick="'+(isA?'ammoInvRevoke':'ammoInvApprove')+'(\''+c+'\')">'+(isA?'승인 취소':'승인 · 번호 발급')+'</button>',ammoInvDocA(c,'adm_doc'));}
+async function ammoInvSave(c,A){if(LIVE){var r=await sbc.from('oc_settings').upsert({key:'ammo_inv:'+c,value:JSON.stringify(A)},{onConflict:'key'});if(r&&r.error){alert('저장 실패: '+r.error.message);return false;}try{await fetchAll();}catch(e){}return true;}
+  var st=mL();st.oc_settings=st.oc_settings||[];var e=st.oc_settings.find(function(x){return x.key==='ammo_inv:'+c});if(e)e.value=JSON.stringify(A);else st.oc_settings.push({key:'ammo_inv:'+c,value:JSON.stringify(A)});mS(st);return true;}
+async function ammoInvApprove(c){var s=dataS();var A=Object.assign({status:'draft'},ammoInvOf(s,c));if(!ammoInvItems(s,c).length){alert('신청 발수가 없습니다.');return;}
+  var no=prompt('실탄 인보이스 번호 (숫자 · CW26AMM-)',(A.no||ammoInvNextNo(s)));if(no==null)return;no=String(no).replace(/\D/g,'');if(!no){alert('번호가 필요합니다.');return;}no=no.padStart(3,'0');
+  var ad=ammoInvAddr(s,c);var to=prompt('수신처 (To)',ad.to||'');if(to==null)return;var addr=prompt('주소 (Address)',ad.addr||'');if(addr==null)return;
+  var acct=prompt('납부 계좌번호 (EUR 수취 계좌 · Banking Information에 기재)',(A.account||bankS(s).account));if(acct==null)return;
+  A.no=no;A.to=to.trim();A.addr=addr.trim();A.account=acct.trim();A.status='approved';A.approved_at=today();
+  if(LIVE){if(!A.reg_no){var reg=await issueDocno('invoice',c,'CW26AMM-'+no,'oc_settings','ammo_inv:'+c);if(reg==null)return;A.reg_no=reg;}}
+  else{A.reg_no=mockIssue(dataS(),'invoice',c,'CW26AMM-'+no,'oc_settings','ammo_inv:'+c);}
+  if(!(await ammoInvSave(c,A)))return;scrMain();openSec('ammo');ammoInvOpen(c);}
+async function ammoInvRevoke(c){var s=dataS();var A=ammoInvOf(s,c);if(!confirm(c+' 실탄 인보이스 승인을 취소할까요? (번호·날짜 제거, 문서대장 번호는 유지)'))return;
+  A.status='draft';A.approved_at='';if(!(await ammoInvSave(c,A)))return;scrMain();openSec('ammo');ammoInvOpen(c);}
+function ammoInvXls(){var s=dataS();var R=ammoInvRate(s);var all=ammoInvAll(s);
+  var hdr=['NPC','Country','Athlete','Product','Rounds','Cases(250)','Rate','Amount (EUR)','Invoice No.','Status','Date'];var rows=[];
+  var cs={};(s.ammo_survey||[]).forEach(function(r){cs[r.country]=1;});
+  Object.keys(cs).sort().forEach(function(c){var A=all[c]||{status:'draft'};ammoInvItems(s,c).forEach(function(it){rows.push([c,cnameA(c),it.d.split('\n\u2014 ')[1]||'',it.product,it.rounds,+(it.rounds/250).toFixed(2),R.unit+' EUR / '+R.per+' rds',+(+it.t).toFixed(2),(A.status==='approved'?'CW26AMM-'+A.no:''),A.status==='approved'?'approved':'draft',A.status==='approved'?String(A.approved_at||'').slice(0,10):'']);});});
+  if(!rows.length){alert('내려받을 내역이 없습니다.');return;}
+  var fn='Changwon2026_AmmoInvoices_'+today().replace(/-/g,'')+'.xlsx';
+  function build(){var ws=XLSX.utils.aoa_to_sheet([hdr].concat(rows));ws['!cols']=[{wch:6},{wch:16},{wch:26},{wch:22},{wch:8},{wch:10},{wch:16},{wch:13},{wch:13},{wch:9},{wch:11}];var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'AmmoInvoices');XLSX.writeFile(wb,fn);}
+  if(window.XLSX){build();return;}
+  var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';sc.onload=build;
+  sc.onerror=function(){var q=function(v){v=String(v==null?'':v);return '"'+v.replace(/"/g,'""')+'"';};var csv='\ufeff'+[hdr].concat(rows).map(function(r){return r.map(q).join(',');}).join('\r\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=fn.replace('.xlsx','.csv');a.click();};
+  document.head.appendChild(sc);}
 function TNMANUAL(t){return ({invitation:'초청장',invitation_official:'초청장(사증)',invoice:'인보이스',firearms:'총기확인서',custom:'기타'})[t]||t;}
 var MD_TPL={
  invitation:{tbl:['Full Name','Position','Date of Birth','Period of Stay','Passport No.','Passport Expiry'],slots:[
@@ -1852,11 +1920,13 @@ function deLabel(src){var s=dataS();
  if(src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});return '인보이스 — '+(V?esc(V.country)+' · '+esc(V.title||''):'');}
  if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];return '총기 확인서 — '+(x?esc(x.country)+' · '+esc((x.grp&&x.grp!=='*ALL*')?x.grp:'Entire delegation'):'');}
  if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(x){return x.id===src.id});return '수동 문서 — '+(m?esc(TNMANUAL(m.doc_type))+' · '+esc(m.title||''):'');}
+ if(src.kind==='ammo_inv'){return '실탄 인보이스 — '+esc(src.country)+' · EUR';}
  return '문서';}
 function deIssued(src){var s=dataS();
  if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});return !!(L&&L.status==='approved');}
  if(src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});return !!(V&&V.status==='approved');}
  if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];return !!(x&&x.reg_no);}
+ if(src.kind==='ammo_inv'){return ammoInvOf(s,src.country).status==='approved';}
  return true;}
 function deIssueLabel(src){return src.kind==='firearms'?'저장 & 발행':'저장 & 승인';}
 function scrDocEdit(){if(!_DE){scrMain();return;}
@@ -1883,6 +1953,7 @@ async function deSave(alsoIssue){if(!_DE)return;mdFullSync();
   else if(src.kind==='invoice'){r=await sbc.from('invoices').update({doc_html:html,edited_at:today()}).eq('id',src.id);}
   else if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];if(!x){alert('문서를 찾을 수 없습니다.');return;}r=await sbc.from('firearm_submissions').update({doc_html:html}).eq('country',x.country).eq('grp',x.grp);}
   else if(src.kind==='manual'){var m=(s.manual_docs||[]).find(function(y){return y.id===src.id});var p=Object.assign({},(m&&m.payload)||{},{fullEdit:true,fullhtml:html});r=await sbc.from('manual_docs').update({payload:p}).eq('id',src.id);}
+  else if(src.kind==='ammo_inv'){var AA=Object.assign({status:'draft'},ammoInvOf(s,src.country));AA.doc_html=html;r=await sbc.from('oc_settings').upsert({key:'ammo_inv:'+src.country,value:JSON.stringify(AA)},{onConflict:'key'});}
   if(r&&r.error){alert('저장 실패: '+r.error.message+'\n\n(컬럼이 없다면 doc_html_migration.sql 을 Supabase에서 먼저 실행하세요)');return;}
   try{await fetchAll();}catch(e){}
  }else{var st=mL();
@@ -1890,6 +1961,7 @@ async function deSave(alsoIssue){if(!_DE)return;mdFullSync();
   else if(src.kind==='invoice'){var V=(st.invoices||[]).find(function(y){return y.id===src.id});if(V){V.doc_html=html;V.edited_at=today();}}
   else if(src.kind==='firearms'){var f=st.firearm_submissions[src.i];if(f)f.doc_html=html;}
   else if(src.kind==='manual'){var mm=(st.manual_docs||[]).find(function(y){return y.id===src.id});if(mm){mm.payload=Object.assign({},mm.payload||{},{fullEdit:true,fullhtml:html});}}
+  else if(src.kind==='ammo_inv'){var AB=Object.assign({status:'draft'},ammoInvOf(st,src.country));AB.doc_html=html;st.oc_settings=st.oc_settings||[];var ae=st.oc_settings.find(function(x){return x.key==='ammo_inv:'+src.country});if(ae)ae.value=JSON.stringify(AB);else st.oc_settings.push({key:'ammo_inv:'+src.country,value:JSON.stringify(AB)});}
   mS(st);}
  var k=src.kind,id=src.id,idx=src.i;_DE=null;
  if(!alsoIssue){alert('문서가 저장되었습니다. ✔');scrMain();return;}
@@ -1901,6 +1973,7 @@ function deBody(src){var s=dataS();
  if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});return (L&&L.doc_html)||null;}
  if(src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});return (V&&V.doc_html)||null;}
  if(src.kind==='firearms'){var x=s.firearm_submissions[src.i];return (x&&x.doc_html)||null;}
+ if(src.kind==='ammo_inv'){return ammoInvOf(s,src.country).doc_html||null;}
  return null;}
 
 function directEdit(){
