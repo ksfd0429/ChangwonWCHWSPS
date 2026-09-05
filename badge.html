@@ -12,7 +12,17 @@ body{margin:0;font-family:"Segoe UI","Malgun Gothic",sans-serif;background:var(-
 header{background:#7A2E1F;padding:9px 18px;display:flex;align-items:center;gap:12px;color:#fff;height:44px}
 header h1{font-size:15px;margin:0;font-weight:700}
 header span{font-size:12px;opacity:.85}
-.main{display:grid;grid-template-columns:1fr 440px;height:calc(100% - 44px);min-height:0}
+.main{display:grid;grid-template-columns:1fr 420px 300px;height:calc(100% - 44px);min-height:0}
+.list{background:#F7FAFC;border-left:1px solid var(--line);padding:16px 14px;overflow:auto;display:flex;flex-direction:column}
+.list h2{font-size:14px;margin:0 0 8px;color:var(--navy)}
+.li{display:flex;align-items:center;gap:8px;padding:6px 6px;border:1px solid var(--line);border-radius:9px;background:#fff;margin-bottom:6px;cursor:pointer;font-size:12.5px}
+.li:hover{background:#EEF3F7}.li.sel{border-color:var(--acc);box-shadow:0 0 0 2px #CFE3F3}
+.li input{width:auto;min-height:0;margin:0}
+.li img,.li .noimg{width:26px;height:33px;border-radius:3px;object-fit:cover;flex:none;background:#E3EAF0}
+.li .t{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.li .t small{display:block;color:var(--mut);font-size:11px}
+.li .x{border:0;background:none;color:#B4473C;cursor:pointer;font-size:14px;padding:0 4px}
+.lbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .left{display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;background:#DCE6EF}
 .right{background:var(--panel);border-left:1px solid var(--line);padding:18px 20px;overflow:auto}
 .right h2{font-size:15px;margin:0 0 12px;color:var(--navy)}
@@ -68,6 +78,9 @@ details .f{margin:8px 0 4px}
 .sheet{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}
 .sheet .badge{position:absolute;top:26.5mm}
 .sheet .front{left:12mm}.sheet .back{left:105mm}
+.sheet .row2{top:148.5mm}
+.sheet{page-break-after:always;break-after:page}
+.sheet:last-child{page-break-after:auto;break-after:auto}
 @media print{
   @page{size:A4 portrait;margin:0}
   body{background:#fff}
@@ -75,6 +88,7 @@ details .f{margin:8px 0 4px}
   #print{display:block}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
+@media(max-width:1100px){.main{grid-template-columns:1fr 400px}.list{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}}
 @media(max-width:860px){.main{grid-template-columns:1fr;height:auto}.left{padding:12px}.pvwrap .badge{zoom:1.2}}
 </style>
 </head>
@@ -109,8 +123,22 @@ details .f{margin:8px 0 4px}
    <button class="btn g" style="flex:1" onclick="savePdf()">🖨 PDF 저장 / 인쇄</button>
    <button class="btn sec" onclick="savePng()">PNG 저장 (앞면)</button>
   </div>
+  <div class="row" style="margin-top:8px">
+   <button class="btn" style="flex:1" id="keepBtn" onclick="keepBadge()">＋ 목록에 저장</button>
+   <button class="btn sec" id="newBtn" onclick="newBadge()">새로 작성</button>
+  </div>
   <p class="hint">PDF: 인쇄 대화상자에서 <b>대상 = PDF로 저장</b>, 여백 없음, 배경 그래픽 켬. 파일명은 "AD - 성 이름"으로 제안됩니다. PNG는 앞면을 300 dpi로 바로 내려받습니다.</p>
   <p class="hint" style="margin-top:8px">띠 색·코드: NPC 초록(Aa/Ao/Ac/NPC), WSPS 파랑(WPSU), LOC 빨강 — 소속에 따라 고정. 구역은 직책에 따라 고정(WSPS 발급 원본 배지 기준).</p>
+ </div>
+ <div class="list">
+  <h2>만든 배지 목록 <span class="muted" id="lcnt"></span></h2>
+  <div class="lbar">
+   <button class="btn sm" onclick="printSel()">🖨 선택 인쇄 (A4 2매/장)</button>
+   <button class="btn sec sm" onclick="selAll(true)">전체 선택</button>
+   <button class="btn sec sm" onclick="selAll(false)">해제</button>
+  </div>
+  <div id="lst" style="flex:1"></div>
+  <p class="hint">행을 누르면 작성란에 불러와 수정할 수 있습니다. 체크한 배지를 2매씩 A4 여러 장으로 인쇄합니다(원본과 같은 위·아래 배치). 목록은 이 브라우저에 저장됩니다.</p>
  </div>
 </div>
 <div id="print"></div>
@@ -191,6 +219,34 @@ function fitText(root){root.querySelectorAll('.fit').forEach(function(el){el.sty
 function preview(){var b=data();$('#pv').innerHTML=frontHtml(b);fitPreview();fitText($('#pv'));
  $('#posauto').innerHTML='<span class="chip">코드 <b>'+esc(b.cat)+'</b></span><span class="chip">구역</span>'+b.zones.map(function(z){return '<span class="chip z">'+z+'</span>'}).join('');}
 
+/* ── 목록 (브라우저 저장) ── */
+var LIST=[],_edit=null;
+function lload(){try{LIST=JSON.parse(localStorage.getItem('cw26_badges2')||'[]');}catch(e){LIST=[];}}
+function lsave(){try{localStorage.setItem('cw26_badges2',JSON.stringify(LIST));}catch(e){alert('브라우저 저장 용량 초과 — 오래된 항목을 삭제하세요.');}}
+function keepBadge(){var b=data();if(!_org){alert('소속을 선택하세요.');return;}if(!b.first&&!b.last){alert('이름을 입력하세요.');return;}
+ b.orgKey=_org.key;b.at=new Date().toISOString().slice(0,10);
+ if(_edit!=null){var i=LIST.findIndex(function(x){return x.id===_edit});if(i>=0){b.id=_edit;b.sel=LIST[i].sel;LIST[i]=b;}else{b.id=_edit;LIST.unshift(b);}}
+ else{b.id=Date.now();b.sel=true;LIST.unshift(b);_edit=b.id;}
+ lsave();renderList();$('#keepBtn').textContent='✔ 수정 저장';}
+function newBadge(){_edit=null;$('#first').value='';$('#last').value='';clearPhoto();$('#keepBtn').textContent='＋ 목록에 저장';renderList();preview();}
+function loadBadge(id){var b=LIST.find(function(x){return x.id===id});if(!b)return;_edit=id;
+ orgPick(b.orgKey);if(Array.prototype.some.call($('#pos').options,function(o){return o.value===b.pos}))$('#pos').value=b.pos;
+ $('#first').value=b.first;$('#last').value=b.last;
+ if(b.photo){var im=new Image();im.onload=function(){_ph.img=im;_ph.nat=[im.naturalWidth,im.naturalHeight];_ph.base=Math.max(CW/im.naturalWidth,CH/im.naturalHeight);_ph.zoom=1;$('#zoom').value=1;_ph.x=(CW-im.naturalWidth*_ph.base)/2;_ph.y=(CH-im.naturalHeight*_ph.base)/2;$('#cimg').src=b.photo;$('#crop').classList.remove('empty');cropDraw();preview();};im.src=b.photo;}else clearPhoto();
+ $('#keepBtn').textContent='✔ 수정 저장';renderList();preview();}
+function delBadge(id,e){e.stopPropagation();if(!confirm('목록에서 삭제할까요?'))return;LIST=LIST.filter(function(x){return x.id!==id});if(_edit===id)newBadge();lsave();renderList();}
+function togSel(id,e){e.stopPropagation();var b=LIST.find(function(x){return x.id===id});if(b){b.sel=!b.sel;lsave();renderList();}}
+function selAll(v){LIST.forEach(function(b){b.sel=v});lsave();renderList();}
+function renderList(){var n=LIST.filter(function(b){return b.sel}).length;
+ $('#lst').innerHTML=LIST.length?LIST.map(function(b){return '<div class="li'+(b.id===_edit?' sel':'')+'" onclick="loadBadge('+b.id+')"><input type="checkbox" '+(b.sel?'checked':'')+' onclick="togSel('+b.id+',event)">'+(b.photo?'<img src="'+b.photo+'">':'<span class="noimg"></span>')+'<span class="t"><b>'+esc(b.last)+'</b> '+esc(b.first)+'<small>'+esc(b.orgKey)+' · '+esc(b.pos)+' · '+b.zones.join('')+'</small></span><button class="x" title="삭제" onclick="delBadge('+b.id+',event)">✕</button></div>'}).join(''):'<p class="muted">아직 저장된 배지가 없습니다. 작성 후 "목록에 저장"을 누르세요.</p>';
+ $('#lcnt').textContent=LIST.length?'('+LIST.length+'건 · 선택 '+n+')':'';}
+function printSel(){var items=LIST.filter(function(b){return b.sel});if(!items.length){alert('체크된 배지가 없습니다.');return;}
+ var h='';for(var i=0;i<items.length;i+=2){h+='<div class="sheet">'+frontHtml(items[i])+backHtml();
+  if(items[i+1])h+=frontHtml(items[i+1]).replace('class="badge front"','class="badge front row2"')+backHtml().replace('class="badge back"','class="badge back row2"');h+='</div>';}
+ var P=$('#print');P.innerHTML=h;P.style.display='block';fitText(P);
+ var t=document.title;document.title='AD - '+items.length+' badges';
+ setTimeout(function(){window.print();setTimeout(function(){P.style.display='';document.title=t;},800);},200);}
+
 /* ── 저장 ── */
 function fname(b){return 'AD - '+(b.last||'NAME')+' '+(b.first||'')+(_org?' ('+_org.key+')':'');}
 function savePdf(){var b=data();if(!_org){alert('소속을 선택하세요.');return;}if(!b.first&&!b.last){alert('이름을 입력하세요.');return;}
@@ -219,7 +275,7 @@ function savePng(){var b=data();if(!_org){alert('소속을 선택하세요.');re
 function fitPreview(){var L=$('.left'),bd=$('#pv .badge');if(!bd)return;var mmpx=96/25.4;var z=Math.min((L.clientHeight-70)/(122*mmpx),(L.clientWidth-40)/(93*mmpx),2.2);bd.style.zoom=Math.max(0.6,z);}
 window.addEventListener('resize',fitPreview);
 /* init */
-fillPos('NPC');preview();
+fillPos('NPC');lload();renderList();preview();
 </script>
 </body>
 </html>
