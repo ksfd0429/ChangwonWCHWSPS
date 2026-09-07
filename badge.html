@@ -105,7 +105,8 @@ details .f{margin:8px 0 4px}
    <div class="f"><label>② 이름 (Given name)</label><input type="text" id="first" oninput="preview()" placeholder="예: Dawa"></div>
    <div class="f"><label>성 (Family name) · 대문자</label><input type="text" id="last" oninput="preview()" placeholder="예: LHAM"></div>
   </div>
-  <div class="f"><label>③ 직책 (Position) — 입장 가능 구역 자동 배정</label><select id="pos" onchange="preview()"></select>
+  <div class="f"><label>③ 직책 (Position) — 입장 가능 구역 자동 배정</label><select id="pos" onchange="onPos()"></select>
+   <div id="f_pos2" style="display:none;margin-top:6px"><input type="text" id="pos2" oninput="preview()" placeholder="직책 직접 입력 (예: Media Manager, Interpreter)"><p class="hint">LOC 전용 — 구역은 LOC Staff 기준(2 4 5 6), 코드 LOC로 고정됩니다.</p></div>
    <div class="auto" id="posauto"></div></div>
   <div class="f"><label>④ 사진 — 규격 18.8 × 23.7 mm (세로 4:5), 프레임 안에서 드래그로 위치 조정</label>
    <div class="row" style="align-items:flex-start">
@@ -183,9 +184,13 @@ function orgPick(key){_org=ORGS.find(function(o){return o.key===key});if(!_org)r
  $('#orgauto').innerHTML='<span class="chip">배지 표기: <b>'+esc(_org.label)+'</b></span><span class="chip" style="background:'+BAND[_org.type]+';color:#fff;border-color:'+BAND[_org.type]+'">띠 '+esc(_org.type)+'</span>';
  fillPos(_org.type);preview();}
 document.addEventListener('click',function(e){if(!e.target.closest('.sel'))$('#orgdd').style.display='none';});
-function fillPos(type){var cur=$('#pos').value;$('#pos').innerHTML=POS[type].map(function(p){return '<option value="'+esc(p[0])+'">'+esc(p[0])+'</option>'}).join('');
- if(Array.prototype.some.call($('#pos').options,function(o){return o.value===cur}))$('#pos').value=cur;}
-function posInfo(){var t=_org?_org.type:'NPC';var p=POS[t].find(function(x){return x[0]===$('#pos').value})||POS[t][0];return p;}
+function fillPos(type){var cur=$('#pos').value;$('#pos').innerHTML=POS[type].map(function(p){return '<option value="'+esc(p[0])+'">'+esc(p[0])+'</option>'}).join('')+(type==='LOC'?'<option value="__custom">직접 입력…</option>':'');
+ if(Array.prototype.some.call($('#pos').options,function(o){return o.value===cur}))$('#pos').value=cur;onPos();}
+function onPos(){$('#f_pos2').style.display=($('#pos').value==='__custom')?'':'none';preview();}
+/* 직책 규칙: LOC 직접 입력은 LOC Staff 규칙(코드 LOC · 구역 2 4 5 6)을 그대로 따름 */
+function posInfo(){var t=_org?_org.type:'NPC';var v=$('#pos').value;
+ if(v==='__custom'&&t==='LOC'){var st=POS.LOC.find(function(x){return x[0]==='Staff'});return [$('#pos2').value.trim()||'Staff',st[1],st[2]];}
+ var p=POS[t].find(function(x){return x[0]===v})||POS[t][0];return p;}
 
 /* ── 사진 크롭 (프레임 186×244px ≈ 18.8×23.7mm) ── */
 var CW=186,CH=244,_ph={img:null,nat:[0,0],base:1,zoom:1,x:0,y:0,drag:null};
@@ -228,9 +233,10 @@ function keepBadge(){var b=data();if(!_org){alert('소속을 선택하세요.');
  if(_edit!=null){var i=LIST.findIndex(function(x){return x.id===_edit});if(i>=0){b.id=_edit;b.sel=LIST[i].sel;LIST[i]=b;}else{b.id=_edit;LIST.unshift(b);}}
  else{b.id=Date.now();b.sel=true;LIST.unshift(b);_edit=b.id;}
  lsave();renderList();$('#keepBtn').textContent='✔ 수정 저장';}
-function newBadge(){_edit=null;$('#first').value='';$('#last').value='';clearPhoto();$('#keepBtn').textContent='＋ 목록에 저장';renderList();preview();}
+function newBadge(){_edit=null;$('#first').value='';$('#last').value='';$('#pos2').value='';if($('#pos').value==='__custom')$('#pos').value='Staff';onPos();clearPhoto();$('#keepBtn').textContent='＋ 목록에 저장';renderList();preview();}
 function loadBadge(id){var b=LIST.find(function(x){return x.id===id});if(!b)return;_edit=id;
- orgPick(b.orgKey);if(Array.prototype.some.call($('#pos').options,function(o){return o.value===b.pos}))$('#pos').value=b.pos;
+ orgPick(b.orgKey);if(Array.prototype.some.call($('#pos').options,function(o){return o.value===b.pos})){$('#pos').value=b.pos;$('#pos2').value='';}else if(_org&&_org.type==='LOC'){$('#pos').value='__custom';$('#pos2').value=b.pos;}
+ onPos();
  $('#first').value=b.first;$('#last').value=b.last;
  if(b.photo){var im=new Image();im.onload=function(){_ph.img=im;_ph.nat=[im.naturalWidth,im.naturalHeight];_ph.base=Math.max(CW/im.naturalWidth,CH/im.naturalHeight);_ph.zoom=1;$('#zoom').value=1;_ph.x=(CW-im.naturalWidth*_ph.base)/2;_ph.y=(CH-im.naturalHeight*_ph.base)/2;$('#cimg').src=b.photo;$('#crop').classList.remove('empty');cropDraw();preview();};im.src=b.photo;}else clearPhoto();
  $('#keepBtn').textContent='✔ 수정 저장';renderList();preview();}
