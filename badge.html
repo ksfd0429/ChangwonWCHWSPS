@@ -113,6 +113,8 @@ details .f{margin:8px 0 4px}
     <div class="crop empty" id="crop"><img id="cimg" alt=""></div>
     <div style="flex:1;min-width:0">
      <input type="file" id="pfile" accept="image/*" onchange="loadPhoto(this.files[0])" style="width:100%;font-size:12px">
+     <button class="btn sec sm" style="margin-top:6px;width:100%" onclick="pastePhoto()">📋 클립보드 사진 붙여넣기 (Ctrl+V)</button>
+     <p class="hint" id="pasteHint">캡처·복사한 이미지를 이 페이지 어디서든 Ctrl+V 하면 사진으로 들어갑니다.</p>
      <details><summary>확대 · 초기화</summary>
       <div class="f"><label>확대 (마우스 휠도 가능)</label><input type="range" id="zoom" min="1" max="4" step="0.01" value="1" oninput="cropZoom()" style="width:100%"></div>
       <div class="row"><button class="btn sec sm" onclick="cropReset()">맞춤 초기화</button><button class="btn sec sm" onclick="clearPhoto()">사진 제거</button></div>
@@ -207,6 +209,10 @@ function clearPhoto(){_ph.img=null;$('#cimg').removeAttribute('src');$('#crop').
  c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up);
  c.addEventListener('wheel',function(e){if(!_ph.img)return;e.preventDefault();var z=Math.min(4,Math.max(1,_ph.zoom*(e.deltaY<0?1.06:0.94)));$('#zoom').value=z;cropZoom();},{passive:false});
 })();
+/* 클립보드 붙여넣기: Ctrl+V(어디서든) 또는 버튼(navigator.clipboard) */
+document.addEventListener('paste',function(e){var items=(e.clipboardData&&e.clipboardData.items)||[];for(var i=0;i<items.length;i++){if(items[i].type&&items[i].type.indexOf('image/')===0){var f=items[i].getAsFile();if(f){e.preventDefault();loadPhoto(f);$('#pasteHint').textContent='클립보드 사진을 불러왔습니다.';return;}}}});
+async function pastePhoto(){try{if(!navigator.clipboard||!navigator.clipboard.read)throw 0;var its=await navigator.clipboard.read();for(var i=0;i<its.length;i++){var t=its[i].types.find(function(x){return x.indexOf('image/')===0});if(t){var bl=await its[i].getType(t);loadPhoto(new File([bl],'clipboard.'+t.split('/')[1],{type:t}));$('#pasteHint').textContent='클립보드 사진을 불러왔습니다.';return;}}alert('클립보드에 이미지가 없습니다. 화면 캡처(Win+Shift+S)나 이미지 복사 후 다시 시도하세요.');}
+ catch(e){alert('이 브라우저/환경에서는 버튼 읽기가 막혀 있습니다. 페이지를 클릭한 뒤 Ctrl+V 로 붙여넣어 주세요.');}}
 /* 프레임 기준 크롭 → 470×592 JPEG (≈316ppi) */
 function photoOut(){if(!_ph.img)return '';var W=470,H=592,k=W/CW;var cv=document.createElement('canvas');cv.width=W;cv.height=H;var g=cv.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,W,H);var s=_ph.base*_ph.zoom*k;g.drawImage(_ph.img,_ph.x*k,_ph.y*k,_ph.nat[0]*s,_ph.nat[1]*s);return cv.toDataURL('image/jpeg',0.9);}
 
