@@ -397,13 +397,13 @@ async function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
    return {g:g,m:m,aA:aA,dA:dA};});
  if(filt)recs=recs.filter(function(r){return r.aA===filt||r.dA===filt;});
  if(!recs.length){alert(filt+' 경유 총기가 없습니다.');return;}
- var hdr=['No.','국가','소지자','여권번호','제조사','모델','총번','종류','구경','입국일','입국편','입국공항','한국 입국시각','출국일','출국편','출국공항','한국 출국시각','사진','사진(전체) URL','사진(총번) URL'];
+ var hdr=['No.','국가','소지자','여권번호','제조사','모델','총번','종류','구경','입국일','입국편','입국공항','한국 입국시각','출국일','출국편','출국공항','한국 출국시각','사진','사진(전체) URL','사진(총번) URL','근거 허가','근거 문서명'];
  var pu=function(u){u=String(u||'');if(!u)return '';if(u.slice(0,5)==='data:'||u.length>2000)return '(inline photo — admin 화면에서 열람)';return u;};
  var data=recs.map(function(r,i){var g=r.g,m=r.m;
    var kt=gunKrTimes(m);
    return [i+1,g.country||'',g.owner||'',(m&&m.passport)||'',g.manufacturer||'',g.model||'',g.serial||'',g.type||'',g.caliber||'',
      (m&&m.arrive)||'',(m&&m.arr_flight)||'',r.aA,gunKrCell(kt.aDate,(m&&m.arrive)||'',kt.aTime,kt.aFl),(m&&m.depart)||'',(m&&m.dep_flight)||'',r.dA,gunKrCell(kt.dDate,(m&&m.depart)||'',kt.dTime,kt.dFl),
-     ((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),pu(g.photo_full),pu(g.photo_num)];});
+     ((g.photo_full&&g.photo_num)?'2/2':((g.photo_full?1:0)+(g.photo_num?1:0))+'/2'),pu(g.photo_full),pu(g.photo_num),(function(){var pp=(typeof gunPerm==='function')?gunPerm(g):null;return pp?(pp.no||''):'';})(),(function(){var pp=(typeof gunPerm==='function')?gunPerm(g):null;return pp?(pp.doc||''):'';})()];});
  /* ── 선수단(일정)별 시트: 1행=한 국가의 한 일정, 총기 종류별 정수 + 탄약 ── */
  var teamRows=[];
  if(!filt){
@@ -451,7 +451,7 @@ async function fstatXls(filt){ // filt: undefined=전체 | '인천' | '김해'
   for(var ri=0;ri<data.length;ri++){for(var t=0;t<TXT.length;t++){var ci=TXT[t];
     var cc=ws[XLSX.utils.encode_cell({r:ri+1,c:ci})];
     if(cc){cc.t='s';cc.v=String(data[ri][ci]==null?'':data[ri][ci]);cc.z='@';}}}
-  ws['!cols']=[{wch:5},{wch:6},{wch:24},{wch:13},{wch:16},{wch:14},{wch:14},{wch:11},{wch:8},{wch:11},{wch:15},{wch:9},{wch:17},{wch:11},{wch:15},{wch:9},{wch:17},{wch:6},{wch:40},{wch:40}];
+  ws['!cols']=[{wch:5},{wch:6},{wch:24},{wch:13},{wch:16},{wch:14},{wch:14},{wch:11},{wch:8},{wch:11},{wch:15},{wch:9},{wch:17},{wch:11},{wch:15},{wch:9},{wch:17},{wch:6},{wch:40},{wch:40},{wch:14},{wch:70}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,filt?('Firearms_'+tag):'Firearms');
   if(teamRows.length){
     var ws2=XLSX.utils.aoa_to_sheet([hdr2].concat(teamRows));
@@ -612,13 +612,25 @@ function depRefKey(c){return 'dep_ref:'+c;}
 function ocGet(key){try{var e=(dataS().oc_settings||[]).find(function(x){return x.key===key});if(e&&e.value){return (typeof e.value==='string')?JSON.parse(e.value):e.value;}}catch(err){}return null;}
 async function ocSet(key,obj){if(LIVE){var r=await sbc.from('oc_settings').upsert({key:key,value:JSON.stringify(obj)},{onConflict:'key'});if(r&&r.error){alert('저장 실패: '+r.error.message);return false;}try{await fetchAll();}catch(e){}return true;}
  var st=mL();st.oc_settings=st.oc_settings||[];var e=st.oc_settings.find(function(x){return x.key===key});if(e)e.value=JSON.stringify(obj);else st.oc_settings.push({key:key,value:JSON.stringify(obj)});mS(st);return true;}
-function depRef(c){return Object.assign({no:'',date:'',permit:''},ocGet(depRefKey(c))||{});}
+function depRef(c){return Object.assign({no:'',date:'',permit:'',full:''},ocGet(depRefKey(c))||{});}
+/* 관련 근거 공문: 직접 입력한 문장(여러 줄 = 여러 건)이 있으면 그대로, 없으면 번호·시행일·허가번호로 조립 */
+function depRefLines(c,port){var r=depRef(c);var L=String(r.full||'').split(/\n+/).map(function(x){return x.trim();}).filter(function(x){return x;});if(L.length)return L.map(esc);return [depRefLine(c,port)];}
+function depRefOk(c){var r=depRef(c);return !!(String(r.full||'').trim()||(r.no&&r.date&&r.permit));}
 function depRefLine(c,port){var r=depRef(c);var st=(port==='김해')?'부산광역시경찰청':'인천광역시경찰청';var blank=function(v,w){return v?esc(v):'<span style="display:inline-block;min-width:'+w+'px;border-bottom:1px solid #999">&nbsp;</span>';};
  return esc(st)+' 범죄예방대응과-'+blank(r.no,52)+'('+blank(r.date,68)+') 「경기용 총포 일시수출입 및 일시소지 허가 알림('+blank(r.permit,56)+', 대한장애인사격연맹)」';}
 function depRefEdit(c){var r=depRef(c);var f=function(id,l,v,ph){return '<div class="f"><label>'+l+'</label><input id="'+id+'" value="'+esc(v||'')+'" placeholder="'+esc(ph||'')+'"></div>';};
  infoModal('관련 공문 정보 — '+esc(c)+' · '+esc(cnameK(c)),'<p class="muted" style="font-size:12px;margin:0 0 10px">경찰청에서 받은 <b>「경기용 총포 일시수출입 및 일시소지 허가 알림」</b> 공문 정보입니다. 이 국가의 출국확인서·탄약수출확인서 "1. 관련" 문장에 자동으로 들어갑니다. (관할 경찰청은 출국 공항에 따라 자동 표기)</p>'+
+  '<div class="f"><label>관련 근거 공문 (문장 전체 · 한 줄에 한 건, 여러 줄이면 관련·관련2… 로 나열)</label><textarea id="dr_full" rows="3" placeholder="예: 인천광역시경찰청 범죄예방대응과-6466(2026. 8.20) 「경기용 총포 일시수출입 및 일시소지 허가 알림(2026-45, 대한장애인사격연맹)」">'+esc(r.full||'')+'</textarea><p class="muted" style="font-size:11px;margin:3px 0 0">이 칸에 입력하면 아래 항목 조립 대신 이 문장이 그대로 들어갑니다. 비우면 아래 세 항목으로 자동 조립됩니다.</p></div>'+
   f('dr_no','공문번호 (범죄예방대응과-____)',r.no,'예: 14342')+f('dr_date','시행일',r.date,'예: 2026. 8.28')+f('dr_permit','허가 알림 번호',r.permit,'예: 2026-3호')+
   '<button class="btn g" style="width:100%;margin-top:6px" onclick="depRefSave(\''+c+'\')">저장</button>');}
+function depRefBulk(){var s=dataS();var cs=[];(function(){var seen={};(s.firearms||[]).forEach(function(g){if(g.country&&!seen[g.country]){seen[g.country]=1;cs.push(g.country);}});cs.sort();})();
+ var cur=cs.map(function(c){var r=depRef(c);var f=String(r.full||'').trim();return f?(c+'\t'+f.replace(/\n+/g,' | ')):'';}).filter(Boolean).join('\n');
+ infoModal('관련 근거 공문 일괄 입력','<p class="muted" style="font-size:12px;margin:0 0 8px">한 줄에 <b>NPC코드 [탭 또는 쉼표] 관련 공문 문장</b> 형식으로 붙여넣으세요. 한 국가에 공문이 여러 건이면 문장 사이를 <b> | </b>로 구분합니다. 이미 입력된 국가는 덮어씁니다.</p>'+
+  '<textarea id="dr_bulk" rows="12" style="width:100%;font-family:monospace;font-size:12px" placeholder="BRA\t부산광역시경찰청 범죄예방대응과-14342(2026. 8.28) 「경기용 총포 일시수출입 및 일시소지 허가 알림(2026-3호, 대한장애인사격연맹)」\nPOL\t인천광역시경찰청 범죄예방대응과-6466(2026. 8.20) 「…」 | 인천광역시경찰청 범죄예방대응과-6392(2026. 8.19) 「…」">'+esc(cur)+'</textarea>'+
+  '<button class="btn g" style="width:100%;margin-top:8px" onclick="depRefBulkSave()">저장 (해당 국가 모두)</button>');}
+async function depRefBulkSave(){var txt=($('#dr_bulk')&&$('#dr_bulk').value)||'';var lines=txt.split(/\n/).map(function(x){return x.trim();}).filter(Boolean);var n=0,bad=[];
+ for(var i=0;i<lines.length;i++){var m=/^([A-Za-z]{3})\s*[\t,:]\s*(.+)$/.exec(lines[i]);if(!m){bad.push(lines[i].slice(0,30));continue;}var c=m[1].toUpperCase();var full=m[2].split(/\s*\|\s*/).map(function(x){return x.trim();}).filter(Boolean).join('\n');var r=depRef(c);r.full=full;if(await ocSet(depRefKey(c),r))n++;}
+ alert(n+'개 국가 저장 완료'+(bad.length?'\n형식 오류(건너뜀): '+bad.join(' / '):''));var dm=document.getElementById('dm');if(dm)dm.remove();scrMain();}
 async function depRefSave(c){var o={no:($('#dr_no').value||'').trim(),date:($('#dr_date').value||'').trim(),permit:($('#dr_permit').value||'').trim()};if(await ocSet(depRefKey(c),o)){var dm=document.getElementById('dm');if(dm)dm.remove();if(typeof _openSec!=='undefined'&&_openSec==='dep'){scrMain();}}}
 function depGunTable(t){var order=[],by={};t.guns.forEach(function(x){var k2=x.g.owner||'(미지정)';if(!by[k2]){by[k2]=[];order.push(k2);}by[k2].push(x);});
  var rows='';order.forEach(function(o){var gl=by[o],m=gl[0].m;gl.forEach(function(x,gi){var g=x.g;
@@ -629,20 +641,29 @@ function depGunTable(t){var order=[],by={};t.guns.forEach(function(x){var k2=x.g
 function depFlightTable(t){var d=t.dep_date?esc(String(t.dep_date).replace(/-/g,'.')):'';
  return '<table style="width:100%;font-size:12px;margin:4px 0 10px"><thead><tr><th style="text-align:center;width:22%">출국일자</th><th style="text-align:center;width:22%">출국편명</th><th style="text-align:center;width:20%">출국시간</th><th style="text-align:center">이동경로</th></tr></thead><tbody><tr><td style="text-align:center">'+(d||'(기재)')+'</td><td style="text-align:center">'+(esc(t.dep_no)||'(기재)')+'</td><td style="text-align:center">'+(esc(t.dep_time2)||'(기재)')+'</td><td style="text-align:center">'+(esc(t.route)||'(기재)')+'</td></tr></tbody></table>';}
 function depEscortBlock(){return '<table style="width:100%;margin:26px 0 6px;font-size:13px;border-collapse:collapse"><tr><td style="border:none;text-align:right;width:28%">호송 책임자:&nbsp;</td><td style="border:none;border-bottom:1px solid #333;width:22%;text-align:center;color:#888">(서명)</td><td style="border:none;text-align:right;width:22%">호송인:&nbsp;</td><td style="border:none;border-bottom:1px solid #333;text-align:center;color:#888">(서명)</td></tr></table>';}
-function depBody(c,t){var cn=cnameK(c);
- return '<p style="font-size:14px;font-weight:bold;margin:8px 0 4px">제목: 국내개최 국제대회 참가 국외선수 출국신청 확인서('+esc(cn)+')</p><hr class="docrule">'+
-  '<p style="font-size:12.5px">1. 관련: '+depRefLine(c,t.dA)+'</p>'+
-  '<p style="font-size:12.5px">2. 본 연맹에서는 연맹 주관 국내개최 국제대회인 「2026창원장애인사격세계선수권대회」와 관련하여 다음과 같이 확인하였음을 전달합니다.</p>'+
-  '<p style="font-size:12.5px;margin:4px 0">&nbsp;ㅇ 확인내용<br>&nbsp;&nbsp;- 참가국 「'+esc(cn)+'」팀의 대회 참가 종료 이후 출국 신청 및 이에 따른 출국 정보:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;● 출국 항공편 정보<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;● 일시 수출 총기 정보<br>&nbsp;&nbsp;- 대회 참가 종료에 따른 일시 수출입 총기의 출국용 관외출고 신청</p>'+
-  '<p style="font-size:12.5px;margin:6px 0 2px">&nbsp;ㅇ 세부총기 내역 및 출국 항공편 정보</p>'+
+function depBody(c,t){var cn=cnameK(c);var R=depRefLinesTeam(c,t);var refs=R.map(function(x,i){return '<p style="font-size:12.5px;margin:2px 0">'+(i+1)+'. 관련'+(i?(i+1):'')+': '+x+'</p>';}).join('');
+ return '<p style="font-size:14px;font-weight:bold;margin:8px 0 4px">제목: 국내개최 국제대회 참가 국외선수 출국신청 확인서('+esc(cn)+')</p><hr class="docrule">'+refs+
+  '<p style="font-size:12.5px">'+(R.length+1)+'. '+(R.length>1?'상기 호와 관련하여 ':'')+'본 연맹에서는 연맹 주관 국내개최 국제대회인 「2026창원장애인사격세계선수권대회」와 관련하여 다음과 같이 확인하였음을 전달합니다.</p>'+
+  '<p style="font-size:12.5px;margin:4px 0">&nbsp;ㅇ 확인내용<br>&nbsp;&nbsp;- 참가국 「'+esc(cn)+'」팀의 대회 참가 종료 이후 출국 신청 및 이에 따른 출국 정보:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;● 출국 항공편 정보<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;● 일시 수출 총기 정보<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;● 출국 시 반출 잔여 탄약(잔탄) 정보<br>&nbsp;&nbsp;- 대회 참가 종료에 따른 일시 수출입 총기·탄약의 출국용 관외출고 신청</p>'+
+  '<p style="font-size:12.5px;margin:6px 0 2px">&nbsp;ㅇ 세부총기·잔탄 내역 및 출국 항공편 정보</p>'+
   '<p style="font-size:12px;margin:4px 0 0">&nbsp;&nbsp;-항공정보</p>'+depFlightTable(t)+
-  '<p style="font-size:12px;margin:4px 0 0">&nbsp;&nbsp;-총기정보 ('+t.guns.length+'정)</p>'+depGunTable(t)+depEscortBlock();}
+  '<p style="font-size:12px;margin:4px 0 0">&nbsp;&nbsp;-총기정보 ('+t.guns.length+'정)</p>'+depGunTable(t)+
+  '<p style="font-size:12px;margin:4px 0 0">&nbsp;&nbsp;-잔탄정보 (출국 시 반출)</p>'+depAmmoTable(c,t.tid)+depEscortBlock();}
 function depDocOf(c,tid){return Object.assign({status:'draft'},ocGet(depKey(c,tid))||{});}
+function depAmmoOf(c,tid){var D=depDocOf(c,tid);var a=D.ammo||{};var has=function(v){return !(v===''||v==null);};return {p:has(a.p)?(+a.p||0):null,r:has(a.r)?(+a.r||0):null,set:!!(D.ammo&&(has(a.p)||has(a.r)))};}
+function depAmmoEdit(c,tid){var t=depFindTeam(c,tid);if(!t)return;var A=depAmmoOf(c,tid);var g=polAmmo(c,t);var hint=g?('입국 시 신고 수량: 공기총탄 '+(+g.pellets||0).toLocaleString('en-US')+'발 · 화약총탄 '+(+g.rounds||0).toLocaleString('en-US')+'발'):'입국 시 신고 수량 정보 없음';
+ infoModal('출국 반출 잔탄 입력 — '+esc(c)+' · '+esc(String(t.dep_date||'').replace(/-/g,'.'))+' '+esc(t.dep_no),'<p class="muted" style="font-size:12px;margin:0 0 8px">출국 시 실제로 가져가는 <b>잔여 탄약</b>을 개별 파악해서 입력합니다. 자동 집계하지 않으며, 입력값이 출국확인서 잔탄정보와 탄약 수출확인서에 그대로 들어갑니다.<br>'+esc(hint)+'</p>'+
+  '<div class="row" style="gap:10px"><div class="f" style="flex:1"><label>공기총탄 (발)</label><input id="da_p" type="number" min="0" value="'+(A.p==null?'':A.p)+'" placeholder="0"></div><div class="f" style="flex:1"><label>화약총탄 (발)</label><input id="da_r" type="number" min="0" value="'+(A.r==null?'':A.r)+'" placeholder="0"></div></div>'+
+  '<div class="row" style="gap:8px"><button class="btn g" style="flex:1" onclick="depAmmoSave(\''+c+'\',\''+tid+'\')">저장</button><button class="btn sec" onclick="depAmmoSave(\''+c+'\',\''+tid+'\',true)">비우기</button></div>');}
+async function depAmmoSave(c,tid,clear){var D=depDocOf(c,tid);if(clear){delete D.ammo;}else{var p=($('#da_p').value||'').trim(),r=($('#da_r').value||'').trim();if(p===''&&r===''){alert('잔탄 수량을 입력하세요. (없으면 0)');return;}D.ammo={p:p===''?0:+p,r:r===''?0:+r};}
+ if(await ocSet(depKey(c,tid),D)){var dm=document.getElementById('dm');if(dm)dm.remove();depOpen(c,tid);}}
+function depAmmoTable(c,tid){var A=depAmmoOf(c,tid);var f=function(v){return v==null?'(기재)':v.toLocaleString('en-US')+'발';};var tot=(A.p==null&&A.r==null)?'(기재)':(((A.p||0)+(A.r||0)).toLocaleString('en-US')+'발');
+ return '<table style="width:100%;font-size:12px;margin:4px 0 10px"><thead><tr><th style="text-align:center;width:34%">공기총탄</th><th style="text-align:center;width:33%">화약총탄</th><th style="text-align:center">계</th></tr></thead><tbody><tr><td style="text-align:center">'+f(A.p)+'</td><td style="text-align:center">'+f(A.r)+'</td><td style="text-align:center">'+tot+'</td></tr></tbody></table>';}
 function depDocHTML(c,t){var D=depDocOf(c,t.tid);var body=D.doc_html||depBody(c,t);return '<div class="doc" id="adm_doc">'+docHeadK()+body+depFootK({no:D.reg_no,date:D.issued_at})+'</div>';}
 function depFindTeam(c,tid){return depTeams(c).find(function(t){return t.tid===tid;});}
 function depOpen(c,tid){var t=depFindTeam(c,tid);if(!t){alert('출국팀을 찾을 수 없습니다. (일정이 바뀌었을 수 있습니다)');return;}var D=depDocOf(c,tid);var isI=!!D.reg_no;_DRAFTSRC={kind:'dep_doc',country:c,tid:tid};
  var ttl='출국신청 확인서 — '+esc(c)+' · '+esc(cnameK(c))+' · '+esc(String(t.dep_date||'').replace(/-/g,'.'))+' '+esc(t.dep_no)+(isI?' <span class="tag g">발급 '+esc(docNoFmt(D.reg_no))+'</span>':' <span class="tag y">미발급</span>')+
-  ' &nbsp;<button class="btn" style="background:#5B3E8E;padding:5px 12px;min-height:0;font-size:12px" onclick="depRefEdit(\''+c+'\')">관련 공문</button>'+
+  ' &nbsp;<button class="btn" style="background:#5B3E8E;padding:5px 12px;min-height:0;font-size:12px" onclick="depRefEdit(\''+c+'\')">관련 공문</button> <button class="btn" style="background:#2E6B5B;padding:5px 12px;min-height:0;font-size:12px" onclick="depAmmoEdit(\''+c+'\',\''+tid+'\')">잔탄 입력</button>'+
   (isI?' <button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="depRevoke(\''+c+'\',\''+tid+'\')">발급 취소</button>':' <button class="btn g" style="padding:5px 12px;min-height:0;font-size:12px" onclick="depIssue(\''+c+'\',\''+tid+'\')">✅ 문서번호 발급</button>');
  docShow(ttl,depDocHTML(c,t));}
 async function depIssue(c,tid){var t=depFindTeam(c,tid);if(!t)return;var D=depDocOf(c,tid);if(D.reg_no)return;if(!confirm('이 출국신청 확인서를 문서장부에 등재(번호 발급)할까요?'))return;
@@ -650,19 +671,64 @@ async function depIssue(c,tid){var t=depFindTeam(c,tid);if(!t)return;var D=depDo
  if(LIVE){reg=await issueDocno('departure',c,ref,'oc_settings',depKey(c,tid));if(reg==null)return;}else{var st0=mL();reg=mockIssue(st0,'departure',c,ref,'oc_settings',depKey(c,tid));mS(st0);}
  D.reg_no=reg;D.issued_at=today();D.status='issued';if(await ocSet(depKey(c,tid),D)){var dm=document.getElementById('dm');if(dm)dm.remove();depOpen(c,tid);}}
 async function depRevoke(c,tid){var D=depDocOf(c,tid);if(!D.reg_no)return;if(!confirm('발급을 취소할까요? (장부의 번호는 남고, 문서에서만 번호가 지워집니다)'))return;D.reg_no=null;D.issued_at='';D.status='draft';if(await ocSet(depKey(c,tid),D)){var dm=document.getElementById('dm');if(dm)dm.remove();depOpen(c,tid);}}
+/* ── 총기별 근거 허가 (허가번호 · 근거 문서명) : oc_settings gun_permit:<NPC> = { "<gunId>": {no, doc} } ── */
+function gunPermMap(c){return ocGet('gun_permit:'+c)||{};}
+function gunPerm(g){if(!g||!g.country)return null;var p=gunPermMap(g.country)[String(g.id)];return (p&&(String(p.no||'').trim()||String(p.doc||'').trim()))?p:null;}
+function permNorm(x){return String(x||'').replace(/[()\s호]/g,'');}
+function depRefCompose(port,no,date,permit){var st=(port==='김해')?'부산광역시경찰청':'인천광역시경찰청';var blank=function(v,w){return v?esc(v):'<span style="display:inline-block;min-width:'+w+'px;border-bottom:1px solid #999">&nbsp;</span>';};
+ return esc(st)+' 범죄예방대응과-'+blank(no,52)+'('+blank(date,68)+') 「경기용 총포 일시수출입 및 일시소지 허가 알림('+blank(permit,56)+', 대한장애인사격연맹)」';}
+/* 출국팀의 관련 근거: 팀 총기들의 근거 문서명(중복 제거) → 없으면 국가 수동 입력(dep_ref) → 없으면 빈칸 조립 */
+function depRefLinesTeam(c,t){var keys=[],by={};(t.guns||[]).forEach(function(x){var p=gunPerm(x.g);if(!p)return;var d=String(p.doc||'').trim(),n=String(p.no||'').trim();var k=d||('#'+permNorm(n));if(!by[k]){by[k]={doc:d,nos:[]};keys.push(k);}if(n&&by[k].nos.indexOf(n)<0)by[k].nos.push(n);});
+ if(!keys.length)return depRefLines(c,t.dA);
+ return keys.map(function(k){var e=by[k];var nos=e.nos.map(function(n){return n.replace(/^\(|\)$/g,'');});
+  if(!e.doc){return depRefCompose(t.dA,'','',nos.join(', '));}
+  var extra=nos.filter(function(n){return e.doc.indexOf(permNorm(n))<0;});
+  return esc(e.doc)+(extra.length?' (허가번호 '+esc(extra.join(', '))+')':'');});}
+function gunPermStat(t){var n=0;(t.guns||[]).forEach(function(x){if(gunPerm(x.g))n++;});return {n:n,total:(t.guns||[]).length};}
+function gunPermEdit(c,tid){var t=depFindTeam(c,tid);if(!t)return;var M=gunPermMap(c);
+ var rows=t.guns.map(function(x){var g=x.g;var p=M[String(g.id)]||{};return '<tr><td style="font-size:12px">'+esc(g.owner||'')+'</td><td style="font-size:12px">'+esc(polTypeK(g.type))+' · '+esc(g.manufacturer||'')+' '+esc(g.model||'')+'</td><td style="font-size:12px;white-space:nowrap">'+esc(g.serial||'')+'</td><td style="padding:2px"><input class="gp_no" data-id="'+esc(String(g.id))+'" value="'+esc(p.no||'')+'" placeholder="2026-13호" style="width:100px;padding:4px 6px;font-size:12px"></td><td style="padding:2px"><input class="gp_doc" data-id="'+esc(String(g.id))+'" value="'+esc(p.doc||'')+'" placeholder="부산광역시경찰청 범죄예방대응과-26461(2026.09.03)「경기용 총포 일시수출입 허가 알림(2026-8~13호, 대한장애인사격연맹)」" style="width:100%;min-width:320px;padding:4px 6px;font-size:12px"></td></tr>';}).join('');
+ infoModal('총기별 근거 허가 — '+esc(c)+' · '+esc(cnameK(c))+' · '+esc(String(t.dep_date||'').replace(/-/g,'.'))+' '+esc(t.dep_no),
+  '<p class="muted" style="font-size:12px;margin:0 0 8px">각 총기의 <b>입국 근거 허가번호</b>와 <b>경찰청 허가 알림 공문명</b>입니다. 출국확인서·탄약수출확인서의 "관련"에는 이 팀 총기들의 공문명이 중복 없이 나열됩니다. 엑셀(총기 총 현황 내보내기 → 근거 허가·근거 문서명 열)로 가져올 수도 있습니다.</p>'+
+  '<div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;background:#f7f7fb;padding:8px;border-radius:8px;margin-bottom:8px"><div class="f" style="margin:0;width:120px"><label>허가번호 (전체)</label><input id="gp_all_no" placeholder="2026-13호"></div><div class="f" style="margin:0;flex:1;min-width:260px"><label>근거 문서명 (전체)</label><input id="gp_all_doc" placeholder="…「경기용 총포 일시수출입 허가 알림(…, 대한장애인사격연맹)」"></div><button type="button" class="btn sec" style="padding:8px 12px;font-size:12px" onclick="gunPermFill()">이 팀 전체 칸에 채우기</button></div>'+
+  '<div style="overflow:auto;max-height:50vh"><table><thead><tr><th>소지자</th><th>총기</th><th>총번</th><th>허가번호</th><th>근거 문서명</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+  '<div class="row" style="gap:8px;margin-top:10px"><button class="btn g" style="flex:1" onclick="gunPermSave(\''+c+'\',\''+tid+'\')">저장</button><button class="btn sec" onclick="gunPermSave(\''+c+'\',\''+tid+'\',true)">이 팀 근거 비우기</button></div>');}
+function gunPermFill(){var no=($('#gp_all_no').value||'').trim(),doc=($('#gp_all_doc').value||'').trim();document.querySelectorAll('.gp_no').forEach(function(i){if(no)i.value=no;});document.querySelectorAll('.gp_doc').forEach(function(i){if(doc)i.value=doc;});}
+async function gunPermSave(c,tid,clear){var M=gunPermMap(c);var nos=document.querySelectorAll('.gp_no'),docs=document.querySelectorAll('.gp_doc');var D={};docs.forEach(function(i){D[i.getAttribute('data-id')]=i.value.trim();});
+ nos.forEach(function(i){var id=i.getAttribute('data-id');if(clear){delete M[id];return;}var no=i.value.trim(),doc=D[id]||'';if(no||doc)M[id]={no:no,doc:doc};else delete M[id];});
+ if(await ocSet('gun_permit:'+c,M)){var dm=document.getElementById('dm');if(dm)dm.remove();scrMain();}}
+/* 엑셀 가져오기: 총기 총 현황 내보내기 파일(Firearms 시트)의 '근거 허가'·'근거 문서명' 열을 국가+총번으로 매칭 */
+function gunPermImport(){var inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xls,.csv';inp.style.display='none';document.body.appendChild(inp);inp.onchange=function(){var f=inp.files&&inp.files[0];try{document.body.removeChild(inp);}catch(e){}if(!f)return;var run=function(){var rd=new FileReader();rd.onload=function(){try{gunPermImportBuf(rd.result,f.name);}catch(e){alert('가져오기 오류: '+(e&&e.message||e));}};rd.readAsArrayBuffer(f);};
+  if(window.XLSX){run();return;}var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';sc.onload=run;sc.onerror=function(){alert('엑셀 라이브러리를 불러오지 못했습니다.');};document.head.appendChild(sc);};inp.click();}
+async function gunPermImportBuf(buf,fname){var wb=XLSX.read(buf,{type:'array'});var ws=wb.Sheets['Firearms']||wb.Sheets[wb.SheetNames[0]];var A=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});if(!A.length){alert('빈 시트입니다.');return;}
+ var H=A[0].map(function(x){return String(x||'').trim();});var ix=function(names){for(var i=0;i<H.length;i++){for(var j=0;j<names.length;j++){if(H[i].indexOf(names[j])>=0)return i;}}return -1;};
+ var iC=ix(['국가']),iS=ix(['총번','일련','Serial']),iO=ix(['소지자','Owner']),iM=ix(['모델']),iNo=ix(['근거 허가','허가번호','허가 번호']),iDoc=ix(['근거 문서','문서명','공문']);
+ if(iC<0||iS<0||(iNo<0&&iDoc<0)){alert('필요한 열을 찾지 못했습니다. (국가, 총번, 근거 허가 / 근거 문서명)\n헤더: '+H.join(' | '));return;}
+ var s=dataS();var norm=function(x){return String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');};
+ var maps={},matched=0,skipped=0,unmatched=[],touched={};
+ for(var r=1;r<A.length;r++){var row=A[r];var c=String(row[iC]||'').trim().toUpperCase();if(!c)continue;var no=iNo>=0?String(row[iNo]||'').trim():'',doc=iDoc>=0?String(row[iDoc]||'').trim():'';if(!no&&!doc){skipped++;continue;}
+  var ser=norm(row[iS]);var cand=(s.firearms||[]).filter(function(g){return g.country===c&&norm(g.serial)===ser&&ser;});
+  if(cand.length!==1&&iO>=0){var own=norm(row[iO]),mod=iM>=0?norm(row[iM]):'';var c2=(s.firearms||[]).filter(function(g){return g.country===c&&norm(g.owner)===own&&(!mod||norm(g.model)===mod);});if(c2.length===1)cand=c2;}
+  if(cand.length!==1){unmatched.push(c+' '+String(row[iS]||'')+' '+String(iO>=0?row[iO]:''));continue;}
+  var g=cand[0];if(!maps[c])maps[c]=Object.assign({},gunPermMap(c));maps[c][String(g.id)]={no:no,doc:doc};matched++;touched[c]=1;}
+ var cs=Object.keys(maps);if(!cs.length){alert('매칭된 총기가 없습니다.\n'+(unmatched.length?'미매칭: '+unmatched.slice(0,10).join('\n'):''));return;}
+ if(!confirm('총기 '+matched+'정에 근거 허가를 기록합니다 ('+cs.length+'개 국가: '+cs.join(', ')+').'+(unmatched.length?'\n미매칭 '+unmatched.length+'건은 건너뜁니다.':'')+'\n계속할까요?'))return;
+ for(var i=0;i<cs.length;i++){await ocSet('gun_permit:'+cs[i],maps[cs[i]]);}
+ alert('가져오기 완료 ✔ 총기 '+matched+'정 · 국가 '+cs.length+'개'+(unmatched.length?'\n\n미매칭 ('+unmatched.length+'건):\n'+unmatched.slice(0,15).join('\n')+(unmatched.length>15?'\n…':''):''));scrMain();}
 /* ── 탄약 수출신청 확인서 (다국가 통합) ── */
-function amxRounds(c){var teams=depTeams(c);var r=0,any=false,dates=[],all=[],port='';teams.forEach(function(t){var g=polAmmo(c,t);if(t.dep_date)all.push(t.dep_date);if(g){any=true;r+=(+g.rounds||0);if((+g.rounds||0)>0&&t.dep_date){dates.push(t.dep_date);if(!port)port=t.dA;}}});
- if(!any){var aa=ammoOfA(dataS(),c);if(aa)r=(+aa.b)||0;}if(!dates.length)dates=all;dates.sort();return {rounds:r,date:dates[0]||'',port:port||(teams[0]&&teams[0].dA)||''};}
+function amxRounds(c){var teams=depTeams(c);var r=0,p=0,manual=false,dates=[],all=[],port='';
+ teams.forEach(function(t){var A=depAmmoOf(c,t.tid);if(t.dep_date)all.push(t.dep_date);if(A.set){manual=true;r+=(A.r||0);p+=(A.p||0);if(((A.r||0)+(A.p||0))>0&&t.dep_date){dates.push(t.dep_date);if(!port)port=t.dA;}}});
+ if(!dates.length)dates=all;dates.sort();return {rounds:r,pellets:p,manual:manual,date:dates[0]||'',port:port||(teams[0]&&teams[0].dA)||''};}
 function amxKey(cs){return 'amx_doc:'+cs.join('-');}
 function amxDocOf(cs){return Object.assign({status:'draft'},ocGet(amxKey(cs))||{});}
 function amxBody(cs){var names=cs.map(cnameK);
- var refs=cs.map(function(c,i){var a=amxRounds(c);return '<p style="font-size:12.5px;margin:2px 0">'+(i+1)+'. 관련'+(i?(i+1):'')+': '+depRefLine(c,a.port)+'</p>';}).join('');
- var rows=cs.map(function(c){var a=amxRounds(c);return '<tr><td style="text-align:center">'+esc(cnameK(c))+'</td><td style="text-align:center">'+esc(String(a.date||'').replace(/-/g,'.')||'(기재)')+'</td><td style="text-align:center">22탄</td><td style="text-align:center">'+(a.rounds?a.rounds.toLocaleString('en-US')+'발':'(기재)')+'</td></tr>';}).join('');
+ var RL=[];cs.forEach(function(c){var teams=depTeams(c);var got=false;teams.forEach(function(t){var A=depAmmoOf(c,t.tid);if(!A.set||!((A.p||0)+(A.r||0)))return;depRefLinesTeam(c,t).forEach(function(x){if(RL.indexOf(x)<0)RL.push(x);got=true;});});if(!got){var a=amxRounds(c);depRefLines(c,a.port).forEach(function(x){if(RL.indexOf(x)<0)RL.push(x);});}});var refs=RL.map(function(x,i){return '<p style="font-size:12.5px;margin:2px 0">'+(i+1)+'. 관련'+(i?(i+1):'')+': '+x+'</p>';}).join('');
+ var rows=cs.map(function(c){var a=amxRounds(c);var d=esc(String(a.date||'').replace(/-/g,'.')||'(기재)');var q=[];if(a.pellets)q.push(['공기총탄',a.pellets]);if(a.rounds)q.push(['22탄(화약총탄)',a.rounds]);if(!q.length)q.push(['22탄',null]);
+  return q.map(function(x,i){return '<tr>'+(i===0?'<td rowspan="'+q.length+'" style="text-align:center">'+esc(cnameK(c))+'</td><td rowspan="'+q.length+'" style="text-align:center">'+d+'</td>':'')+'<td style="text-align:center">'+x[0]+'</td><td style="text-align:center">'+(x[1]!=null?x[1].toLocaleString('en-US')+'발':'(기재)')+'</td></tr>';}).join('');}).join('');
  return '<p style="font-size:14px;font-weight:bold;margin:8px 0 4px">제목: 국내개최 국제대회 참가 국외선수 탄약 수출신청 확인서('+esc(names.join(', '))+')</p><hr class="docrule">'+refs+
-  '<p style="font-size:12.5px">'+(cs.length+1)+'. 상기 호와 관련하여 본 연맹에서는 연맹 주관 국내개최 국제대회인 「2026창원장애인사격세계선수권대회」와 관련하여 다음과 같이 확인하였음을 전달합니다.</p>'+
+  '<p style="font-size:12.5px">'+(RL.length+1)+'. 상기 호와 관련하여 본 연맹에서는 연맹 주관 국내개최 국제대회인 「2026창원장애인사격세계선수권대회」와 관련하여 다음과 같이 확인하였음을 전달합니다.</p>'+
   '<p style="font-size:12.5px;margin:4px 0">&nbsp;ㅇ 확인내용<br>&nbsp;&nbsp;- 참가국 「'+esc(names.join(', '))+'」팀의 대회 참가 종료 이후 출국 신청 및 이에 따른 출국 정보:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;● 일시 수출 탄약 정보<br>&nbsp;&nbsp;- 대회 참가 종료에 따른 일시 수출입 탄약의 출국용 관외출고 신청</p>'+
   '<p style="font-size:12.5px;margin:6px 0 2px">&nbsp;ㅇ 세부탄약 내역</p>'+
-  '<table style="width:100%;font-size:12.5px;margin:4px 0 10px"><thead><tr><th style="text-align:center;width:28%">국가명</th><th style="text-align:center;width:22%">출고일</th><th style="text-align:center;width:20%">탄종</th><th style="text-align:center">탄 수량</th></tr></thead><tbody>'+rows+'</tbody></table>'+depEscortBlock();}
+  '<table style="width:100%;font-size:12.5px;margin:4px 0 10px"><thead><tr><th style="text-align:center;width:28%">국가명</th><th style="text-align:center;width:22%">출고일</th><th style="text-align:center;width:24%">탄종</th><th style="text-align:center">탄 수량</th></tr></thead><tbody>'+rows+'</tbody></table>'+depEscortBlock();}
 function amxDocHTML(cs){var D=amxDocOf(cs);return '<div class="doc" id="adm_doc">'+docHeadK()+(D.doc_html||amxBody(cs))+depFootK({no:D.reg_no,date:D.issued_at})+'</div>';}
 function amxSel(){return Array.prototype.slice.call(document.querySelectorAll('.amx_ck:checked')).map(function(x){return x.value;});}
 function amxOpenSel(){var cs=amxSel();if(!cs.length){alert('국가를 하나 이상 선택하세요.');return;}amxOpen(cs);}
@@ -676,19 +742,19 @@ async function amxIssue(cs){var D=amxDocOf(cs);if(D.reg_no)return;if(!confirm('�
 async function amxRevoke(cs){var D=amxDocOf(cs);if(!D.reg_no)return;if(!confirm('발급을 취소할까요?'))return;D.reg_no=null;D.issued_at='';D.status='draft';if(await ocSet(amxKey(cs),D)){var dm=document.getElementById('dm');if(dm)dm.remove();amxOpen(cs);}}
 /* ── 섹션 화면 ── */
 function depSectionHTML(s){var cs=[];(function(){var seen={};(s.firearms||[]).forEach(function(g){if(g.country&&!seen[g.country]){seen[g.country]=1;cs.push(g.country);}});cs.sort();})();
- var rows=[];cs.forEach(function(c){var teams=depTeams(c);var r=depRef(c);var refOk=!!(r.no&&r.date&&r.permit);
+ var rows=[];cs.forEach(function(c){var teams=depTeams(c);var refOk=depRefOk(c);
   teams.forEach(function(t,i){var D=depDocOf(c,t.tid);var isI=!!D.reg_no;var sched=t.dep_date?(String(t.dep_date).replace(/-/g,'.')+' '+(t.dep_no||'')+(t.dep_time2?' '+t.dep_time2:'')):'<span class="tag y">일정 미확인</span>';
    rows.push({c:c,t:t,i:i,n:teams.length,D:D,isI:isI,refOk:refOk,sched:sched,date:t.dep_date||'9999'});});});
  rows.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:(a.c<b.c?-1:1);});
- var tb=rows.map(function(x,ri){var c=x.c,t=x.t;return '<tr class="'+(x.isI?'pols':'')+'"><td style="text-align:center">'+(ri+1)+'</td><td><b>'+esc(c)+'</b><br><span class="muted" style="font-size:11px">'+esc(cnameK(c))+(x.n>1?' · 팀'+(x.i+1)+'/'+x.n:'')+'</span></td><td style="white-space:nowrap">'+x.sched+'</td><td style="text-align:center">'+esc(t.dA||'-')+'</td><td style="white-space:nowrap">'+esc(t.route||'-')+'</td><td style="text-align:center">'+t.guns.length+'정</td><td>'+(x.refOk?'<span class="tag g">입력</span>':'<span class="tag y">미입력</span>')+' <button class="btn sec" style="padding:3px 8px;font-size:11px;min-height:0" onclick="depRefEdit(\''+c+'\')">편집</button></td><td>'+(x.isI?'<span class="tag g">'+esc(docNoFmt(x.D.reg_no))+'</span>':(x.D.doc_html?'<span class="tag">편집본</span>':'<span class="muted" style="font-size:11px">자동생성</span>'))+'</td><td><button class="btn sec" style="padding:4px 12px;font-size:12px;min-height:0" onclick="depOpen(\''+c+'\',\''+t.tid+'\')">열람·편집</button></td></tr>';}).join('');
- var amxRows=cs.map(function(c){var a=amxRounds(c);if(!a.rounds)return '';return '<label style="display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0;font-size:12.5px;white-space:nowrap;cursor:pointer"><input type="checkbox" class="amx_ck" value="'+esc(c)+'"> <b>'+esc(c)+'</b> '+esc(cnameK(c))+' <span class="muted">'+a.rounds.toLocaleString('en-US')+'발'+(a.date?' · '+esc(String(a.date).slice(5).replace('-','/')):'')+'</span></label>';}).join('');
+ var tb=rows.map(function(x,ri){var c=x.c,t=x.t;return '<tr class="'+(x.isI?'pols':'')+'"><td style="text-align:center">'+(ri+1)+'</td><td><b>'+esc(c)+'</b><br><span class="muted" style="font-size:11px">'+esc(cnameK(c))+(x.n>1?' · 팀'+(x.i+1)+'/'+x.n:'')+'</span></td><td style="white-space:nowrap">'+x.sched+'</td><td style="text-align:center">'+esc(t.dA||'-')+'</td><td style="white-space:nowrap">'+esc(t.route||'-')+'</td><td style="text-align:center">'+t.guns.length+'정</td><td style="white-space:nowrap">'+(function(){var A=depAmmoOf(c,t.tid);return (A.set?('<b>'+(A.p||0).toLocaleString('en-US')+' / '+(A.r||0).toLocaleString('en-US')+'발</b>'):'<span class="tag y">미입력</span>')+' <button class="btn sec" style="padding:3px 8px;font-size:11px;min-height:0" onclick="depAmmoEdit(\''+c+'\',\''+t.tid+'\')">편집</button>';})()+'</td><td style="white-space:nowrap">'+(function(){var st=gunPermStat(t);return (st.n===st.total&&st.total?'<span class="tag g">총기 '+st.n+'/'+st.total+'</span>':st.n?'<span class="tag y">총기 '+st.n+'/'+st.total+'</span>':(x.refOk?'<span class="tag">국가 공통</span>':'<span class="tag y">미입력</span>'))+' <button class="btn sec" style="padding:3px 8px;font-size:11px;min-height:0" onclick="gunPermEdit(\''+c+'\',\''+t.tid+'\')">편집</button>';})()+'</td><td>'+(x.isI?'<span class="tag g">'+esc(docNoFmt(x.D.reg_no))+'</span>':(x.D.doc_html?'<span class="tag">편집본</span>':'<span class="muted" style="font-size:11px">자동생성</span>'))+'</td><td><button class="btn sec" style="padding:4px 12px;font-size:12px;min-height:0" onclick="depOpen(\''+c+'\',\''+t.tid+'\')">열람·편집</button></td></tr>';}).join('');
+ var amxRows=cs.map(function(c){var a=amxRounds(c);if(!a.manual||!(a.rounds+a.pellets))return '';return '<label style="display:inline-flex;align-items:center;gap:5px;margin:3px 10px 3px 0;font-size:12.5px;white-space:nowrap;cursor:pointer"><input type="checkbox" class="amx_ck" value="'+esc(c)+'"> <b>'+esc(c)+'</b> '+esc(cnameK(c))+' <span class="muted">공기 '+a.pellets.toLocaleString('en-US')+' / 화약 '+a.rounds.toLocaleString('en-US')+'발'+(a.date?' · '+esc(String(a.date).slice(5).replace('-','/')):'')+'</span></label>';}).join('');
  var issuedAmx=(s.oc_settings||[]).filter(function(x){return /^amx_doc:/.test(x.key);}).map(function(x){var v=null;try{v=(typeof x.value==='string')?JSON.parse(x.value):x.value;}catch(e){}return v&&v.reg_no?{cs:x.key.slice(8).split('-'),v:v}:null;}).filter(Boolean);
  return '<div class="card"><b>출국신청 확인서 (경찰청 제출 · 국가별 출국팀 단위)</b>'+
-  '<p class="muted" style="font-size:12px;margin:6px 0 10px">총기 소지자의 <b>출국 항공일정</b>을 기준으로 국가별 출국팀을 자동으로 나누고, 팀마다 <b>출국신청 확인서</b>(항공정보 + 총기정보 + 호송 서명란 + 회장 직인)를 생성합니다. "관련 공문"에 경찰청 허가 알림 공문번호를 입력하면 본문 1항에 자동 반영됩니다. 열람 후 <b>직접 편집</b>으로 문구·표를 고쳐 저장할 수 있고, <b>문서번호 발급</b>으로 문서장부에 등재됩니다.</p>'+
-  '<div style="overflow:auto"><table><thead><tr><th style="width:36px">순</th><th>NPC</th><th>출국일 · 편명 · 시간</th><th>공항</th><th>이동경로</th><th>총기</th><th>관련 공문</th><th>문서</th><th></th></tr></thead><tbody>'+(tb||'<tr><td colspan="9" class="muted">등록된 총기가 없습니다.</td></tr>')+'</tbody></table></div></div>'+
-  '<div class="card"><b>탄약 수출신청 확인서 (다국가 통합 · 화약총탄 22탄)</b>'+
-  '<p class="muted" style="font-size:12px;margin:6px 0 8px">일정별 실탄 회신(ammo_flight) 또는 실탄 접수 자료의 <b>화약총탄 수량</b>이 있는 국가만 표시됩니다. 함께 출고할 국가를 선택해 한 장의 확인서로 생성합니다. 출고일은 각국의 가장 이른 출국일입니다.</p>'+
-  '<div style="margin-bottom:8px">'+(amxRows||'<span class="muted" style="font-size:12px">화약총탄 수량이 접수된 국가가 없습니다.</span>')+'</div>'+
+  '<p class="muted" style="font-size:12px;margin:6px 0 10px">총기 소지자의 <b>출국 항공일정</b>을 기준으로 국가별 출국팀을 자동으로 나누고, 팀마다 <b>출국신청 확인서</b>(항공정보 + 총기정보 + 호송 서명란 + 회장 직인)를 생성합니다. "관련"에는 팀 총기들의 <b>입국 근거 허가 공문명</b>(총기별 입력, 중복 제거)이 들어가고, 총기별 입력이 없으면 국가 공통 공문이 대신 들어갑니다. 열람 후 <b>직접 편집</b>으로 문구·표를 고쳐 저장할 수 있고, <b>문서번호 발급</b>으로 문서장부에 등재됩니다.</p>'+
+  '<div style="overflow:auto"><table><thead><tr><th style="width:36px">순</th><th>NPC</th><th>출국일 · 편명 · 시간</th><th>공항</th><th>이동경로</th><th>총기</th><th>잔탄 (공기/화약)</th><th>근거 허가 (총기별)</th><th>문서</th><th></th></tr></thead><tbody>'+(tb||'<tr><td colspan="10" class="muted">등록된 총기가 없습니다.</td></tr>')+'</tbody></table></div><div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><button class="btn" style="background:#5B3E8E;padding:6px 14px;font-size:12px" onclick="gunPermImport()">📥 엑셀에서 총기별 근거 허가 가져오기</button><button class="btn sec" style="padding:6px 14px;font-size:12px" onclick="depRefBulk()">📋 국가 공통 근거 공문 일괄 입력 (총기별 입력이 없을 때 사용)</button><span class="muted" style="font-size:11px">엑셀: 총기 총 현황 내보내기 파일의 <b>근거 허가</b>·<b>근거 문서명</b> 열을 국가+총번으로 매칭</span></div></div>'+
+  '<div class="card"><b>탄약 수출신청 확인서 (다국가 통합)</b>'+
+  '<p class="muted" style="font-size:12px;margin:6px 0 8px">위 표에서 <b>잔탄을 입력한 국가</b>만 표시됩니다(자동 집계 없음). 함께 출고할 국가를 선택해 한 장의 확인서로 생성하며, 관련 근거 공문은 국가별 공문이 순서대로 나열됩니다. 출고일은 잔탄이 있는 팀의 출국일입니다.</p>'+
+  '<div style="margin-bottom:8px">'+(amxRows||'<span class="muted" style="font-size:12px">잔탄이 입력된 국가가 없습니다. 위 표의 “잔탄 편집”에서 먼저 입력하세요.</span>')+'</div>'+
   '<button class="btn" style="background:#5B3E8E;padding:7px 16px;font-size:12.5px" onclick="amxOpenSel()">선택 국가로 확인서 생성 · 열람</button>'+
   (issuedAmx.length?'<p style="font-size:12px;margin:10px 0 0"><b>발급된 탄약 확인서:</b> '+issuedAmx.map(function(x){return '<a href="#" onclick="amxOpen('+JSON.stringify(x.cs).replace(/"/g,'&quot;')+');return false" style="margin-right:8px">'+esc(docNoFmt(x.v.reg_no))+' ('+esc(x.cs.join(', '))+')</a>';}).join('')+'</p>':'')+'</div>';}
 /* ===== 영수증 (Receipt) 작성 모듈: 프리셋 → 내용(표·자동합계) → 직인 → 서명 → 발급 ===== */
