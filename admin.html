@@ -761,7 +761,7 @@ function depListGroups(dates){var s=dataS();var cs=[];(function(){var seen={};(s
    var k=[d,String(t.dep_no||'').toUpperCase().replace(/[\s\-]/g,''),t.dep_time2||'',t.dA||'',t.route||''].join('|');
    if(!M[k]){M[k]={c:c,date:d,t:{dep_date:t.dep_date,dep_no:t.dep_no,dep_time2:t.dep_time2,dA:t.dA,route:t.route,guns:[],parts:[]}};mo.push(k);}
    M[k].t.guns=M[k].t.guns.concat(t.guns);M[k].t.parts.push(t);});
-  mo.forEach(function(k){var x=M[k];var A={p:null,r:null,set:false};x.t.parts.forEach(function(pt){var a=depAmmoOf(c,pt.tid);if(a.set){A.set=true;A.p=(A.p||0)+(a.p||0);A.r=(A.r||0)+(a.r||0);}});x.A=A;if(!G[x.date]){G[x.date]=[];order.push(x.date);}G[x.date].push(x);});});
+  mo.forEach(function(k){var x=M[k];var A={p:null,r:null,set:false};x.t.parts.forEach(function(pt){var a=depListAmmoLive(c,pt.tid);if(a.set){A.set=true;A.p=(A.p||0)+(a.p||0);A.r=(A.r||0)+(a.r||0);}});x.A=A;if(!G[x.date]){G[x.date]=[];order.push(x.date);}G[x.date].push(x);});});
  order.sort();return order.map(function(d){var arr=G[d].sort(function(a,b){return a.c<b.c?-1:a.c>b.c?1:((a.t.dep_time2||'')<(b.t.dep_time2||'')?-1:1);});return {date:d,teams:arr};});}
 function depListTypeSum(guns){var cnt={'공기소총':0,'공기권총':0,'화약소총':0,'화약권총':0,'산탄총':0};guns.forEach(function(x){var k=polTypeK(x.g.type);cnt[k]=(cnt[k]||0)+1;});return cnt;}
 function depListHTML(dates){var GS=depListGroups(dates);if(!GS.length)return '<p class="muted">해당 일정에 출국하는 총기 팀이 없습니다.</p>';
@@ -791,8 +791,36 @@ function depListHTML(dates){var GS=depListGroups(dates);if(!GS.length)return '<p
    '<tr><td colspan="2" style="text-align:center;font-weight:bold;background:#f3f5f8;height:24px">합계</td><td style="text-align:right;font-weight:bold;background:#f3f5f8">'+(AT.p?AT.p.toLocaleString('en-US'):'')+'</td><td style="text-align:right;font-weight:bold;background:#f3f5f8">'+(AT.r?AT.r.toLocaleString('en-US'):'')+'</td><td style="background:#f3f5f8"></td></tr></tbody></table></div>';});
  return H;}
 function depListDoc(dates){return '<div class="doc" id="adm_doc">'+docHeadK()+depListHTML(dates)+'</div></div>';}
-function depListOpen(dates){_DRAFTSRC=null;var arg=JSON.stringify(dates||[]).replace(/"/g,'&quot;');var lbl=(dates&&dates.length)?dates.map(function(d){return String(d).slice(5).replace('-','/');}).join(', '):'전체';
- infoModal('출국 일정 리스트 — '+esc(lbl)+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn sec" style="padding:5px 12px;min-height:0;font-size:12px" onclick="depListXls('+arg+')">⬇ Excel</button>',depListDoc(dates));}
+function depListOpen(dates){_DRAFTSRC=null;_DLA={};_DLA_DATES=dates||[];var arg=JSON.stringify(dates||[]).replace(/"/g,'&quot;');var lbl=(dates&&dates.length)?dates.map(function(d){return String(d).slice(5).replace('-','/');}).join(', '):'전체';
+ infoModal('출국 일정 리스트 — '+esc(lbl)+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn sec" style="padding:5px 12px;min-height:0;font-size:12px" onclick="depListXls('+arg+')">⬇ Excel</button>',
+  '<div style="display:flex;gap:14px;align-items:flex-start"><div id="dl_prev" style="flex:1;min-width:0">'+depListDoc(dates)+'</div>'+depListAmmoPanel(dates)+'</div>');
+ var am=document.querySelector('#dm .amodal');if(am)am.style.maxWidth='1300px';}
+/* ===== 출국 일정 리스트 옆 잔탄 편집 패널: 입력 즉시 미리보기 반영, 저장 시 출국확인서/탄약 수출확인서에도 적용 ===== */
+var _DLA={},_DLA_DATES=[];
+function depListAmmoLive(c,tid){var o=_DLA[c+'|'+tid];if(o&&document.getElementById('dl_side')){var has=function(v){return !(v===''||v==null);};return {p:has(o.p)?(+o.p||0):null,r:has(o.r)?(+o.r||0):null,set:has(o.p)||has(o.r)};}return depAmmoOf(c,tid);}
+function depListAmmoPanel(dates){var GS=depListGroups(dates);var dk=function(d){return d==='9999-99-99'?'(출국 일정 미확인)':(String(d).replace(/-/g,'.')+polDW(d));};var f=function(v){return v==null?'':v;};
+ var H='<div id="dl_side" style="width:330px;flex:none;position:sticky;top:0;max-height:80vh;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#F8FAFC;font-family:\'Segoe UI\',\'Malgun Gothic\',sans-serif">';
+ H+='<div class="row" style="align-items:center;margin-bottom:4px"><b style="font-size:13px;color:var(--navy)">국가별 잔탄 편집</b><span id="dla_st" class="muted" style="font-size:11px;margin-left:auto"></span></div>';
+ H+='<p class="muted" style="font-size:11px;margin:0 0 8px;line-height:1.4">출국 시 실제 반출하는 잔여 탄약(발). 입력하면 왼쪽 미리보기에 바로 반영되고, <b>저장</b>해야 출국확인서·탄약 수출확인서에도 적용됩니다. 비우면 미기재.</p>';
+ H+='<button class="btn g" style="width:100%;margin-bottom:8px;min-height:0;padding:8px" onclick="depListAmmoSave()">저장</button>';
+ if(!GS.length)H+='<p class="muted" style="font-size:12px">해당 일정에 출국하는 총기 팀이 없습니다.</p>';
+ GS.forEach(function(grp){H+='<div style="font-weight:700;font-size:12px;margin:10px 0 4px;color:#16456B;border-left:3px solid #16456B;padding-left:6px">출국일 '+esc(dk(grp.date))+'</div>';
+  grp.teams.forEach(function(x){var c=x.c,t=x.t;H+='<div style="border:1px solid #E3E8EF;border-radius:8px;padding:6px 8px;margin-bottom:6px;background:#fff"><div style="font-size:12px;font-weight:700;color:#222">'+esc(c)+' '+esc(cnameK(c))+' <span class="muted" style="font-weight:normal">· '+esc(t.dep_no||'(편명 미확인)')+(t.dep_time2?' '+esc(t.dep_time2):'')+' · '+t.guns.length+'정</span></div>';
+   t.parts.forEach(function(pt){var A=depListAmmoLive(c,pt.tid);var g=polAmmo(c,pt);var hint=g?('입국 신고: 공기 '+(+g.pellets||0).toLocaleString('en-US')+' · 화약 '+(+g.rounds||0).toLocaleString('en-US')):'입국 신고 수량 없음';var k=c+'|'+pt.tid;
+    if(t.parts.length>1)H+='<div class="muted" style="font-size:11px;margin-top:4px">입국 '+esc(String(pt.arrive||'').slice(5).replace('-','.'))+' '+esc(pt.arr_flight||'')+' · '+pt.guns.length+'정</div>';
+    H+='<div class="row" style="gap:6px;align-items:center;margin-top:4px;flex-wrap:nowrap"><span style="font-size:11px;color:#444;white-space:nowrap">공기총탄</span><input type="number" min="0" placeholder="-" style="width:78px;padding:4px 6px;min-height:0;font-size:12px" data-k="'+esc(k)+'" data-f="p" value="'+f(A.p)+'" oninput="depListAmmoIn(this)"><span style="font-size:11px;color:#444;white-space:nowrap">화약총탄</span><input type="number" min="0" placeholder="-" style="width:78px;padding:4px 6px;min-height:0;font-size:12px" data-k="'+esc(k)+'" data-f="r" value="'+f(A.r)+'" oninput="depListAmmoIn(this)"></div>';
+    H+='<div class="muted" style="font-size:10.5px;margin-top:2px">'+esc(hint)+'</div>';});
+   H+='</div>';});});
+ return H+'</div>';}
+var _dlaT;
+function depListAmmoIn(inp){var k=inp.getAttribute('data-k'),fld=inp.getAttribute('data-f');if(!_DLA[k]){var c=k.split('|')[0],tid=k.split('|')[1];var cur=depAmmoOf(c,tid);_DLA[k]={p:cur.p,r:cur.r};}
+ var v=(inp.value||'').trim();_DLA[k][fld]=v===''?null:(+v);var st=document.getElementById('dla_st');if(st)st.textContent='미저장 변경 있음';
+ clearTimeout(_dlaT);_dlaT=setTimeout(function(){var pv=document.getElementById('dl_prev');if(!pv)return;var sc=pv.querySelector('.docfit');var top=sc?sc.scrollTop:0;pv.innerHTML=depListDoc(_DLA_DATES);try{fitDocsIn(pv);}catch(e){}},250);}
+async function depListAmmoSave(){var ks=Object.keys(_DLA);if(!ks.length){alert('변경된 내용이 없습니다.');return;}var st=document.getElementById('dla_st');if(st)st.textContent='저장 중…';
+ for(var i=0;i<ks.length;i++){var k=ks[i],c=k.split('|')[0],tid=k.split('|')[1];var o=_DLA[k];var D=depDocOf(c,tid);if(o.p==null&&o.r==null){delete D.ammo;}else{D.ammo={p:o.p==null?0:+o.p,r:o.r==null?0:+o.r};}
+  if(!(await ocSet(depKey(c,tid),D))){if(st)st.textContent='저장 실패';return;}}
+ _DLA={};if(st)st.textContent='저장 완료 '+new Date().toTimeString().slice(0,5);var pv=document.getElementById('dl_prev');if(pv){pv.innerHTML=depListDoc(_DLA_DATES);try{fitDocsIn(pv);}catch(e){}}
+ var side=document.getElementById('dl_side');if(side){side.outerHTML=depListAmmoPanel(_DLA_DATES);var s2=document.getElementById('dla_st');if(s2)s2.textContent='저장 완료';}}
 function depListXls(dates){var GS=depListGroups(dates);var hdr=['출국일','국가','국가명','편명','출국시간','공항','순','성명','생년월일(YYMMDD)','총종','제조사','모델','구경','총번'];var data=[];var sum=[['출국일','국가','편명','총기 계','공기소총','공기권총','화약소총','화약권총','산탄총','잔탄 공기총탄(발)','잔탄 화약총탄(발)','비고']];
  GS.forEach(function(grp){var no=0;grp.teams.forEach(function(x){var c=x.c,t=x.t;var cnt=depListTypeSum(t.guns);var A=x.A;
   sum.push([grp.date,c,t.dep_no||'',t.guns.length,cnt['공기소총']||0,cnt['공기권총']||0,cnt['화약소총']||0,cnt['화약권총']||0,cnt['산탄총']||0,A.p==null?'':A.p,A.r==null?'':A.r,'']);
