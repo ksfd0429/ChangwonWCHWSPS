@@ -605,7 +605,16 @@ function depTeams(c){var s=dataS();var mem=(s.members||[]).filter(function(m){re
   var first=(DL&&DL.length)?DL[0]:null;t.dep_date=(first&&first.dep_date)||t.depart||'';t.dep_time2=(first&&first.dep_time)||t.dep_time||'';t.dep_no=(first&&first.flight)||polLegs(t.dep_flight)[0]||t.dep_flight||'';
   t.route=(DL&&DL.length)?(function(){var q=[apKo(DL[0].from,DL[0].from_name)];DL.forEach(function(l){q.push(apKo(l.to,l.to_name));});return q.filter(function(x){return x;}).join('/');})():(function(){var L=polLegs(t.dep_flight);var r=[];L.forEach(function(f){var rt=polRoute(f);if(rt)r.push(rt);});return r.join(' → ');})();
   t.tid=depTid(t);});
- return teams;}
+ /* 출국 정보(일자·편명·시간·공항·경로)가 같으면 입국 일정이 달라도 한 출국팀으로 합침 (출국확인서·잔탄·리스트 공통).
+    단독 팀은 기존 tid 유지, 합쳐진 팀은 출국정보 기반 tid('M…')를 쓰고 이전 tid 자료는 depDocOf가 이어받음 */
+ var M={},mo=[];teams.forEach(function(t){var k=[t.dep_date||'',String(t.dep_no||'').toUpperCase().replace(/[\s\-]/g,''),t.dep_time2||'',t.dA||'',t.route||''].join('|');if(!M[k]){M[k]=[];mo.push(k);}M[k].push(t);});
+ var out=mo.map(function(k){var P=M[k];if(P.length===1){P[0].parts=[P[0]];P[0].legacy=[];return P[0];}
+  var t=Object.assign({},P[0]);t.guns=[];t.members=[];P.forEach(function(x){t.guns=t.guns.concat(x.guns);t.members=t.members.concat(x.members);});
+  t.key=P.map(function(x){return x.key;}).join('#');t.parts=P;t.legacy=P.map(function(x){return x.tid;});t.tid='M'+depHash(k);_DEP_LEGACY[c+'|'+t.tid]=t.legacy;return t;});
+ out.sort(function(a,b){return (a.dep_date||'9999')<(b.dep_date||'9999')?-1:(a.dep_date||'9999')>(b.dep_date||'9999')?1:((a.dep_time2||'')<(b.dep_time2||'')?-1:1);});
+ return out;}
+var _DEP_LEGACY={};
+function depHash(str){var h=5381;for(var i=0;i<str.length;i++)h=((h*33)^str.charCodeAt(i))>>>0;return h.toString(36);}
 function depTid(t){return String(t.key||'').replace(/[^A-Za-z0-9]/g,'').slice(0,40)||'x';}
 function depKey(c,tid){return 'dep_doc:'+c+':'+tid;}
 function depRefKey(c){return 'dep_ref:'+c;}
@@ -649,7 +658,10 @@ function depBody(c,t){var cn=cnameK(c);var R=depRefLinesTeam(c,t);var refs=R.map
   '<p style="font-size:12px;margin:2px 0 0">&nbsp;&nbsp;-항공정보</p>'+depFlightTable(t)+
   '<p style="font-size:12px;margin:2px 0 0">&nbsp;&nbsp;-총기정보 ('+t.guns.length+'정)</p>'+depGunTable(t)+
   '<p style="font-size:12px;margin:2px 0 0">&nbsp;&nbsp;-잔탄정보 (출국 시 반출)</p>'+depAmmoTable(c,t.tid)+depEscortBlock();}
-function depDocOf(c,tid){return Object.assign({status:'draft'},ocGet(depKey(c,tid))||{});}
+function depDocOf(c,tid){var v=ocGet(depKey(c,tid));if(v)return Object.assign({status:'draft'},v);
+ /* 합쳐진 출국팀: 이전(분리 팀) tid 로 저장된 문서·잔탄을 이어받음 — 문서는 첫 자료, 잔탄은 합산 */
+ var L=_DEP_LEGACY[c+'|'+tid]||[];if(!L.length)return {status:'draft'};var D=null,am=null;L.forEach(function(l){var x=ocGet(depKey(c,l));if(!x)return;if(!D||(!D.reg_no&&x.reg_no))D=Object.assign({},x);var a=x.ammo||{};var has=function(q){return !(q===''||q==null);};if(has(a.p)||has(a.r)){am=am||{p:0,r:0};am.p+=(+a.p||0);am.r+=(+a.r||0);}});
+ if(!D)return {status:'draft'};if(am)D.ammo=am;else delete D.ammo;delete D.doc_html;return Object.assign({status:'draft'},D);}
 function depAmmoOf(c,tid){var D=depDocOf(c,tid);var a=D.ammo||{};var has=function(v){return !(v===''||v==null);};return {p:has(a.p)?(+a.p||0):null,r:has(a.r)?(+a.r||0):null,set:!!(D.ammo&&(has(a.p)||has(a.r)))};}
 function depAmmoEdit(c,tid){var t=depFindTeam(c,tid);if(!t)return;var A=depAmmoOf(c,tid);var g=polAmmo(c,t);var hint=g?('입국 시 신고 수량: 공기총탄 '+(+g.pellets||0).toLocaleString('en-US')+'발 · 화약총탄 '+(+g.rounds||0).toLocaleString('en-US')+'발'):'입국 시 신고 수량 정보 없음';
  infoModal('출국 반출 잔탄 입력 — '+esc(c)+' · '+esc(String(t.dep_date||'').replace(/-/g,'.'))+' '+esc(t.dep_no),'<p class="muted" style="font-size:12px;margin:0 0 8px">출국 시 실제로 가져가는 <b>잔여 탄약</b>을 개별 파악해서 입력합니다. 자동 집계하지 않으며, 입력값이 출국확인서 잔탄정보와 탄약 수출확인서에 그대로 들어갑니다.<br>'+esc(hint)+'</p>'+
