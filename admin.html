@@ -213,14 +213,16 @@ async function scrMain(){
   var fRows=s.firearm_submissions.map(function(x,i){var sc=(x.grp||'*ALL*');
     return '<tr'+(gunAllOk(s,x.country)?' class="gok" title="모든 총기 사진 확인 완료"':'')+'><td>'+flagTd(x.country)+'</td><td>'+esc(sc==='*ALL*'?'Entire delegation':sc)+'</td><td>'+esc(x.submitted_at||'')+'</td><td><span class="tag g">submitted</span></td><td style="font-size:11px">OC-F-'+esc(x.country)+'-'+esc(String(x.submitted_at||'').replace(/-/g,''))+'</td><td><button class="btn" style="padding:4px 9px;font-size:11px;background:#2E6B5B" onclick="photoF('+i+')">🖼 사진</button> '+(x.reg_no?'':'<button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editFrm('+i+')">편집</button> ')+(x.reg_no?'<span class="tag g">발행 #'+esc(x.reg_no)+'</span>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="issueF('+i+')">발행</button>')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docF('+i+')">문서</button> <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="detF('+i+')">Detail</button></td></tr>';}).join('');
   var vRows=(s.invoices||[]).map(function(V){
-    return '<tr><td>'+flagTd(V.country)+'</td><td>'+esc(V.title)+'</td><td>'+(V.member_ids||[]).length+'</td><td>'+(V.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending</span>')+'</td><td>'+(V.no?esc(V.no):'—')+'</td><td>'+esc(V.account||'—')+'</td><td>'+(V.status==='approved'?'<button class="btn r" style="padding:4px 9px;font-size:11px" onclick="revokeV('+V.id+')">Revoke</button>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="approveV('+V.id+')">Approve</button>')+' <button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editInv('+V.id+')">편집</button>'+(vEdited(V)?' <button class="btn" style="padding:4px 9px;font-size:11px;background:#8A5A10" title="'+(V.edit_note?'수정 사유 보기/수정':'수정 사유 미작성')+'" onclick="vNoteOpen('+V.id+',\''+'note'+'\')">📝 사유'+(V.edit_note?'':' <b>!</b>')+'</button>':'')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docV('+V.id+')">문서</button></td></tr>';}).join('');
+    return '<tr><td>'+flagTd(V.country)+'</td><td>'+esc(V.title)+'</td><td>'+(V.member_ids||[]).length+'</td><td>'+(V.status==='approved'?'<span class="tag g">approved</span>':'<span class="tag y">pending</span>')+'</td><td>'+(V.no?esc(V.no):'—')+'</td><td>'+esc(V.account||'—')+'</td><td>'+(V.status==='approved'?'<button class="btn r" style="padding:4px 9px;font-size:11px" onclick="revokeV('+V.id+')">Revoke</button>':'<button class="btn g" style="padding:4px 9px;font-size:11px" onclick="approveV('+V.id+')">Approve</button>')+' <button class="btn y" style="padding:4px 9px;font-size:11px" onclick="editInv('+V.id+')">편집</button>'+(vEdited(V)?' <button class="btn" style="padding:4px 9px;font-size:11px;background:#8A5A10" title="'+(V.edit_note?'수정 사유 보기/수정':'수정 사유 미작성')+'" onclick="vNoteOpen('+V.id+',\''+'note'+'\')">📝 사유'+(V.edit_note?'':' <b>!</b>')+'</button>':'')+' <button class="btn sec" style="padding:4px 9px;font-size:11px" onclick="docV('+V.id+')">문서</button> <button class="btn" style="padding:4px 9px;font-size:11px;background:#5B3E8E" title="이 인보이스의 인원·주소를 기준으로 분할 인보이스 작성" onclick="spOpen(\''+V.country+'\','+V.id+')">✂️ 분할</button></td></tr>';}).join('');
   var aRows=s.npc_accounts.map(function(a){return '<tr><td>'+flagTd(a.country)+'</td><td>'+esc(a.email||'')+'</td><td>'+(a.active?'<span class="tag g">active</span>':'<span class="tag y">inactive</span>')+'</td><td><button class="btn y" style="padding:4px 9px;font-size:11px" onclick="sendResetMail(\''+a.country+'\')">Send reset link</button> <button class="btn r" style="padding:4px 9px;font-size:11px" onclick="resetCountry(\''+a.country+'\')">계정 리셋</button></td></tr>';}).join('');
   var rosterRows=s.members.map(function(m){return '<tr><td>'+flagTd(m.country)+'</td><td>'+esc(memName(m))+'</td><td>'+esc(m.position||'')+'</td><td>'+esc(m.sub_group||'')+'</td><td>'+esc(m.passport||'')+'</td><td>'+esc(m.arrive||'')+' ~ '+esc(m.depart||'')+'</td><td>'+esc(m.room||'')+'</td><td>'+esc(m.wheelchair||'')+'</td></tr>';}).join('');
   var b0=bankS(s),p0=pricingS(s);
   var ACT='<div class="tbl"><table><thead><tr><th>NPC</th><th>Email</th><th>Requested (KST)</th><th>Status</th><th>Action</th></tr></thead><tbody>'+(aqRows||'<tr><td colspan="5" class="muted">None.</td></tr>')+'</tbody></table></div><p class="muted" style="font-size:11.5px;margin:8px 0 0">승인 시 비밀번호 세팅 링크가 등록 이메일로 발송됩니다. 공식 연맹 연락처와 대조 후 승인하세요.</p>';
   var INV='<div class="tbl"><table><thead><tr><th>NPC</th><th>Title</th><th>Members</th><th>Status</th><th>No.</th><th>Approved</th><th>Action</th></tr></thead><tbody>'+(invRows||'<tr><td colspan="7" class="muted">None.</td></tr>')+'</tbody></table></div>';
   var FR='<div class="tbl"><table><thead><tr><th>NPC</th><th>Scope</th><th>Submitted</th><th>Status</th><th>No.</th><th>Action</th></tr></thead><tbody>'+(fRows||'<tr><td colspan="6" class="muted">None.</td></tr>')+'</tbody></table></div><p class="muted" style="font-size:11.5px;margin:8px 0 0">총기 확인서는 제출 즉시 자동 발급됩니다(승인 불필요).</p>';
-  var VC='<div class="tbl"><table><thead><tr><th>NPC</th><th>To</th><th>Members</th><th>Status</th><th>No.</th><th>Account</th><th>Action</th></tr></thead><tbody>'+(vRows||'<tr><td colspan="7" class="muted">None.</td></tr>')+'</tbody></table></div>';
+  var spCountries={};s.members.forEach(function(m){spCountries[m.country]=1;});var spOpts=Object.keys(spCountries).sort().map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+' · '+esc(cnameK(c))+'</option>';}).join('');
+  var VC='<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;background:#F3EEF9;border:1px solid #D9CCE9;border-radius:10px;padding:8px 12px;margin-bottom:10px"><b style="font-size:12.5px;color:#5B3E8E">✂️ 분할 인보이스 작성</b><span class="muted" style="font-size:11px">국가를 고르면 인원별 · 박 단위로 체크해 인보이스를 나눠 만들 수 있습니다</span><select id="sp_c" style="min-height:0;padding:5px 8px;font-size:12px;margin-left:auto"><option value="">국가 선택…</option>'+spOpts+'</select><button class="btn" style="padding:5px 12px;font-size:12px;min-height:0;background:#5B3E8E" onclick="spOpen(document.getElementById(\'sp_c\').value,0)">새로 만들기</button></div>'+
+   '<div class="tbl"><table><thead><tr><th>NPC</th><th>To</th><th>Members</th><th>Status</th><th>No.</th><th>Account</th><th>Action</th></tr></thead><tbody>'+(vRows||'<tr><td colspan="7" class="muted">None.</td></tr>')+'</tbody></table></div>';
   var BANK='<div class="row" style="gap:8px;margin-top:4px;flex-wrap:wrap">'+
    '<div class="f" style="margin:0;flex:1;min-width:200px"><label>Account Holder</label><input id="bk_h" value="'+esc(b0.holder)+'"></div>'+
    '<div class="f" style="margin:0;min-width:150px"><label>Account Number</label><input id="bk_a" value="'+esc(b0.account)+'"></div>'+
@@ -1654,6 +1656,101 @@ async function edSave(alsoApprove){
   _edHtml=null;_edCustom=false;_edStale=false;
   if(alsoApprove){await approveV(id);return;}
   alert('인보이스가 저장되었습니다. ✔ (항목과 문서 본문이 함께 반영되었습니다)');scrMain();}
+/* ===== 분할 인보이스 작성기 (국가별 · 날짜/비날짜 섹션 분리) ===== */
+var _sp=null;
+function spDateList(a,b){var out=[];if(!a||!b)return out;var d=new Date(a),e=new Date(b);if(isNaN(d)||isNaN(e))return out;while(d<e){out.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);}return out;}
+function spDShort(iso){var d=new Date(iso);if(isNaN(d))return iso;var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return d.getDate()+' '+M[d.getMonth()];}
+function spDDay(iso){var d=new Date(iso);if(isNaN(d))return '';return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];}
+function spRangeLabel(ds){if(!ds.length)return '';var s=ds.slice().sort();var chk=new Date(s[s.length-1]);chk.setDate(chk.getDate()+1);return spDShort(s[0])+' – '+spDShort(chk.toISOString().slice(0,10));}
+/* 다른 인보이스에 이미 청구된 박(member_id → {date:invoice}) — 본 도구로 만든 인보이스의 items[].nights 메타를 읽음 */
+function spBilled(s,country,excludeId){var o={};(s.invoices||[]).forEach(function(V){if(V.country!==country||V.id===excludeId)return;(V.items||[]).forEach(function(it){if(!it.nights)return;Object.keys(it.nights).forEach(function(mid){(it.nights[mid]||[]).forEach(function(d){(o[mid]=o[mid]||{})[d]=V;});});});});return o;}
+function spOpen(country,baseId){var s=dataS();if(!country){alert('국가를 선택하세요.');return;}
+  var base=baseId?(s.invoices||[]).find(function(x){return x.id===baseId}):null;
+  var mem=s.members.filter(function(m){return m.country===country});
+  if(!mem.length){alert(country+' — 등록된 명단이 없습니다.');return;}
+  var sel={};mem.forEach(function(m){sel[m.id]=base?((base.member_ids||[]).indexOf(m.id)>=0):true;});
+  var ad=ammoInvAddr(s,country);
+  var nights={};mem.forEach(function(m){nights[m.id]={};spDateList(m.arrive,m.depart).forEach(function(d){nights[m.id][d]=false;});});
+  var extra=[];if(base){(base.items||[]).filter(function(it){return it.sec!=='Accommodation'&&!/^Transportation|^Firearms Import/.test(String(it.d||''))}).forEach(function(it){extra.push({on:false,row:JSON.parse(JSON.stringify(it))});});}
+  _sp={country:country,baseId:baseId||0,title:base?(base.title||''):(ad.to||''),addr:base?(base.addr||''):(ad.addr||''),mem:mem,sel:sel,nights:nights,merge:true,tr:false,fa:false,extra:extra,billed:spBilled(s,country,baseId||0),P:pricingS(s)};
+  spRender();}
+function spMembers(){return _sp.mem.filter(function(m){return _sp.sel[m.id]});}
+function spDates(){var set={};spMembers().forEach(function(m){Object.keys(_sp.nights[m.id]).forEach(function(d){set[d]=1});});return Object.keys(set).sort();}
+function spItems(){var P=_sp.P,items=[];var ms=spMembers();
+  [['Twin',P.twin],['Single',P.single]].forEach(function(rt){
+    var lst=ms.filter(function(m){return (m.room||'Twin')===rt[0]}).map(function(m){var ds=Object.keys(_sp.nights[m.id]).filter(function(d){return _sp.nights[m.id][d]}).sort();return {m:m,ds:ds};}).filter(function(x){return x.ds.length});
+    if(!lst.length)return;
+    if(_sp.merge){var pn=0,meta={},rng={};lst.forEach(function(x){pn+=x.ds.length;meta[x.m.id]=x.ds;x.ds.forEach(function(d){rng[d]=1});});
+      items.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals · '+lst.length+' people, '+spRangeLabel(Object.keys(rng))+')',q:pn+' Nights',m:'',p:'* '+rt[1]+' USD =',t:pn*rt[1],nights:meta});
+    }else{var g={};lst.forEach(function(x){var k=x.ds.join(',');(g[k]=g[k]||[]).push(x);});
+      Object.keys(g).sort(function(a,b){return g[a][0].ds.length-g[b][0].ds.length}).forEach(function(k){var grp=g[k],n=grp[0].ds.length,c=grp.length,meta={};grp.forEach(function(x){meta[x.m.id]=x.ds});
+        items.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals · '+spRangeLabel(grp[0].ds)+')\n— '+grp.map(function(x){return memName(x.m)}).join(', '),q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1],nights:meta});});}
+  });
+  if(_sp.tr&&ms.length)items.push({sec:'Transportation',d:'Transportation — Option 1',s:'(ICN/PUS → ground vehicle → Changwon)',q:ms.length+' People',m:'',p:'* '+P.tr1+' USD =',t:ms.length*P.tr1});
+  var fa=ms.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;
+  if(_sp.fa&&fa)items.push({sec:'Miscellaneous',d:'Firearms Import/Export Fee',s:'(per athlete)',q:fa+' Athlete(s)',m:'',p:'* '+P.firearm+' USD =',t:fa*P.firearm});
+  _sp.extra.forEach(function(x){if(x.on)items.push(x.row);});
+  return items;}
+function spTotal(){return spItems().reduce(function(a,b){return a+(isOnsite(b)?0:(+b.t||0))},0);}
+function spGridHtml(){var ms=spMembers(),ds=spDates();if(!ms.length)return '<p class="muted" style="font-size:12px">선택된 인원이 없습니다.</p>';
+  if(!ds.length)return '<p class="muted" style="font-size:12px">선택 인원에 숙박일(도착~출발)이 등록되어 있지 않습니다.</p>';
+  var th='<th style="position:sticky;left:0;background:#fff;color:#16456B;z-index:2;text-align:left;min-width:170px">인원</th><th style="min-width:46px">객실</th>'+ds.map(function(d){var all=ms.every(function(m){return !(d in _sp.nights[m.id])||_sp.nights[m.id][d]});var any=ms.some(function(m){return (d in _sp.nights[m.id])&&_sp.nights[m.id][d]});
+    return '<th style="padding:3px 2px;min-width:40px;font-size:10px;line-height:1.2;cursor:pointer;color:#16456B;background:'+(all?'#D7EFDF':any?'#FFF3C4':'#fff')+'" title="이 날짜 전체 선택/해제" onclick="spColToggle(\''+d+'\')">'+spDShort(d)+'<br><span style="color:#7a8aa0">'+spDDay(d)+'</span></th>';}).join('')+'<th style="min-width:46px">박</th>';
+  var rows=ms.map(function(m){var nm=_sp.nights[m.id];var cnt=Object.keys(nm).filter(function(d){return nm[d]}).length;
+    return '<tr><td style="position:sticky;left:0;background:#fff;z-index:1;white-space:nowrap;cursor:pointer" title="이 인원의 전체 박 선택/해제" onclick="spRowToggle('+m.id+')"><b>'+esc(memName(m))+'</b><span class="muted" style="font-size:10px;margin-left:5px">'+esc(m.position||'')+'</span></td><td style="text-align:center;font-size:11px">'+esc(m.room||'Twin')+'</td>'+
+      ds.map(function(d){if(!(d in nm))return '<td style="background:#EDEFF2;border:1px solid #fff"></td>';var b=(_sp.billed[m.id]||{})[d];var on=nm[d];
+        var st=on?'background:#1F7A4D;color:#fff;font-weight:700;box-shadow:inset 0 0 0 2px #0F5A36':b?'background:repeating-linear-gradient(135deg,#FBE3E3,#FBE3E3 4px,#F5C9C9 4px,#F5C9C9 8px);color:#a33':'background:#fff;color:#C5CBD3';
+        return '<td class="spc" style="text-align:center;padding:0;height:30px;min-width:40px;cursor:pointer;user-select:none;border:1px solid #fff;font-size:14px;line-height:30px;'+st+'" title="'+(b?'이미 청구됨: '+esc(b.title||'')+(b.no?' (CW26INV-'+esc(b.no)+')':' (pending)')+' — 클릭하면 선택/해제':'클릭하면 선택/해제')+'" onclick="spCell('+m.id+',\''+d+'\',!'+(on?'true':'false')+')">'+(on?'✔':b?'<span style="font-size:9px;font-weight:700">billed</span>':'·')+'</td>';}).join('')+
+      '<td style="text-align:center;font-weight:700">'+(cnt||'')+'</td></tr>';}).join('');
+  return '<div style="overflow:auto;max-height:36vh;border:1px solid var(--line);border-radius:8px"><table style="border-collapse:collapse;font-size:12px;width:max-content;min-width:100%"><thead style="position:sticky;top:0;background:#fff;z-index:3"><tr>'+th+'</tr></thead><tbody>'+rows+'</tbody></table></div>';}
+function spSelHtml(){var g={};_sp.mem.forEach(function(m){var k=m.sub_group||'(no group)';(g[k]=g[k]||[]).push(m);});_sp.groups=Object.keys(g).sort();
+  return _sp.groups.map(function(k,gi){var lst=g[k];var all=lst.every(function(m){return _sp.sel[m.id]});
+    return '<div style="margin-bottom:4px"><label style="font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" '+(all?'checked':'')+' style="width:14px;height:14px;min-height:0;margin:0 5px 0 0" onchange="spGrpSel('+gi+',this.checked)">'+esc(k)+' <span class="muted" style="font-weight:400">('+lst.length+')</span></label>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:2px 10px;padding-left:18px">'+lst.map(function(m){return '<label style="font-size:11.5px;white-space:nowrap;cursor:pointer"><input type="checkbox" '+(_sp.sel[m.id]?'checked':'')+' style="width:13px;height:13px;min-height:0;margin:0 3px 0 0" onchange="spSel('+m.id+',this.checked)">'+esc(memName(m))+'</label>';}).join('')+'</div></div>';}).join('');}
+function spNonDateHtml(){var ms=spMembers();var fa=ms.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;var P=_sp.P;
+  function chip(on,label,sub,fn){return '<label class="row" style="gap:8px;align-items:center;cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:'+(on?'#E4F3E9':'#fff')+'"><input type="checkbox" '+(on?'checked':'')+' style="width:16px;height:16px;min-height:0;margin:0" onchange="'+fn+'"><span style="font-size:12.5px"><b>'+label+'</b><span class="muted" style="display:block;font-size:10.5px">'+sub+'</span></span></label>';}
+  var h=chip(_sp.tr,'Transportation — Option 1',ms.length+' People × '+P.tr1+' USD = '+usdF(ms.length*P.tr1),'spFlag(\'tr\',this.checked)')+
+    chip(_sp.fa,'Firearms Import/Export Fee',fa+' Athlete(s) × '+P.firearm+' USD = '+usdF(fa*P.firearm),'spFlag(\'fa\',this.checked)');
+  _sp.extra.forEach(function(x,i){h+=chip(x.on,esc(x.row.d||'(항목)')+' <span class="tag" style="font-size:9px">'+esc(x.row.sec||'Other')+'</span>',esc(x.row.q||'')+' '+esc(x.row.m||'')+' '+esc(x.row.p||'')+' '+usdF(+x.row.t||0)+(isOnsite(x.row)?' (on site)':''),'spExtra('+i+',this.checked)');});
+  return '<div style="display:flex;flex-direction:column;gap:6px">'+h+'</div>';}
+function spRender(){var old=document.getElementById('dm');if(old)old.remove();if(!document.getElementById('spcss')){var cs=document.createElement('style');cs.id='spcss';cs.textContent='.spc:hover{filter:brightness(.9)} .spc{transition:background .08s}';document.head.appendChild(cs);}
+  document.body.insertAdjacentHTML('beforeend','<div class="mback z2" id="dm" onclick="if(event.target===this)this.remove()"><div class="amodal" style="max-width:1600px;width:97vw">'+
+   '<div class="row" style="margin-bottom:10px;align-items:center"><b style="font-size:15px;color:var(--navy)">✂️ 분할 인보이스 작성 — '+esc(_sp.country)+' '+esc(cnameK(_sp.country))+'</b>'+(_sp.baseId?'<span class="tag y" style="margin-left:8px">기준: 인보이스 #'+_sp.baseId+'</span>':'')+'<span class="muted" style="margin-left:12px">합계 <b id="sptot" style="color:var(--acc);font-size:15px">'+usdF(spTotal())+'</b></span>'+
+   '<span style="margin-left:auto"></span><button class="btn g" style="padding:7px 16px;min-height:0" onclick="spSave()">💾 새 인보이스로 저장</button><button class="mclose" style="margin-left:8px" onclick="document.getElementById(\'dm\').remove()">×</button></div>'+
+   '<div class="edsplit"><div class="edleft">'+
+    '<div class="row" style="gap:8px;margin-bottom:8px"><div class="f" style="margin:0;flex:2"><label>To (수취인)</label><input id="sp_title" value="'+esc(_sp.title)+'" oninput="_sp.title=this.value;spPrev()"></div><div class="f" style="margin:0;flex:3"><label>Address</label><input id="sp_addr" value="'+esc(_sp.addr)+'" oninput="_sp.addr=this.value;spPrev()"></div></div>'+
+    '<div class="edsec" style="margin-bottom:4px">① 대상 인원 <span class="muted" style="font-weight:400">· 그룹명 클릭으로 일괄 선택</span></div><div id="sp_sel" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-height:22vh;overflow:auto;margin-bottom:10px">'+spSelHtml()+'</div>'+
+    '<div class="edsec" style="margin-bottom:4px">② 날짜 기반 — 숙박 (박 단위 체크) <span class="muted" style="font-weight:400">· 날짜 머리글 클릭 = 그 날짜 전체 · 이름 클릭 = 그 사람 전체 · 붉은 칸 = 다른 인보이스에 이미 청구</span></div>'+
+    '<div class="row" style="gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center"><button class="btn sec" style="padding:4px 10px;font-size:11.5px;min-height:0" onclick="spAll(true)">전체 선택</button><button class="btn sec" style="padding:4px 10px;font-size:11.5px;min-height:0" onclick="spAll(false)">전체 해제</button><button class="btn sec" style="padding:4px 10px;font-size:11.5px;min-height:0" onclick="spUnbilled()">미청구 박만 선택</button>'+
+    '<span style="font-size:11.5px;margin-left:6px">범위</span><input type="date" id="sp_r1" style="min-height:0;padding:3px 6px;font-size:11.5px;width:135px"><span style="font-size:11.5px">~</span><input type="date" id="sp_r2" style="min-height:0;padding:3px 6px;font-size:11.5px;width:135px" title="퇴실일(이 날 아침 체크아웃)"><button class="btn sec" style="padding:4px 10px;font-size:11.5px;min-height:0" onclick="spRange(true)">범위 선택</button><button class="btn sec" style="padding:4px 10px;font-size:11.5px;min-height:0" onclick="spRange(false)">범위 해제</button>'+
+    '<label style="font-size:11.5px;margin-left:auto;cursor:pointer"><input type="checkbox" '+(_sp.merge?'checked':'')+' style="width:14px;height:14px;min-height:0;margin:0 4px 0 0" onchange="_sp.merge=this.checked;spPrev()">숙박 통합 표시</label></div>'+
+    '<div id="sp_grid">'+spGridHtml()+'</div>'+
+    '<div class="edsec" style="margin:12px 0 4px">③ 날짜 무관 — 원클릭 포함</div><div id="sp_nd">'+spNonDateHtml()+'</div>'+
+   '</div><div class="edright"><div class="edsec" style="margin-bottom:6px">미리보기 — 저장 시 이 항목들로 새 pending 인보이스가 만들어집니다</div><div id="sp_prev"></div></div></div></div></div>');
+  spPrev();}
+function spPrev(){var el=document.getElementById('sp_prev');if(!el)return;var V={country:_sp.country,title:_sp.title,addr:_sp.addr,member_ids:spMembers().map(function(m){return m.id}),status:'pending',items:spItems()};
+  el.innerHTML='<div style="transform:scale(.78);transform-origin:top left;width:128%">'+invoiceDocA(V,V.items,'sp_doc')+'</div>';
+  var t=document.getElementById('sptot');if(t)t.innerHTML=usdF(spTotal());var g=document.getElementById('sp_grid');if(g){var sc=g.firstElementChild,sl=sc?sc.scrollLeft:0,st=sc?sc.scrollTop:0;g.innerHTML=spGridHtml();var sc2=g.firstElementChild;if(sc2){sc2.scrollLeft=sl;sc2.scrollTop=st;}}var nd=document.getElementById('sp_nd');if(nd)nd.innerHTML=spNonDateHtml();}
+function spSel(id,on){_sp.sel[id]=on;var el=document.getElementById('sp_sel');if(el)el.innerHTML=spSelHtml();spPrev();}
+function spGrpSel(gi,on){var k=(_sp.groups||[])[gi];if(k==null)return;_sp.mem.forEach(function(m){if((m.sub_group||'(no group)')===k)_sp.sel[m.id]=on;});var el=document.getElementById('sp_sel');if(el)el.innerHTML=spSelHtml();spPrev();}
+function spCell(id,d,on){if(_sp.nights[id]&&(d in _sp.nights[id]))_sp.nights[id][d]=on;spPrev();}
+function spColToggle(d){var ms=spMembers();var all=ms.every(function(m){return !(d in _sp.nights[m.id])||_sp.nights[m.id][d]});ms.forEach(function(m){if(d in _sp.nights[m.id])_sp.nights[m.id][d]=!all;});spPrev();}
+function spRowToggle(id){var nm=_sp.nights[id];if(!nm)return;var all=Object.keys(nm).every(function(d){return nm[d]});Object.keys(nm).forEach(function(d){nm[d]=!all});spPrev();}
+function spAll(on){spMembers().forEach(function(m){var nm=_sp.nights[m.id];Object.keys(nm).forEach(function(d){nm[d]=on});});spPrev();}
+function spUnbilled(){spMembers().forEach(function(m){var nm=_sp.nights[m.id],b=_sp.billed[m.id]||{};Object.keys(nm).forEach(function(d){nm[d]=!b[d]});});spPrev();}
+function spRange(on){var a=document.getElementById('sp_r1').value,b=document.getElementById('sp_r2').value;if(!a||!b){alert('범위의 시작일(체크인)과 종료일(체크아웃)을 입력하세요.');return;}
+  spMembers().forEach(function(m){var nm=_sp.nights[m.id];Object.keys(nm).forEach(function(d){if(d>=a&&d<b)nm[d]=on});});spPrev();}
+function spFlag(k,on){_sp[k]=on;spPrev();}
+function spExtra(i,on){if(_sp.extra[i])_sp.extra[i].on=on;spPrev();}
+async function spSave(){var items=spItems();if(!items.length){alert('포함된 항목이 없습니다. 박을 체크하거나 날짜 무관 항목을 켜세요.');return;}
+  var ids=spMembers().map(function(m){return m.id});if(!ids.length){alert('대상 인원을 선택하세요.');return;}
+  var title=(_sp.title||'').trim()||(cnameA(_sp.country)+' — NPC');
+  if(!confirm(_sp.country+' — 새 인보이스(pending)를 만들까요?\n\nTo: '+title+'\n항목 '+items.length+'개 · 합계 '+usdF(spTotal())))return;
+  var row={country:_sp.country,title:title,member_ids:ids,addr:_sp.addr||'',status:'pending',no:'',account:'',approved_at:'',items:items};
+  if(LIVE){var r=await sbc.from('invoices').insert(row).select('id').single();if(r.error){alert('저장 실패: '+r.error.message);return;}try{await fetchAll();}catch(e){}
+    var dm=document.getElementById('dm');if(dm)dm.remove();alert('분할 인보이스가 생성되었습니다. ✔ (#'+r.data.id+' · pending)\n인보이스 목록에서 편집·승인할 수 있습니다.');scrMain();setTimeout(function(){openSec('v');},50);return;}
+  var s=mL();s.invoices=s.invoices||[];var nid=(s._vseq=(s._vseq||1000)+1);row.id=nid;s.invoices.push(row);mS(s);
+  var dm2=document.getElementById('dm');if(dm2)dm2.remove();alert('분할 인보이스 생성(데모) · #'+nid);scrMain();setTimeout(function(){openSec('v');},50);}
 /* ===== 초청장 내용 편집기 (승인 전 수정) ===== */
 var _let=null,_letId=0,_letL=null;
 function editLet(id){var s=dataS();var L=s.invitations.find(function(x){return x.id===id});if(!L)return;_letId=id;_letL=L;
