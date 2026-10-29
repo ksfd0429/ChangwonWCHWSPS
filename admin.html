@@ -2462,7 +2462,30 @@ function _fitSetup(){if(window.MutationObserver&&document.body){try{new Mutation
 if(document.body)_fitSetup();else window.addEventListener('DOMContentLoaded',_fitSetup);
 window.addEventListener('resize',scheduleFit);
 function printEl(id){var n=document.getElementById(id);if(!n){alert('No document');return;}var pa=document.getElementById('pa');pa.innerHTML='<div class="doc">'+n.innerHTML+'</div>';pa.classList.remove('hide');var _dc=pa.querySelector('.doc');pa.classList.toggle('multi',!!(_dc&&_dc.scrollHeight>1125));/* 여러 장으로 흐르는 문서: 넘어간 페이지 상단에도 여백이 생기도록 @page 여백을 인쇄 중에만 적용 */var _fl=pa.classList.contains('multi');pa.classList.toggle('flow',_fl);if(_fl&&!document.getElementById('pgflow')){var _st=document.createElement('style');_st.id='pgflow';_st.textContent='@page{margin:14mm 0 10mm 0}';document.head.appendChild(_st);}window.print();setTimeout(function(){pa.classList.add('hide');pa.classList.remove('multi');pa.classList.remove('flow');var _s=document.getElementById('pgflow');if(_s)_s.remove();},400);}
-function docShow(title,html){infoModal(title+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn" style="background:#2E6B5B;padding:5px 12px;min-height:0;font-size:12px" onclick="draftDoc()">📝 기안(복사)</button> <button class="btn" style="background:#B4550E;padding:5px 12px;min-height:0;font-size:12px" onclick="directEdit()">✏️ 직접 편집</button>',html);}
+/* ===== PDF 저장 (여러 장 자동 분할 · 상하 여백 유지 · 행 중간에서 자르지 않음) ===== */
+async function pdfEl(id,fname){var n=document.getElementById(id);if(!n){alert('No document');return;}
+  async function ld(u){await new Promise(function(res,rej){var s=document.createElement('script');s.src=u;s.onload=res;s.onerror=function(){rej(new Error(u))};document.head.appendChild(s);});}
+  try{if(!window.html2canvas)await ld('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');if(!window.jspdf)await ld('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');}catch(e){alert('PDF 라이브러리를 불러오지 못했습니다. 네트워크를 확인하세요.');return;}
+  var pa=document.getElementById('pa');pa.innerHTML='<div class="doc" id="pdf_doc" style="min-height:0;overflow:visible;display:block;padding-top:0;padding-bottom:8px;box-shadow:none;border:none;border-radius:0;transform:none">'+n.innerHTML+'</div>';
+  pa.classList.remove('hide');pa.style.cssText='position:absolute;left:-20000px;top:0;width:794px';
+  try{
+    var d=document.getElementById('pdf_doc');var W=d.offsetWidth,H=d.scrollHeight;
+    var PW=210,PH=297,MT=14,MB=12,pxmm=W/PW,pageH=Math.floor((PH-MT-MB)*pxmm);
+    var r=d.getBoundingClientRect(),cuts=[];
+    d.querySelectorAll('tr,p,h2,h3,hr,table,.dfoot,.dhead').forEach(function(e){var b=e.getBoundingClientRect();var y=Math.round(b.top-r.top);if(y>0&&y<H)cuts.push(y);});
+    cuts.sort(function(a,b){return a-b});
+    var pages=[],y=0;while(y<H-2){var lim=y+pageH,c=0;if(lim>=H){pages.push([y,H]);break;}for(var i=0;i<cuts.length;i++){if(cuts[i]>y+pageH*0.45&&cuts[i]<=lim)c=cuts[i];}if(!c)c=lim;pages.push([y,c]);y=c;}
+    var cv=await html2canvas(d,{scale:2.5,useCORS:true,backgroundColor:'#ffffff',windowWidth:1568});var sc=cv.width/W;
+    var pdf=new jspdf.jsPDF({unit:'mm',format:'a4'});
+    pages.forEach(function(pg,i){if(i)pdf.addPage();var hp=pg[1]-pg[0];var c2=document.createElement('canvas');c2.width=cv.width;c2.height=Math.max(1,Math.round(hp*sc));
+      c2.getContext('2d').drawImage(cv,0,Math.round(pg[0]*sc),cv.width,c2.height,0,0,cv.width,c2.height);
+      pdf.addImage(c2.toDataURL('image/jpeg',0.93),'JPEG',0,MT,PW,hp/pxmm);
+      if(pages.length>1){pdf.setFontSize(8);pdf.setTextColor(120);pdf.text('Page '+(i+1)+' / '+pages.length,PW-14,PH-6,{align:'right'});}});
+    pdf.save(fname||'document.pdf');
+  }catch(e){alert('PDF 생성 오류: '+(e&&e.message||e));}
+  finally{pa.style.cssText='';pa.classList.add('hide');pa.innerHTML='';}}
+function pdfNameV(){try{var s=dataS();var src=_DRAFTSRC;if(src&&src.kind==='invoice'){var V=(s.invoices||[]).find(function(x){return x.id===src.id});if(V)return 'CW26INV-'+(V.no||'draft')+'_'+V.country+'.pdf';}}catch(e){}return 'document.pdf';}
+function docShow(title,html){infoModal(title+' &nbsp;<button class="btn" style="background:#7A2E1F;padding:5px 12px;min-height:0;font-size:12px" onclick="printEl(\'adm_doc\')">Print / PDF</button> <button class="btn" style="background:#1F4E79;padding:5px 12px;min-height:0;font-size:12px" title="여러 장 자동 분할 · 상하 여백 유지" onclick="pdfEl(\'adm_doc\',pdfNameV())">📄 PDF 저장</button> <button class="btn" style="background:#2E6B5B;padding:5px 12px;min-height:0;font-size:12px" onclick="draftDoc()">📝 기안(복사)</button> <button class="btn" style="background:#B4550E;padding:5px 12px;min-height:0;font-size:12px" onclick="directEdit()">✏️ 직접 편집</button>',html);}
 var _DRAFTSRC=null;
 function buildDraftSeed(src){var s=dataS();if(!src)return null;
  if(src.kind==='invitation'){var L=(s.invitations||[]).find(function(x){return x.id===src.id});if(!L)return null;var mem=s.members.filter(function(m){return m.country===L.country&&(L.member_ids||[]).indexOf(m.id)>=0});return {doc_type:'invitation',country:L.country,slots:{cname:cnameA(L.country),scope:(L.title&&L.title!=='Entire delegation'?L.title:'')},rows:mem.map(function(m){return [memName(m),m.position||'',m.dob||'',((m.arrive||'')+' ~ '+(m.depart||'')),m.passport||'',m.passport_expiry||''];})};}
