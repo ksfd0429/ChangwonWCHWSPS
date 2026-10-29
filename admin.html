@@ -1529,7 +1529,7 @@ function accRowsA(mem,P,merge){var rows=[];
       if(pn>0)rows.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals \u00b7 '+lst.length+' people, all nights combined)',q:pn+' Nights',m:'',p:'* '+rt[1]+' USD =',t:pn*rt[1]});
     }else{var o={};lst.forEach(function(m){var n=nOf(m);(o[n]=o[n]||[]).push(m)});
       Object.keys(o).sort(function(a,b){return a-b}).forEach(function(n){var c=o[n].length;
-        rows.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals)\n\u2014 '+o[n].map(memName).join(', '),q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1]});});}
+        rows.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals)\n\u2014 '+o[n].map(memName).join(',\n\u2014 '),q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1]});});}
   });return rows;}
 function nrmOwner(s){s=String(s==null?'':s);
   try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
@@ -1684,7 +1684,7 @@ function spItems(){var P=_sp.P,items=[];var ms=spMembers();
       items.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals · '+lst.length+' people, '+spRangeLabel(Object.keys(rng))+')',q:pn+' Nights',m:'',p:'* '+rt[1]+' USD =',t:pn*rt[1],nights:meta});
     }else{var g={};lst.forEach(function(x){var k=x.ds.join(',');(g[k]=g[k]||[]).push(x);});
       Object.keys(g).sort(function(a,b){return g[a][0].ds.length-g[b][0].ds.length}).forEach(function(k){var grp=g[k],n=grp[0].ds.length,c=grp.length,meta={};grp.forEach(function(x){meta[x.m.id]=x.ds});
-        items.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals · '+spRangeLabel(grp[0].ds)+')\n— '+grp.map(function(x){return memName(x.m)}).join(', '),q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1],nights:meta});});}
+        items.push({sec:'Accommodation',d:'Hotel Room ('+rt[0]+')',s:'(per person, incl. meals · '+spRangeLabel(grp[0].ds)+')\n— '+grp.map(function(x){return memName(x.m)}).join(',\n\u2014 '),q:n+' Nights',m:'* '+c+' People',p:'* '+rt[1]+' USD =',t:n*c*rt[1],nights:meta});});}
   });
   if(_sp.tr&&ms.length)items.push({sec:'Transportation',d:'Transportation — Option 1',s:'(ICN/PUS → ground vehicle → Changwon)',q:ms.length+' People',m:'',p:'* '+P.tr1+' USD =',t:ms.length*P.tr1});
   var fa=ms.filter(function(m){return (m.position||'Athlete')==='Athlete'}).length;
